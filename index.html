@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>바이킹 문명 생산 계산기 시뮬레이터</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<style>
+:root{
+  --font:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+  --primary:#17324f;--primary-2:#426b91;--primary-dark:#10263d;
+  --page:#e7edf0;--panel:#f9fbfc;--text:#263640;--muted:#62737d;
+  --border:#9fb0ba;--soft:#d9e3e8;--soft-2:#eef3f5;
+  --input:#fff0b8;--input-border:#c6a13a;--input-focus:#9e7b18;
+  --ok-bg:#d9f4e6;--ok:#17603f;--bad-bg:#fde2e2;--bad:#9a2929;
+  --accent:#b58a36;--ice:#d9edf5;
+}
+*{box-sizing:border-box}
+body{font-family:var(--font);color:var(--text);background:var(--page);margin:0;padding:16px;font-size:13px}
+h1{font-size:20px;margin:0 0 12px;color:var(--primary-dark)}
+h2{font-size:15px;margin:16px 0 8px;padding-left:8px;border-left:4px solid var(--primary-2);color:var(--primary-dark)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tab{padding:8px 14px;cursor:pointer;border:1px solid transparent;border-bottom:none;background:none;font:inherit;color:var(--muted)}
+.tab.active{background:var(--panel);border-color:var(--border);border-radius:8px 8px 0 0;color:var(--primary);font-weight:800;margin-bottom:-1px}
+.tab:not(.active){background:#dfe8ec;border-color:#aebdc6;border-radius:8px 8px 0 0;color:#365364;font-weight:700}
+.panel{display:none}.panel.active{display:block}
+.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:5px}.legend-box{width:14px;height:14px;border-radius:3px;border:1px solid}
+.legend-input{background:var(--input);border-color:var(--input-border)}.legend-calc{background:var(--soft-2);border-color:var(--border)}
+.settings{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:100%}
+.settings label{font-size:12px;font-weight:800;color:#38515f;white-space:nowrap}.settings .spacer{flex:1 1 20px}
+#panel-prod>.settings{width:1200px}
+#panel-wonder>.settings{width:700px}
+.wonder-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:58px}
+.sleep-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:48px}
+.sleep-settings .sleep-time-wrap{width:92px}
+.sleep-settings .sleep-time-wrap input{width:72px;min-width:0}
+.bonus-box{display:flex;flex-wrap:wrap;gap:8px 18px;padding:9px 12px;background:#dce9ee;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:12px;max-width:100%}
+#panel-prod>.bonus-box{width:1200px}
+.bonus-item{display:flex;gap:6px;align-items:baseline}.bonus-item b{color:var(--primary-dark)}
+.table-wrap{overflow-x:auto;position:relative}
+table{border-collapse:separate;border-spacing:0;margin-bottom:4px;font-size:12px;table-layout:fixed}
+th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 8px;text-align:center;vertical-align:middle}
+th:first-child,td:first-child{border-left:1px solid var(--border)} thead tr:first-child th{border-top:1px solid var(--border)}
+th{background:var(--primary);font-weight:800;font-size:11px;color:white;position:sticky;top:0;z-index:3}
+th:first-child{left:0;z-index:5}td:first-child{position:sticky;left:0;z-index:2}
+td.name{background:var(--soft);color:var(--primary-dark);font-weight:800}
+td.calc{background:var(--soft-2);color:#35525f}
+td.input-cell,td.fixed-input{background:var(--input);padding:2px 4px;position:relative}
+td.input-cell::before,td.fixed-input::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--input-border)}
+td.fixed-input{padding:5px 8px}
+.num{font-variant-numeric:tabular-nums}
+input,select{font:inherit;font-size:12px;border:1px solid var(--input-border);background:#fff8d9;padding:4px 6px;border-radius:4px;width:100%;min-width:60px;color:#243a45}
+input:focus,select:focus{outline:none;border-color:var(--input-focus);box-shadow:0 0 0 2px rgba(158,123,24,.15)}
+input[type=number]{text-align:center}select{cursor:pointer;text-align:center;text-align-last:center}
+.settings input,.settings select{width:auto;min-width:90px}
+.reset-btn{padding:6px 12px;background:#f7e0df;color:#8e2d2d;border:1px solid #e6b5b2;border-radius:5px;cursor:pointer;font:700 12px var(--font)}
+.reset-btn:hover{background:#efcccc}.reset-status{min-width:70px;font-size:12px;font-weight:800;color:var(--primary)}
+.remain-ok{background:var(--ok-bg)!important;color:var(--ok)!important;font-weight:800}
+.remain-bad{background:var(--bad-bg)!important;color:var(--bad)!important;font-weight:800}
+.note{font-size:11px;color:#50636e;line-height:1.7;padding:9px 12px;background:#f4f8f9;border:1px solid var(--border);border-radius:8px;margin-top:10px;max-width:100%}
+#panel-prod>.note,#panel-wonder>.note{width:max-content;max-width:none;white-space:nowrap}
+.step-wrap{display:flex;align-items:stretch;width:100%;min-width:72px}
+.step-wrap input{min-width:0;border-radius:4px 0 0 4px;border-right:0}
+.step-controls{width:20px;display:flex;flex-direction:column;flex:0 0 20px}
+.step-btn{flex:1;min-height:12px;padding:0;border:1px solid var(--input-border);background:#fff2bd;color:#58666e;font-size:8px;line-height:1;cursor:pointer}
+.step-btn:first-child{border-radius:0 4px 0 0;border-bottom:0}.step-btn:last-child{border-radius:0 0 4px 0}
+.step-btn:hover{background:#ead992;color:#2a3f49}
+.step-one::-webkit-inner-spin-button,.step-one::-webkit-outer-spin-button,.stock-input::-webkit-inner-spin-button,.stock-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.step-one,.stock-input{-moz-appearance:textfield}
+.settings .step-wrap{width:92px}.settings .step-wrap input{width:72px;min-width:0}
+.section-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;margin-bottom:8px}.section-title-row h2{margin:0}
+.detail-open-btn,.convert-toggle{padding:7px 11px;background:#dce9ee;color:var(--primary-dark);border:1px solid var(--border);border-radius:6px;cursor:pointer;font:800 12px var(--font);min-height:36px;white-space:nowrap}
+.detail-open-btn:hover,.convert-toggle:hover{background:#cbdde5}.detail-summary{font-size:11px;color:var(--muted)}
+.detail-badge{display:inline-block;margin-left:4px;padding:1px 4px;border-radius:4px;background:#dcecf4;color:#235269;font-size:9px;font-weight:900;vertical-align:1px}
+.detail-active-cell{background:#e4f0f5!important;color:#24566c!important;font-weight:800}
+.power-layout{display:flex;align-items:flex-start;gap:8px;margin-top:8px}.power-main{flex:0 0 auto}.power-side{flex:0 0 auto}.convert-panel[hidden]{display:none}
+.badge-warn{display:inline-block;padding:2px 6px;border-radius:4px;background:#fff3cd;color:#7b5b00;font-weight:800}
+.divider-top td{border-top:3px solid var(--primary-2)}
+/* ===== 공통 표 셀 규격: 모든 표 1칸 100px ===== */
+#tBase,#tMid,#tTreasure,#tGoal,#tSleep,#tPower,#tConvert{
+  table-layout:fixed !important;
+  border-spacing:0 !important;
+}
+#tBase{width:1000px !important;min-width:1000px !important;}
+#tMid{width:1200px !important;min-width:1200px !important;}
+#tTreasure{width:1000px !important;min-width:1000px !important;}
+#tGoal{width:600px !important;min-width:600px !important;}
+#tSleep{width:700px !important;min-width:700px !important;}
+#tPower{width:500px !important;min-width:500px !important;}
+#tConvert{width:700px !important;min-width:700px !important;}
+#tBase th,#tBase td,#tMid th,#tMid td,#tTreasure th,#tTreasure td,
+#tGoal th,#tGoal td,#tSleep th,#tSleep td,#tPower th,#tPower td,#tConvert th,#tConvert td{
+  box-sizing:border-box !important;
+  width:100px !important;min-width:100px !important;max-width:100px !important;
+  height:30px !important;min-height:30px !important;
+  padding:4px 6px !important;line-height:20px !important;vertical-align:middle !important;
+}
+#tBase th,#tMid th,#tTreasure th,#tGoal th,#tSleep th,#tPower th,#tConvert th{white-space:nowrap;}
+/* modal */
+.detail-modal[hidden]{display:none}.detail-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.detail-backdrop{position:absolute;inset:0;background:rgba(21,40,50,.48)}.detail-sheet{position:relative;z-index:1;width:min(860px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.18)}
+.detail-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px}.detail-head h3{font-size:16px;margin:0;color:var(--primary-dark)}.detail-head p{font-size:11px;margin:4px 0 0;color:var(--muted);line-height:1.5}
+.detail-close{width:40px;height:40px;border:1px solid var(--border);border-radius:8px;background:var(--soft-2);color:var(--primary);cursor:pointer;font-size:20px}
+.detail-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:10px}.detail-tab{min-height:40px;border:1px solid var(--border);border-radius:7px;background:var(--soft-2);color:#38515f;cursor:pointer;font:800 12px var(--font);padding:6px}
+.detail-tab.active{background:var(--primary);color:white;border-color:var(--primary)}.detail-tab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#72b6d5;margin-left:3px}.detail-tab.active .dot{background:white}
+.detail-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:#f3f7f9;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.detail-field{display:flex;flex-direction:column;gap:4px;min-width:0}.detail-field label{font-size:11px;font-weight:800;color:#38515f}.detail-field input,.detail-field select{min-height:40px;font-size:14px}
+.detail-toggle-wrap{display:flex;align-items:center;gap:8px;min-height:40px}.detail-toggle-wrap input{width:18px;height:18px;min-width:18px}.detail-toggle-wrap label{font-size:12px;font-weight:800}
+.detail-help,.detail-result{font-size:11px;line-height:1.6;border-radius:7px;padding:8px 10px;margin-bottom:8px}.detail-help{color:#50636e;background:#fff8d9;border:1px solid var(--input-border)}.detail-result{color:#38515f;background:#dce9ee;border:1px solid var(--border)}
+.detail-rows{display:flex;flex-direction:column;gap:7px}.detail-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:7px;align-items:end;padding:9px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px}
+.detail-row .detail-field input,.detail-row .detail-field select{background:#fff8d9}.detail-row-note{grid-column:1/-1;font-size:10px;color:var(--muted);line-height:1.45}
+.detail-remove{width:40px;height:40px;border:1px solid #e8b8b6;border-radius:7px;background:#f7e0df;color:#8e2d2d;cursor:pointer;font:900 16px var(--font)}
+.detail-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:9px}.detail-add{min-height:40px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:#dce9ee;color:var(--primary);cursor:pointer;font:800 12px var(--font)}.detail-add:disabled{opacity:.45;cursor:not-allowed}.detail-disabled{opacity:.62}
+body.detail-modal-open{overflow:hidden}
+@media(max-width:1260px){.power-layout{flex-direction:column;width:100%}.power-main,.power-side{width:100%}}
+@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
+</style>
+</head>
+<body>
+<h1>바이킹 문명 생산 계산기 시뮬레이터</h1>
+<div class="legend">
+  <div class="legend-item"><span class="legend-box legend-input"></span>입력 가능 (노란색)</div>
+  <div class="legend-item"><span class="legend-box legend-calc"></span>자동 계산</div>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="prod">생산 계산기</button>
+  <button class="tab" data-tab="wonder">불가사의 계산기</button>
+</div>
+
+<section id="panel-prod" class="panel active">
+  <div class="settings">
+    <label for="wonderName">불가사의</label>
+    <select id="wonderName"><option>발할라</option><option>위그드라실</option><option>드래곤십 엘리다</option></select>
+    <label for="bonusLv">보너스 적용 레벨</label>
+    <div class="step-wrap"><input id="bonusLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <label for="baseH">일괄 운영 시간(h)</label>
+    <div class="step-wrap"><input id="baseH" class="step-one" type="number" min="0" step="any"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <button id="resetBtn" class="reset-btn" type="button">입력값 초기화</button><span id="resetStatus" class="reset-status"></span>
+  </div>
+  <div id="bonusBox" class="bonus-box"></div>
+
+  <div class="section-title-row"><h2>기초 자원 (꿀 · 생선)</h2><button id="baseDetailOpen" class="detail-open-btn" type="button">기초 자원 상세 설정</button><span id="baseDetailSummary" class="detail-summary">상세 설정 미사용</span></div>
+  <div class="table-wrap"><table id="tBase"><thead><tr>
+    <th>기초 자원</th><th>레벨</th><th>생산 방식</th><th>건물 수</th><th>운영 시간(h)</th><th>현재 보유량</th><th>잔여/부족</th><th>예상 생산량</th><th>필요량</th><th>소요 시간(h)</th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <div class="section-title-row"><h2>중간 상품 (미드 · 건어물)</h2><button id="midDetailOpen" class="detail-open-btn" type="button">중간 상품 상세 설정</button><span id="midDetailSummary" class="detail-summary">상세 설정 미사용</span></div>
+  <div class="table-wrap"><table id="tMid"><thead><tr>
+    <th>중간 상품</th><th>레벨</th><th>생산 방식</th><th>건물 수</th><th>운영 시간(h)</th><th>현재 보유량</th><th>잔여/부족</th><th>예상 생산량</th><th>필요량</th><th>꿀 사용량</th><th>생선 사용량</th><th>소요 시간(h)</th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <div class="section-title-row"><h2>최종 상품 (도자기 · 황금 · 향신료 · 보석)</h2><button id="treasureDetailOpen" class="detail-open-btn" type="button">최종 상품 상세 설정</button><span id="treasureDetailSummary" class="detail-summary">상세 설정 미사용</span></div>
+  <div class="table-wrap"><table id="tTreasure"><thead><tr>
+    <th>상품</th><th>레벨</th><th>생산 방식</th><th>건물 수</th><th>운영 시간(h)</th><th>현재 보유량</th><th>상품 생산량</th><th>생선 사용량</th><th>미드 사용량</th><th>건어물 사용량</th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <div class="note">
+    1. <b>불가사의</b>와 <b>보너스 적용 레벨</b>을 입력하면 선택한 불가사의의 생산 보너스가 자동 반영됩니다. <b>일괄 운영 시간</b>은 일반 설정과 상세 설정에서 운영 시간을 비워둔 경우 적용됩니다.<br>
+    2. <b>기초 자원</b>은 현재 보유량과 예상 생산량을 기준으로 필요한 꿀·생선의 충족 여부와 소요시간을 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 기초 자원이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
+    3. <b>중간 상품</b>은 미드·건어물의 예상 생산량과 최종 상품 생산에 필요한 사용량을 계산하며, 이에 필요한 꿀·생선 사용량을 함께 반영합니다.<br>
+    4. <b>최종 상품</b>의 설정을 기준으로 예상 생산량과 중간 상품 사용량을 계산합니다.
+  </div>
+</section>
+
+<section id="panel-wonder" class="panel">
+  <div class="settings wonder-settings">
+    <label for="curLv">현재 레벨</label>
+    <div class="step-wrap settings-step"><input id="curLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <label for="tgtLv">목표 레벨</label>
+    <div class="step-wrap settings-step"><input id="tgtLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <button id="convertToggle" class="convert-toggle" type="button" aria-expanded="false">생산력 환산표 보기</button>
+    <span class="spacer"></span>
+  </div>
+  <h2>목표 달성 현황</h2>
+  <div class="table-wrap"><table id="tGoal"><thead><tr>
+    <th>최종 상품</th><th>잔여/부족</th><th>구간 필요량</th><th>예상 생산량</th><th>예상 보유량</th><th>소요 시간(h)</th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <div class="section-title-row"><h2>수면 대비 자원 확보</h2></div>
+  <div class="settings sleep-settings">
+    <label for="sleepPrepH">수면까지 남은 시간(h)</label>
+    <div class="step-wrap sleep-time-wrap"><input id="sleepPrepH" class="step-one" type="number" min="0" step="any" placeholder="일괄"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <label for="sleepCycle">수면 중 생산 주기</label>
+    <select id="sleepCycle"><option value="30분">30분</option><option value="1시간">1시간</option><option value="2시간">2시간</option></select>
+    <label for="sleepCount">생산 횟수</label>
+    <div class="step-wrap"><input id="sleepCount" class="step-one" type="number" min="0" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+  </div>
+  <div class="table-wrap"><table id="tSleep"><thead><tr>
+    <th>자원</th><th>생산력 차이</th><th>현재 생산력</th><th>필요 생산력</th><th>필요량</th><th>예상 확보량</th><th>잔여/부족</th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <div class="section-title-row"><h2>목표 레벨 생산력 비교</h2></div>
+  <div class="power-layout">
+    <div class="power-main"><div class="table-wrap"><table id="tPower"><thead><tr>
+      <th>생산 항목</th><th>생산력 차이</th><th>현재 생산력</th><th>필요 생산력</th><th>기준 필요량</th>
+    </tr></thead><tbody></tbody></table></div></div>
+    <div id="convertPanel" class="power-side convert-panel" hidden><div class="table-wrap"><table id="tConvert"><thead><tr>
+      <th>생산 항목</th><th>생산 방식</th><th>Lv2</th><th>Lv3</th><th>Lv4</th><th>Lv5</th><th>Lv6</th>
+    </tr></thead><tbody></tbody></table></div></div>
+  </div>
+
+  <div class="note">
+    1. <b>목표 달성 현황</b>은 <b>현재 레벨</b>과 <b>목표 레벨</b>을 기준으로 필요한 최종 상품량과 목표 달성 여부를 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 최종 상품이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
+    2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
+    3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
+    ※ <b>생산력</b>은 현재 선택한 생산 방식의 <b>Lv6 건물 1개를 100</b>으로 둔 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력을 나타내며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표를 충족하는 데 필요한 생산 능력을 환산한 값입니다.
+  </div>
+</section>
+
+<div id="detailModal" class="detail-modal" hidden aria-hidden="true">
+  <div class="detail-backdrop" data-detail-close></div>
+  <div class="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="detail-head"><div><h3 id="detailTitle">상세 설정</h3><p id="detailSubtitle">같은 생산 건물 안에서 레벨·건물 수·운영 시간을 나누어 입력할 수 있습니다. 생산 방식은 건물별로 공통 적용됩니다.</p></div><button class="detail-close" type="button" data-detail-close>×</button></div>
+    <div id="detailTabs" class="detail-tabs"></div>
+    <div class="detail-toolbar">
+      <div class="detail-toggle-wrap"><input id="detailEnabled" type="checkbox"><label for="detailEnabled">이 항목에 상세 설정 적용</label></div>
+      <div class="detail-field"><label for="detailMode">생산 방식</label><select id="detailMode"></select></div>
+    </div>
+    <div id="detailHelp" class="detail-help"></div>
+    <div id="detailResult" class="detail-result"></div>
+    <div id="detailRows" class="detail-rows"></div>
+    <div class="detail-footer"><button id="detailAdd" class="detail-add" type="button">건물 구성 추가</button><span class="detail-summary">최대 20개 구성</span></div>
+  </div>
+</div>
+
+<script>
+const RAW=[{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":1,"mode":"연속(6시간 기준)","min":360.0,"out1qty":6000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":2,"mode":"연속(6시간 기준)","min":360.0,"out1qty":9000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":3,"mode":"연속(6시간 기준)","min":360.0,"out1qty":13500.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":4,"mode":"연속(6시간 기준)","min":360.0,"out1qty":20500.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":5,"mode":"연속(6시간 기준)","min":360.0,"out1qty":31000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"벌통","out1":"꿀","out2":null,"lv":6,"mode":"연속(6시간 기준)","min":360.0,"out1qty":46500.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":1,"mode":"연속(6시간 기준)","min":360.0,"out1qty":7500.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":2,"mode":"연속(6시간 기준)","min":360.0,"out1qty":11500.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":3,"mode":"연속(6시간 기준)","min":360.0,"out1qty":17000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":4,"mode":"연속(6시간 기준)","min":360.0,"out1qty":34000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":5,"mode":"연속(6시간 기준)","min":360.0,"out1qty":51000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"기초 자원","building":"어업 부두","out1":"생선","out2":null,"lv":6,"mode":"연속(6시간 기준)","min":360.0,"out1qty":77000.0,"out2qty":0.0,"mat1":null,"use1":0.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":1,"mode":"1분","min":1.0,"out1qty":15.0,"out2qty":0.0,"mat1":"꿀","use1":40.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":2,"mode":"5분","min":5.0,"out1qty":100.0,"out2qty":0.0,"mat1":"꿀","use1":250.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":2,"mode":"30분","min":30.0,"out1qty":550.0,"out2qty":0.0,"mat1":"꿀","use1":1400.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":2,"mode":"1시간","min":60.0,"out1qty":950.0,"out2qty":0.0,"mat1":"꿀","use1":2400.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":3,"mode":"30분","min":30.0,"out1qty":900.0,"out2qty":0.0,"mat1":"꿀","use1":2300.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":3,"mode":"1시간","min":60.0,"out1qty":1600.0,"out2qty":0.0,"mat1":"꿀","use1":4100.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":3,"mode":"2시간","min":120.0,"out1qty":2900.0,"out2qty":0.0,"mat1":"꿀","use1":7400.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":4,"mode":"30분","min":30.0,"out1qty":1350.0,"out2qty":0.0,"mat1":"꿀","use1":3400.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":4,"mode":"1시간","min":60.0,"out1qty":2400.0,"out2qty":0.0,"mat1":"꿀","use1":6100.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":4,"mode":"2시간","min":120.0,"out1qty":4300.0,"out2qty":0.0,"mat1":"꿀","use1":11000.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":4,"mode":"30분","min":30.0,"out1qty":500.0,"out2qty":0.0,"mat1":"꿀","use1":3350.0,"mat2":"생선","use2":4550.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":4,"mode":"1시간","min":60.0,"out1qty":900.0,"out2qty":0.0,"mat1":"꿀","use1":6000.0,"mat2":"생선","use2":8200.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":4,"mode":"2시간","min":120.0,"out1qty":1600.0,"out2qty":0.0,"mat1":"꿀","use1":10700.0,"mat2":"생선","use2":14500.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":5,"mode":"30분","min":30.0,"out1qty":2000.0,"out2qty":0.0,"mat1":"꿀","use1":5100.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":5,"mode":"1시간","min":60.0,"out1qty":3600.0,"out2qty":0.0,"mat1":"꿀","use1":9200.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":5,"mode":"2시간","min":120.0,"out1qty":6400.0,"out2qty":0.0,"mat1":"꿀","use1":16300.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":5,"mode":"30분","min":30.0,"out1qty":750.0,"out2qty":0.0,"mat1":"꿀","use1":5050.0,"mat2":"생선","use2":6800.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":5,"mode":"1시간","min":60.0,"out1qty":1350.0,"out2qty":0.0,"mat1":"꿀","use1":9100.0,"mat2":"생선","use2":12250.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":5,"mode":"2시간","min":120.0,"out1qty":2400.0,"out2qty":0.0,"mat1":"꿀","use1":16150.0,"mat2":"생선","use2":21800.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":6,"mode":"30분","min":30.0,"out1qty":3100.0,"out2qty":0.0,"mat1":"꿀","use1":7800.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":6,"mode":"1시간","min":60.0,"out1qty":5600.0,"out2qty":0.0,"mat1":"꿀","use1":14300.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"미드","out1":"미드","out2":null,"lv":6,"mode":"2시간","min":120.0,"out1qty":10000.0,"out2qty":0.0,"mat1":"꿀","use1":25500.0,"mat2":null,"use2":0.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":6,"mode":"30분","min":30.0,"out1qty":1150.0,"out2qty":0.0,"mat1":"꿀","use1":7550.0,"mat2":"생선","use2":10500.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":6,"mode":"1시간","min":60.0,"out1qty":2100.0,"out2qty":0.0,"mat1":"꿀","use1":13800.0,"mat2":"생선","use2":19200.0,"status":"웹 원본 확정"},{"type":"중간 상품","building":"건어물","out1":"건어물","out2":null,"lv":6,"mode":"2시간","min":120.0,"out1qty":3700.0,"out2qty":0.0,"mat1":"꿀","use1":24300.0,"mat2":"생선","use2":33800.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":1,"mode":"1분","min":1.0,"out1qty":5.0,"out2qty":4.0,"mat1":"미드","use1":20.0,"mat2":"생선","use2":40.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":2,"mode":"5분","min":5.0,"out1qty":25.0,"out2qty":20.0,"mat1":"미드","use1":100.0,"mat2":"생선","use2":200.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":2,"mode":"30분","min":30.0,"out1qty":135.0,"out2qty":115.0,"mat1":"미드","use1":550.0,"mat2":"생선","use2":1100.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":2,"mode":"1시간","min":60.0,"out1qty":240.0,"out2qty":200.0,"mat1":"미드","use1":950.0,"mat2":"생선","use2":1900.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":2,"mode":"1시간 · 도자기 단일","min":60.0,"out1qty":430.0,"out2qty":0.0,"mat1":"미드","use1":950.0,"mat2":"생선","use2":1900.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":2,"mode":"1시간 · 황금 단일","min":60.0,"out1qty":0.0,"out2qty":360.0,"mat1":"미드","use1":950.0,"mat2":"생선","use2":1900.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":3,"mode":"30분","min":30.0,"out1qty":225.0,"out2qty":190.0,"mat1":"미드","use1":900.0,"mat2":"생선","use2":1900.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":3,"mode":"1시간","min":60.0,"out1qty":400.0,"out2qty":340.0,"mat1":"미드","use1":1600.0,"mat2":"생선","use2":3400.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":3,"mode":"2시간","min":120.0,"out1qty":720.0,"out2qty":610.0,"mat1":"미드","use1":2900.0,"mat2":"생선","use2":6100.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":3,"mode":"2시간 · 도자기 단일","min":120.0,"out1qty":1300.0,"out2qty":0.0,"mat1":"미드","use1":2900.0,"mat2":"생선","use2":6100.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":3,"mode":"2시간 · 황금 단일","min":120.0,"out1qty":0.0,"out2qty":1100.0,"mat1":"미드","use1":2900.0,"mat2":"생선","use2":6100.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":4,"mode":"30분","min":30.0,"out1qty":350.0,"out2qty":300.0,"mat1":"미드","use1":1350.0,"mat2":"생선","use2":3750.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":4,"mode":"1시간","min":60.0,"out1qty":630.0,"out2qty":540.0,"mat1":"미드","use1":2400.0,"mat2":"생선","use2":6750.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":4,"mode":"2시간","min":120.0,"out1qty":1120.0,"out2qty":950.0,"mat1":"미드","use1":4300.0,"mat2":"생선","use2":12000.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":4,"mode":"2시간 · 도자기 단일","min":120.0,"out1qty":2000.0,"out2qty":0.0,"mat1":"미드","use1":4300.0,"mat2":"생선","use2":12000.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":4,"mode":"2시간 · 황금 단일","min":120.0,"out1qty":0.0,"out2qty":1700.0,"mat1":"미드","use1":4300.0,"mat2":"생선","use2":12000.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":5,"mode":"30분","min":30.0,"out1qty":520.0,"out2qty":440.0,"mat1":"미드","use1":2050.0,"mat2":"생선","use2":5650.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":5,"mode":"1시간","min":60.0,"out1qty":950.0,"out2qty":800.0,"mat1":"미드","use1":3700.0,"mat2":"생선","use2":10200.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":5,"mode":"2시간","min":120.0,"out1qty":1700.0,"out2qty":1450.0,"mat1":"미드","use1":6500.0,"mat2":"생선","use2":18000.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":5,"mode":"2시간 · 도자기 단일","min":120.0,"out1qty":3050.0,"out2qty":0.0,"mat1":"미드","use1":6500.0,"mat2":"생선","use2":18000.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":5,"mode":"2시간 · 황금 단일","min":120.0,"out1qty":0.0,"out2qty":2600.0,"mat1":"미드","use1":6500.0,"mat2":"생선","use2":18000.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":6,"mode":"30분","min":30.0,"out1qty":800.0,"out2qty":670.0,"mat1":"미드","use1":3100.0,"mat2":"생선","use2":8550.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":6,"mode":"1시간","min":60.0,"out1qty":1450.0,"out2qty":1240.0,"mat1":"미드","use1":5600.0,"mat2":"생선","use2":15400.0,"status":"웹 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":6,"mode":"2시간","min":120.0,"out1qty":2550.0,"out2qty":2150.0,"mat1":"미드","use1":9900.0,"mat2":"생선","use2":27300.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":6,"mode":"2시간 · 도자기 단일","min":120.0,"out1qty":4600.0,"out2qty":0.0,"mat1":"미드","use1":9900.0,"mat2":"생선","use2":27300.0,"status":"코드 원본 확정"},{"type":"1차 보물","building":"원정 부두","out1":"도자기 보물","out2":"황금 보물","lv":6,"mode":"2시간 · 황금 단일","min":120.0,"out1qty":0.0,"out2qty":3950.0,"mat1":"미드","use1":9900.0,"mat2":"생선","use2":27300.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":1,"mode":"1분","min":1.0,"out1qty":3.0,"out2qty":2.0,"mat1":"미드","use1":5.0,"mat2":"건어물","use2":3.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":2,"mode":"5분","min":5.0,"out1qty":15.0,"out2qty":10.0,"mat1":"미드","use1":40.0,"mat2":"건어물","use2":30.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":2,"mode":"30분","min":30.0,"out1qty":80.0,"out2qty":55.0,"mat1":"미드","use1":210.0,"mat2":"건어물","use2":160.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":2,"mode":"1시간","min":60.0,"out1qty":145.0,"out2qty":100.0,"mat1":"미드","use1":390.0,"mat2":"건어물","use2":290.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":2,"mode":"1시간 · 향신료 단일","min":60.0,"out1qty":260.0,"out2qty":0.0,"mat1":"미드","use1":390.0,"mat2":"건어물","use2":290.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":2,"mode":"1시간 · 보석 단일","min":60.0,"out1qty":0.0,"out2qty":180.0,"mat1":"미드","use1":390.0,"mat2":"건어물","use2":290.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":3,"mode":"30분","min":30.0,"out1qty":150.0,"out2qty":125.0,"mat1":"미드","use1":360.0,"mat2":"건어물","use2":260.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":3,"mode":"1시간","min":60.0,"out1qty":270.0,"out2qty":230.0,"mat1":"미드","use1":650.0,"mat2":"건어물","use2":470.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":3,"mode":"2시간","min":120.0,"out1qty":480.0,"out2qty":400.0,"mat1":"미드","use1":1150.0,"mat2":"건어물","use2":830.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":3,"mode":"2시간 · 향신료 단일","min":120.0,"out1qty":870.0,"out2qty":0.0,"mat1":"미드","use1":1150.0,"mat2":"건어물","use2":830.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":3,"mode":"2시간 · 보석 단일","min":120.0,"out1qty":0.0,"out2qty":720.0,"mat1":"미드","use1":1150.0,"mat2":"건어물","use2":830.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":4,"mode":"30분","min":30.0,"out1qty":230.0,"out2qty":200.0,"mat1":"미드","use1":540.0,"mat2":"건어물","use2":530.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":4,"mode":"1시간","min":60.0,"out1qty":410.0,"out2qty":360.0,"mat1":"미드","use1":960.0,"mat2":"건어물","use2":950.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":4,"mode":"2시간","min":120.0,"out1qty":730.0,"out2qty":640.0,"mat1":"미드","use1":1700.0,"mat2":"건어물","use2":1680.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":4,"mode":"2시간 · 향신료 단일","min":120.0,"out1qty":1300.0,"out2qty":0.0,"mat1":"미드","use1":1700.0,"mat2":"건어물","use2":1680.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":4,"mode":"2시간 · 보석 단일","min":120.0,"out1qty":0.0,"out2qty":1150.0,"mat1":"미드","use1":1700.0,"mat2":"건어물","use2":1680.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":5,"mode":"30분","min":30.0,"out1qty":350.0,"out2qty":300.0,"mat1":"미드","use1":820.0,"mat2":"건어물","use2":790.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":5,"mode":"1시간","min":60.0,"out1qty":630.0,"out2qty":540.0,"mat1":"미드","use1":1500.0,"mat2":"건어물","use2":1430.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":5,"mode":"2시간","min":120.0,"out1qty":1100.0,"out2qty":960.0,"mat1":"미드","use1":2580.0,"mat2":"건어물","use2":2500.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":5,"mode":"2시간 · 향신료 단일","min":120.0,"out1qty":2000.0,"out2qty":0.0,"mat1":"미드","use1":2580.0,"mat2":"건어물","use2":2500.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":5,"mode":"2시간 · 보석 단일","min":120.0,"out1qty":0.0,"out2qty":1750.0,"mat1":"미드","use1":2580.0,"mat2":"건어물","use2":2500.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":6,"mode":"30분","min":30.0,"out1qty":500.0,"out2qty":430.0,"mat1":"미드","use1":1250.0,"mat2":"건어물","use2":1200.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":6,"mode":"1시간","min":60.0,"out1qty":900.0,"out2qty":770.0,"mat1":"미드","use1":2250.0,"mat2":"건어물","use2":2150.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":6,"mode":"2시간","min":120.0,"out1qty":1600.0,"out2qty":1380.0,"mat1":"미드","use1":4000.0,"mat2":"건어물","use2":3850.0,"status":"웹 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":6,"mode":"2시간 · 향신료 단일","min":120.0,"out1qty":2900.0,"out2qty":0.0,"mat1":"미드","use1":4000.0,"mat2":"건어물","use2":3850.0,"status":"코드 원본 확정"},{"type":"2차 보물","building":"선원 항구","out1":"향신료 보물","out2":"보석 보물","lv":6,"mode":"2시간 · 보석 단일","min":120.0,"out1qty":0.0,"out2qty":2500.0,"mat1":"미드","use1":4000.0,"mat2":"건어물","use2":3850.0,"status":"코드 원본 확정"}];
+const WONDER_NEEDS={"0":{"도자기 보물":0.0,"황금 보물":0.0,"향신료 보물":0.0,"보석 보물":0.0},"1":{"도자기 보물":3.0,"황금 보물":2.0,"향신료 보물":0.0,"보석 보물":0.0},"2":{"도자기 보물":10.0,"황금 보물":6.0,"향신료 보물":0.0,"보석 보물":0.0},"3":{"도자기 보물":15.0,"황금 보물":9.0,"향신료 보물":0.0,"보석 보물":0.0},"4":{"도자기 보물":25.0,"황금 보물":15.0,"향신료 보물":0.0,"보석 보물":0.0},"5":{"도자기 보물":50.0,"황금 보물":50.0,"향신료 보물":0.0,"보석 보물":0.0},"6":{"도자기 보물":150.0,"황금 보물":150.0,"향신료 보물":0.0,"보석 보물":0.0},"7":{"도자기 보물":100.0,"황금 보물":75.0,"향신료 보물":0.0,"보석 보물":0.0},"8":{"도자기 보물":150.0,"황금 보물":125.0,"향신료 보물":0.0,"보석 보물":0.0},"9":{"도자기 보물":200.0,"황금 보물":175.0,"향신료 보물":0.0,"보석 보물":0.0},"10":{"도자기 보물":300.0,"황금 보물":270.0,"향신료 보물":0.0,"보석 보물":0.0},"11":{"도자기 보물":720.0,"황금 보물":630.0,"향신료 보물":0.0,"보석 보물":0.0},"12":{"도자기 보물":900.0,"황금 보물":780.0,"향신료 보물":0.0,"보석 보물":0.0},"13":{"도자기 보물":1260.0,"황금 보물":1050.0,"향신료 보물":0.0,"보석 보물":0.0},"14":{"도자기 보물":1365.0,"황금 보물":1155.0,"향신료 보물":0.0,"보석 보물":0.0},"15":{"도자기 보물":1800.0,"황금 보물":1560.0,"향신료 보물":0.0,"보석 보물":0.0},"16":{"도자기 보물":2295.0,"황금 보물":1980.0,"향신료 보물":0.0,"보석 보물":0.0},"17":{"도자기 보물":2850.0,"황금 보물":2400.0,"향신료 보물":0.0,"보석 보물":0.0},"18":{"도자기 보물":3150.0,"황금 보물":2700.0,"향신료 보물":0.0,"보석 보물":0.0},"19":{"도자기 보물":3450.0,"황금 보물":2950.0,"향신료 보물":0.0,"보석 보물":0.0},"20":{"도자기 보물":6000.0,"황금 보물":5100.0,"향신료 보물":0.0,"보석 보물":0.0},"21":{"도자기 보물":3750.0,"황금 보물":3250.0,"향신료 보물":250.0,"보석 보물":150.0},"22":{"도자기 보물":4500.0,"황금 보물":3850.0,"향신료 보물":700.0,"보석 보물":420.0},"23":{"도자기 보물":5250.0,"황금 보물":4500.0,"향신료 보물":1750.0,"보석 보물":1000.0},"24":{"도자기 보물":6000.0,"황금 보물":5000.0,"향신료 보물":2500.0,"보석 보물":2250.0},"25":{"도자기 보물":8000.0,"황금 보물":7000.0,"향신료 보물":3750.0,"보석 보물":3250.0},"26":{"도자기 보물":10000.0,"황금 보물":8500.0,"향신료 보물":6000.0,"보석 보물":5300.0},"27":{"도자기 보물":12000.0,"황금 보물":10000.0,"향신료 보물":6500.0,"보석 보물":5700.0},"28":{"도자기 보물":14000.0,"황금 보물":12000.0,"향신료 보물":6900.0,"보석 보물":6000.0},"29":{"도자기 보물":16000.0,"황금 보물":13500.0,"향신료 보물":7400.0,"보석 보물":6500.0},"30":{"도자기 보물":18000.0,"황금 보물":15500.0,"향신료 보물":7800.0,"보석 보물":6900.0},"31":{"도자기 보물":19000.0,"황금 보물":16000.0,"향신료 보물":8100.0,"보석 보물":7100.0},"32":{"도자기 보물":20000.0,"황금 보물":17000.0,"향신료 보물":8400.0,"보석 보물":7400.0},"33":{"도자기 보물":21000.0,"황금 보물":18000.0,"향신료 보물":8700.0,"보석 보물":7700.0},"34":{"도자기 보물":22000.0,"황금 보물":18500.0,"향신료 보물":9000.0,"보석 보물":8000.0},"35":{"도자기 보물":23000.0,"황금 보물":19500.0,"향신료 보물":9300.0,"보석 보물":8100.0},"36":{"도자기 보물":24000.0,"황금 보물":20500.0,"향신료 보물":9600.0,"보석 보물":8400.0},"37":{"도자기 보물":25000.0,"황금 보물":21500.0,"향신료 보물":9900.0,"보석 보물":8700.0},"38":{"도자기 보물":26000.0,"황금 보물":22000.0,"향신료 보물":10200.0,"보석 보물":9000.0},"39":{"도자기 보물":27000.0,"황금 보물":23000.0,"향신료 보물":10500.0,"보석 보물":9200.0},"40":{"도자기 보물":28000.0,"황금 보물":24000.0,"향신료 보물":10800.0,"보석 보물":9500.0},"41":{"도자기 보물":29000.0,"황금 보물":24500.0,"향신료 보물":11100.0,"보석 보물":9800.0},"42":{"도자기 보물":30000.0,"황금 보물":25500.0,"향신료 보물":11400.0,"보석 보물":10100.0},"43":{"도자기 보물":31000.0,"황금 보물":26500.0,"향신료 보물":11700.0,"보석 보물":10200.0},"44":{"도자기 보물":32000.0,"황금 보물":27000.0,"향신료 보물":12000.0,"보석 보물":10500.0},"45":{"도자기 보물":33000.0,"황금 보물":28000.0,"향신료 보물":12300.0,"보석 보물":10800.0},"46":{"도자기 보물":34000.0,"황금 보물":29000.0,"향신료 보물":12600.0,"보석 보물":11100.0},"47":{"도자기 보물":35000.0,"황금 보물":30000.0,"향신료 보물":12900.0,"보석 보물":11300.0},"48":{"도자기 보물":36000.0,"황금 보물":30500.0,"향신료 보물":13200.0,"보석 보물":11600.0},"49":{"도자기 보물":37000.0,"황금 보물":31500.0,"향신료 보물":13500.0,"보석 보물":11900.0},"50":{"도자기 보물":38000.0,"황금 보물":32500.0,"향신료 보물":13800.0,"보석 보물":12200.0}};
+const WONDER_BONUS={"발할라":{"0":{"honey":0.0,"penny":0.05,"target":"페니"},"1":{"honey":0.0,"penny":0.125,"target":"페니"},"2":{"honey":0.0,"penny":0.17300000000000001,"target":"페니"},"3":{"honey":0.0,"penny":0.20600000000000002,"target":"페니"},"4":{"honey":0.0,"penny":0.23199999999999998,"target":"페니"},"5":{"honey":0.0,"penny":0.253,"target":"페니"},"6":{"honey":0.0,"penny":0.271,"target":"페니"},"7":{"honey":0.0,"penny":0.28600000000000003,"target":"페니"},"8":{"honey":0.0,"penny":0.3,"target":"페니"},"9":{"honey":0.0,"penny":0.312,"target":"페니"},"10":{"honey":0.0,"penny":0.32299999999999995,"target":"페니"},"11":{"honey":0.0,"penny":0.33299999999999996,"target":"페니"},"12":{"honey":0.0,"penny":0.342,"target":"페니"},"13":{"honey":0.0,"penny":0.35100000000000003,"target":"페니"},"14":{"honey":0.0,"penny":0.359,"target":"페니"},"15":{"honey":0.0,"penny":0.366,"target":"페니"},"16":{"honey":0.0,"penny":0.373,"target":"페니"},"17":{"honey":0.0,"penny":0.38,"target":"페니"},"18":{"honey":0.0,"penny":0.386,"target":"페니"},"19":{"honey":0.0,"penny":0.392,"target":"페니"},"20":{"honey":0.0,"penny":0.39799999999999996,"target":"페니"},"21":{"honey":0.0,"penny":0.40299999999999997,"target":"페니"},"22":{"honey":0.0,"penny":0.408,"target":"페니"},"23":{"honey":0.0,"penny":0.413,"target":"페니"},"24":{"honey":0.0,"penny":0.418,"target":"페니"},"25":{"honey":0.0,"penny":0.423,"target":"페니"},"26":{"honey":0.0,"penny":0.42700000000000005,"target":"페니"},"27":{"honey":0.0,"penny":0.431,"target":"페니"},"28":{"honey":0.0,"penny":0.435,"target":"페니"},"29":{"honey":0.0,"penny":0.439,"target":"페니"},"30":{"honey":0.0,"penny":0.44299999999999995,"target":"페니"},"31":{"honey":0.0,"penny":0.447,"target":"페니"},"32":{"honey":0.0,"penny":0.45,"target":"페니"},"33":{"honey":0.0,"penny":0.45399999999999996,"target":"페니"},"34":{"honey":0.0,"penny":0.457,"target":"페니"},"35":{"honey":0.0,"penny":0.46,"target":"페니"},"36":{"honey":0.0,"penny":0.46299999999999997,"target":"페니"},"37":{"honey":0.0,"penny":0.466,"target":"페니"},"38":{"honey":0.0,"penny":0.469,"target":"페니"},"39":{"honey":0.0,"penny":0.47200000000000003,"target":"페니"},"40":{"honey":0.0,"penny":0.475,"target":"페니"},"41":{"honey":0.0,"penny":0.478,"target":"페니"},"42":{"honey":0.0,"penny":0.48100000000000004,"target":"페니"},"43":{"honey":0.0,"penny":0.483,"target":"페니"},"44":{"honey":0.0,"penny":0.486,"target":"페니"},"45":{"honey":0.0,"penny":0.489,"target":"페니"},"46":{"honey":0.0,"penny":0.491,"target":"페니"},"47":{"honey":0.0,"penny":0.493,"target":"페니"},"48":{"honey":0.0,"penny":0.496,"target":"페니"},"49":{"honey":0.0,"penny":0.498,"target":"페니"},"50":{"honey":0.0,"penny":0.5,"target":"페니"}},"위그드라실":{"0":{"honey":0.05,"penny":0.0,"target":"꿀"},"1":{"honey":0.125,"penny":0.0,"target":"꿀"},"2":{"honey":0.17300000000000001,"penny":0.0,"target":"꿀"},"3":{"honey":0.20600000000000002,"penny":0.0,"target":"꿀"},"4":{"honey":0.23199999999999998,"penny":0.0,"target":"꿀"},"5":{"honey":0.253,"penny":0.0,"target":"꿀"},"6":{"honey":0.271,"penny":0.0,"target":"꿀"},"7":{"honey":0.28600000000000003,"penny":0.0,"target":"꿀"},"8":{"honey":0.3,"penny":0.0,"target":"꿀"},"9":{"honey":0.312,"penny":0.0,"target":"꿀"},"10":{"honey":0.32299999999999995,"penny":0.0,"target":"꿀"},"11":{"honey":0.33299999999999996,"penny":0.0,"target":"꿀"},"12":{"honey":0.342,"penny":0.0,"target":"꿀"},"13":{"honey":0.35100000000000003,"penny":0.0,"target":"꿀"},"14":{"honey":0.359,"penny":0.0,"target":"꿀"},"15":{"honey":0.366,"penny":0.0,"target":"꿀"},"16":{"honey":0.373,"penny":0.0,"target":"꿀"},"17":{"honey":0.38,"penny":0.0,"target":"꿀"},"18":{"honey":0.386,"penny":0.0,"target":"꿀"},"19":{"honey":0.392,"penny":0.0,"target":"꿀"},"20":{"honey":0.39799999999999996,"penny":0.0,"target":"꿀"},"21":{"honey":0.40299999999999997,"penny":0.0,"target":"꿀"},"22":{"honey":0.408,"penny":0.0,"target":"꿀"},"23":{"honey":0.413,"penny":0.0,"target":"꿀"},"24":{"honey":0.418,"penny":0.0,"target":"꿀"},"25":{"honey":0.423,"penny":0.0,"target":"꿀"},"26":{"honey":0.42700000000000005,"penny":0.0,"target":"꿀"},"27":{"honey":0.431,"penny":0.0,"target":"꿀"},"28":{"honey":0.435,"penny":0.0,"target":"꿀"},"29":{"honey":0.439,"penny":0.0,"target":"꿀"},"30":{"honey":0.44299999999999995,"penny":0.0,"target":"꿀"},"31":{"honey":0.447,"penny":0.0,"target":"꿀"},"32":{"honey":0.45,"penny":0.0,"target":"꿀"},"33":{"honey":0.45399999999999996,"penny":0.0,"target":"꿀"},"34":{"honey":0.457,"penny":0.0,"target":"꿀"},"35":{"honey":0.46,"penny":0.0,"target":"꿀"},"36":{"honey":0.46299999999999997,"penny":0.0,"target":"꿀"},"37":{"honey":0.466,"penny":0.0,"target":"꿀"},"38":{"honey":0.469,"penny":0.0,"target":"꿀"},"39":{"honey":0.47200000000000003,"penny":0.0,"target":"꿀"},"40":{"honey":0.475,"penny":0.0,"target":"꿀"},"41":{"honey":0.478,"penny":0.0,"target":"꿀"},"42":{"honey":0.48100000000000004,"penny":0.0,"target":"꿀"},"43":{"honey":0.483,"penny":0.0,"target":"꿀"},"44":{"honey":0.486,"penny":0.0,"target":"꿀"},"45":{"honey":0.489,"penny":0.0,"target":"꿀"},"46":{"honey":0.491,"penny":0.0,"target":"꿀"},"47":{"honey":0.493,"penny":0.0,"target":"꿀"},"48":{"honey":0.496,"penny":0.0,"target":"꿀"},"49":{"honey":0.498,"penny":0.0,"target":"꿀"},"50":{"honey":0.5,"penny":0.0,"target":"꿀"}},"드래곤십 엘리다":{"0":{"honey":0.025,"penny":0.025,"target":"꿀·페니"},"1":{"honey":0.06,"penny":0.06,"target":"꿀·페니"},"2":{"honey":0.086,"penny":0.086,"target":"꿀·페니"},"3":{"honey":0.10300000000000001,"penny":0.10300000000000001,"target":"꿀·페니"},"4":{"honey":0.11599999999999999,"penny":0.11599999999999999,"target":"꿀·페니"},"5":{"honey":0.126,"penny":0.126,"target":"꿀·페니"},"6":{"honey":0.135,"penny":0.135,"target":"꿀·페니"},"7":{"honey":0.14300000000000002,"penny":0.14300000000000002,"target":"꿀·페니"},"8":{"honey":0.15,"penny":0.15,"target":"꿀·페니"},"9":{"honey":0.156,"penny":0.156,"target":"꿀·페니"},"10":{"honey":0.162,"penny":0.162,"target":"꿀·페니"},"11":{"honey":0.16699999999999998,"penny":0.16699999999999998,"target":"꿀·페니"},"12":{"honey":0.171,"penny":0.171,"target":"꿀·페니"},"13":{"honey":0.175,"penny":0.175,"target":"꿀·페니"},"14":{"honey":0.179,"penny":0.179,"target":"꿀·페니"},"15":{"honey":0.183,"penny":0.183,"target":"꿀·페니"},"16":{"honey":0.187,"penny":0.187,"target":"꿀·페니"},"17":{"honey":0.19,"penny":0.19,"target":"꿀·페니"},"18":{"honey":0.193,"penny":0.193,"target":"꿀·페니"},"19":{"honey":0.196,"penny":0.196,"target":"꿀·페니"},"20":{"honey":0.19899999999999998,"penny":0.19899999999999998,"target":"꿀·페니"},"21":{"honey":0.20199999999999999,"penny":0.20199999999999999,"target":"꿀·페니"},"22":{"honey":0.204,"penny":0.204,"target":"꿀·페니"},"23":{"honey":0.207,"penny":0.207,"target":"꿀·페니"},"24":{"honey":0.209,"penny":0.209,"target":"꿀·페니"},"25":{"honey":0.21100000000000002,"penny":0.21100000000000002,"target":"꿀·페니"},"26":{"honey":0.213,"penny":0.213,"target":"꿀·페니"},"27":{"honey":0.21600000000000003,"penny":0.21600000000000003,"target":"꿀·페니"},"28":{"honey":0.218,"penny":0.218,"target":"꿀·페니"},"29":{"honey":0.22,"penny":0.22,"target":"꿀·페니"},"30":{"honey":0.221,"penny":0.221,"target":"꿀·페니"},"31":{"honey":0.223,"penny":0.223,"target":"꿀·페니"},"32":{"honey":0.225,"penny":0.225,"target":"꿀·페니"},"33":{"honey":0.22699999999999998,"penny":0.22699999999999998,"target":"꿀·페니"},"34":{"honey":0.228,"penny":0.228,"target":"꿀·페니"},"35":{"honey":0.23,"penny":0.23,"target":"꿀·페니"},"36":{"honey":0.23199999999999998,"penny":0.23199999999999998,"target":"꿀·페니"},"37":{"honey":0.233,"penny":0.233,"target":"꿀·페니"},"38":{"honey":0.235,"penny":0.235,"target":"꿀·페니"},"39":{"honey":0.23600000000000002,"penny":0.23600000000000002,"target":"꿀·페니"},"40":{"honey":0.23800000000000002,"penny":0.23800000000000002,"target":"꿀·페니"},"41":{"honey":0.239,"penny":0.239,"target":"꿀·페니"},"42":{"honey":0.24,"penny":0.24,"target":"꿀·페니"},"43":{"honey":0.242,"penny":0.242,"target":"꿀·페니"},"44":{"honey":0.243,"penny":0.243,"target":"꿀·페니"},"45":{"honey":0.244,"penny":0.244,"target":"꿀·페니"},"46":{"honey":0.24600000000000002,"penny":0.24600000000000002,"target":"꿀·페니"},"47":{"honey":0.247,"penny":0.247,"target":"꿀·페니"},"48":{"honey":0.248,"penny":0.248,"target":"꿀·페니"},"49":{"honey":0.249,"penny":0.249,"target":"꿀·페니"},"50":{"honey":0.25,"penny":0.25,"target":"꿀·페니"}}};
+
+const WONDER_STAFF={
+  '발할라':{
+    worker:[[0,1],[1,2],[5,3],[6,5],[7,6],[9,7],[10,8],[13,9],[15,10],[16,11],[20,17],[22,20],[29,22],[38,23],[40,31],[50,32]],
+    sailor:[[0,0],[3,1],[8,3],[14,5],[18,10],[21,12],[30,14],[39,16],[43,17]]
+  },
+  '위그드라실':{
+    worker:[[0,0],[6,2],[20,6],[24,9],[29,12],[40,20]],
+    sailor:[[0,0],[3,1],[18,2],[30,4],[38,7]]
+  },
+  '드래곤십 엘리다':{
+    worker:[[0,0],[1,1],[6,3],[10,4],[20,8],[29,11],[40,19],[50,20]],
+    sailor:[[0,0],[2,1],[5,3],[11,6],[21,7],[26,8],[33,11],[45,12]]
+  }
+};
+
+const BUILDINGS=['벌통','어업 부두','미드','건어물','원정 부두','선원 항구'];
+const BASE=['벌통','어업 부두'], MID=['미드','건어물'], TREASURE=['원정 부두','선원 항구'];
+const DETAIL_GROUPS={base:{title:'기초 자원 상세 설정',buildings:BASE,summaryId:'baseDetailSummary'},mid:{title:'중간 상품 상세 설정',buildings:MID,summaryId:'midDetailSummary'},treasure:{title:'최종 상품 상세 설정',buildings:TREASURE,summaryId:'treasureDetailSummary'}};
+const TREASURE_NAMES=['도자기 보물','황금 보물','향신료 보물','보석 보물'];
+const OUTPUT_LABEL={'벌통':'꿀','어업 부두':'생선','미드':'미드','건어물':'건어물','원정 부두':'원정 부두','선원 항구':'선원 항구'};
+const STOCK_KEY={'벌통':'꿀','어업 부두':'생선','미드':'미드','건어물':'건어물'};
+const DEFAULTS={
+  settings:{wonderName:'발할라',bonusLv:0,baseH:0,sleepPrepH:'',sleepCycle:'2시간',sleepCount:3},
+  buildings:{
+    '벌통':{lv:1,mode:'연속(6시간 기준)',bldgs:1,hours:'',stock:0},
+    '어업 부두':{lv:1,mode:'연속(6시간 기준)',bldgs:1,hours:'',stock:0},
+    '미드':{lv:1,mode:'1분',bldgs:1,hours:'',stock:0},
+    '건어물':{lv:4,mode:'30분',bldgs:1,hours:'',stock:0},
+    '원정 부두':{lv:1,mode:'1분',bldgs:1,hours:''},
+    '선원 항구':{lv:1,mode:'1분',bldgs:1,hours:''}
+  },
+  treasureStocks:{'도자기 보물':0,'황금 보물':0,'향신료 보물':0,'보석 보물':0},
+  wonder:{cur:1,tgt:1},
+  details:Object.fromEntries(BUILDINGS.map(n=>[n,{enabled:false,rows:[]}]))
+};
+const STORAGE_KEY='vikingCultureCalcState_v1';
+let app=clone(DEFAULTS), detailGroup='base', detailBuilding=BASE[0], resetStatusTimer=null;
+
+function clone(v){return JSON.parse(JSON.stringify(v));}
+function num(v,d=0){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
+function clamp(v,min,max){return Math.min(max,Math.max(min,v));}
+function tidyZero(v){return Math.abs(v)<1e-9?0:v;}
+function fmtQty(v){if(v===null||v===undefined||!Number.isFinite(v))return '—';return Math.round(tidyZero(v)).toLocaleString('ko-KR');}
+function fmtHours(v){if(v===null||v===undefined||!Number.isFinite(v))return '—';return tidyZero(Math.round(v*100)/100).toLocaleString('ko-KR',{maximumFractionDigits:2});}
+function fmtBldg(v){if(v===null||v===undefined||!Number.isFinite(v))return '—';return tidyZero(Math.round(v*100)/100).toLocaleString('ko-KR',{maximumFractionDigits:2});}
+function fmtPower(v){if(v===null||v===undefined||!Number.isFinite(v))return '—';return tidyZero(Math.round(v*10)/10).toLocaleString('ko-KR',{maximumFractionDigits:1});}
+function fmtSignedPower(v){if(v===null||v===undefined||!Number.isFinite(v))return '—';const r=tidyZero(Math.round(v*10)/10);return r>0?'+'+fmtPower(r):fmtPower(r);}
+function fmtPct(v){return (num(v,0)*100).toLocaleString('ko-KR',{maximumFractionDigits:1})+'%';}
+function remainClass(v){return v>=-1e-9?'remain-ok':'remain-bad';}
+
+function rowsFor(building,lv){return RAW.filter(r=>r.building===building&&r.lv===Number(lv));}
+function modesFor(building,lv){return rowsFor(building,lv).map(r=>r.mode);}
+function info(building,lv,mode){return RAW.find(r=>r.building===building&&r.lv===Number(lv)&&r.mode===mode)||null;}
+function allModes(building){const order=['연속(6시간 기준)','1분','5분','30분','1시간','1시간 · 도자기 단일','1시간 · 황금 단일','1시간 · 향신료 단일','1시간 · 보석 단일','2시간','2시간 · 도자기 단일','2시간 · 황금 단일','2시간 · 향신료 단일','2시간 · 보석 단일'],s=new Set();RAW.filter(r=>r.building===building).forEach(r=>s.add(r.mode));return order.filter(x=>s.has(x));}
+function compatibleLevels(building,mode){const a=[];for(let lv=1;lv<=6;lv++)if(info(building,lv,mode))a.push(lv);return a;}
+function closestLevel(building,mode,lv){const ls=compatibleLevels(building,mode);if(!ls.length)return clamp(parseInt(lv)||1,1,6);const n=clamp(parseInt(lv)||ls[0],1,6);return ls.reduce((b,x)=>Math.abs(x-n)<Math.abs(b-n)?x:b,ls[0]);}
+function isContinuous(building){return building==='벌통'||building==='어업 부두';}
+function effectiveHours(building){const h=app.buildings[building].hours;return h===''||h===null||!Number.isFinite(parseFloat(h))?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(h,0));}
+function cyclesFor(hours,min){return Math.max(0,Math.floor((hours*60)/min+1e-10));}
+function honeyBonus(){return num(WONDER_BONUS[app.settings.wonderName]?.[String(app.settings.bonusLv)]?.honey,0);}
+function pennyBonus(){return num(WONDER_BONUS[app.settings.wonderName]?.[String(app.settings.bonusLv)]?.penny,0);}
+function productionForInfo(p,h,bldgs){
+  if(!p||bldgs<=0||h<=0)return {out1:0,out2:0,uses:{}};
+  const factor=isContinuous(p.building)?h/(p.min/60):cyclesFor(h,p.min);
+  const bonus=p.building==='벌통'?1+honeyBonus():1;
+  const uses={};
+  if(p.mat1)uses[p.mat1]=(uses[p.mat1]||0)+p.use1*factor*bldgs;
+  if(p.mat2)uses[p.mat2]=(uses[p.mat2]||0)+p.use2*factor*bldgs;
+  return {out1:p.out1qty*factor*bldgs*bonus,out2:p.out2qty*factor*bldgs,uses};
+}
+function normalizeDetail(building){
+  const d=app.details[building]||(app.details[building]={enabled:false,rows:[]});
+  d.enabled=!!d.enabled;if(!Array.isArray(d.rows))d.rows=[];
+  const mode=app.buildings[building].mode;
+  d.rows=d.rows.slice(0,20).map(r=>({lv:closestLevel(building,mode,r?.lv),count:Math.max(0,num(r?.count,0)),hours:r?.hours===''||r?.hours===null||r?.hours===undefined?'':Math.max(0,num(r.hours,0))}));
+}
+function normalizeDetails(){BUILDINGS.forEach(normalizeDetail);}
+function detailEnabled(building){return !!(app.details[building]?.enabled&&app.details[building]?.rows?.length);}
+function detailLevelText(building){if(!detailEnabled(building))return String(app.buildings[building].lv);const ls=[...new Set(app.details[building].rows.filter(r=>num(r.count,0)>0).map(r=>r.lv))].sort((a,b)=>b-a);return !ls.length?'—':(ls.length===1?String(ls[0]):ls.join('·'));}
+function actualBuildings(building){return detailEnabled(building)?app.details[building].rows.reduce((s,r)=>s+Math.max(0,num(r.count,0)),0):Math.max(0,num(app.buildings[building].bldgs,0));}
+function metrics(building,hOverride=null){
+  const mode=app.buildings[building].mode, total={out1:0,out2:0,uses:{}};
+  const add=m=>{total.out1+=m.out1;total.out2+=m.out2;for(const [k,v] of Object.entries(m.uses))total.uses[k]=(total.uses[k]||0)+v;};
+  if(detailEnabled(building)){
+    for(const r of app.details[building].rows){
+      const h=hOverride===null?(r.hours===''?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(r.hours,0))):Math.max(0,num(hOverride,0));
+      add(productionForInfo(info(building,r.lv,mode),h,Math.max(0,num(r.count,0))));
+    }
+  }else{
+    const s=app.buildings[building],h=hOverride===null?effectiveHours(building):Math.max(0,num(hOverride,0));
+    add(productionForInfo(info(building,s.lv,mode),h,Math.max(0,num(s.bldgs,0))));
+  }
+  return total;
+}
+function use(building,material,hOverride=null){return num(metrics(building,hOverride).uses[material],0);}
+function stockOf(resource){if(resource==='꿀')return num(app.buildings['벌통'].stock,0);if(resource==='생선')return num(app.buildings['어업 부두'].stock,0);if(resource==='미드')return num(app.buildings['미드'].stock,0);if(resource==='건어물')return num(app.buildings['건어물'].stock,0);return num(app.treasureStocks[resource],0);}
+function producedOf(resource){if(resource==='꿀')return metrics('벌통').out1;if(resource==='생선')return metrics('어업 부두').out1;if(resource==='미드')return metrics('미드').out1;if(resource==='건어물')return metrics('건어물').out1;if(resource==='도자기 보물')return metrics('원정 부두').out1;if(resource==='황금 보물')return metrics('원정 부두').out2;if(resource==='향신료 보물')return metrics('선원 항구').out1;if(resource==='보석 보물')return metrics('선원 항구').out2;return 0;}
+function demandOf(resource,hOverride=null){
+  if(resource==='꿀')return use('미드','꿀',hOverride)+use('건어물','꿀',hOverride);
+  if(resource==='생선')return use('건어물','생선',hOverride)+use('원정 부두','생선',hOverride);
+  if(resource==='미드')return use('원정 부두','미드',hOverride)+use('선원 항구','미드',hOverride);
+  if(resource==='건어물')return use('선원 항구','건어물',hOverride);
+  return 0;
+}
+function resourceRemain(resource){return stockOf(resource)+producedOf(resource)-demandOf(resource);}
+function resourceProducer(resource){if(resource==='꿀')return '벌통';if(resource==='생선')return '어업 부두';if(resource==='미드')return '미드';if(resource==='건어물')return '건어물';return null;}
+function resourceTime(resource){
+  const need=Math.max(0,demandOf(resource)-stockOf(resource));if(need<=0)return 0;
+  const building=resourceProducer(resource);if(!building)return null;
+  if(isContinuous(building)){const hourly=metrics(building,1).out1;return hourly>0?need/hourly:null;}
+  const mode=app.buildings[building].mode,p=RAW.find(r=>r.building===building&&r.mode===mode);if(!p||!(p.min>0))return null;
+  const cycleH=p.min/60,perCycle=metrics(building,cycleH).out1;if(!(perCycle>0))return null;
+  return Math.ceil(need/perCycle-1e-12)*cycleH;
+}
+
+function stepper(k,value,placeholder=''){const v=value===''?'':value;return '<div class="step-wrap"><input type="number" class="step-one" data-k="'+k+'" value="'+v+'" step="any" min="0"'+(placeholder?' placeholder="'+placeholder+'"':'')+'><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
+function availableLevels(building){return [...new Set(RAW.filter(r=>r.building===building).map(r=>r.lv))].sort((a,b)=>a-b);}
+function closestBuildingLevel(building,lv){const ls=availableLevels(building);if(!ls.length)return clamp(parseInt(lv)||1,1,6);const n=parseInt(lv)||ls[0];return ls.reduce((best,x)=>Math.abs(x-n)<Math.abs(best-n)?x:best,ls[0]);}
+function levelStepper(building,value){const ls=availableLevels(building),min=ls[0]||1,max=ls[ls.length-1]||6;return '<div class="step-wrap"><input type="number" class="step-one" data-k="lv" value="'+value+'" step="1" min="'+min+'" max="'+max+'"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
+function modeHtml(building){const s=app.buildings[building],modes=detailEnabled(building)?allModes(building):modesFor(building,s.lv);return modes.map(m=>'<option value="'+m+'"'+(m===s.mode?' selected':'')+'>'+m.replace('(6시간 기준)','')+'</option>').join('');}
+function commonCells(building,hasStock=true,rowspan=1){
+  const s=app.buildings[building],detail=detailEnabled(building),rs=rowspan>1?' rowspan="'+rowspan+'"':'';
+  const lv=detail?'<td'+rs+' class="calc detail-active-cell">'+detailLevelText(building)+'</td>':'<td'+rs+' class="input-cell">'+levelStepper(building,s.lv)+'</td>';
+  const mode='<td'+rs+' class="'+(isContinuous(building)?'fixed-input':'input-cell')+'">'+(isContinuous(building)?'연속':'<select data-k="mode">'+modeHtml(building)+'</select>')+'</td>';
+  const b=detail?'<td'+rs+' class="num calc detail-active-cell">'+fmtBldg(actualBuildings(building))+'</td>':'<td'+rs+' class="input-cell">'+stepper('bldgs',s.bldgs)+'</td>';
+  const h=detail?'<td'+rs+' class="calc detail-active-cell">상세</td>':'<td'+rs+' class="input-cell">'+stepper('hours',s.hours,'일괄')+'</td>';
+  const st=hasStock?'<td'+rs+' class="input-cell"><input type="number" class="stock-input" data-k="stock" value="'+num(s.stock,0)+'" step="1"></td>':'';
+  return lv+mode+b+h+st;
+}
+function baseRow(building){
+  const resource=STOCK_KEY[building],prod=producedOf(resource),need=demandOf(resource),remain=stockOf(resource)+prod-need;
+  return '<tr data-building="'+building+'"><td class="name">'+resource+(detailEnabled(building)?'<span class="detail-badge">상세</span>':'')+'</td>'+commonCells(building,true)+'<td class="num calc '+remainClass(remain)+'">'+fmtQty(remain)+'</td><td class="num calc">'+fmtQty(prod)+'</td><td class="num calc">'+fmtQty(need)+'</td><td class="num calc">'+fmtHours(resourceTime(resource))+'</td></tr>';
+}
+function midRow(building){
+  const resource=STOCK_KEY[building],prod=producedOf(resource),need=demandOf(resource),remain=stockOf(resource)+prod-need,m=metrics(building);
+  return '<tr data-building="'+building+'"><td class="name">'+resource+(detailEnabled(building)?'<span class="detail-badge">상세</span>':'')+'</td>'+commonCells(building,true)+'<td class="num calc '+remainClass(remain)+'">'+fmtQty(remain)+'</td><td class="num calc">'+fmtQty(prod)+'</td><td class="num calc">'+fmtQty(need)+'</td><td class="num calc">'+fmtQty(num(m.uses['꿀'],0))+'</td><td class="num calc">'+fmtQty(num(m.uses['생선'],0))+'</td><td class="num calc">'+fmtHours(resourceTime(resource))+'</td></tr>';
+}
+function treasureStockCell(treasure){
+  return '<td class="input-cell"><input type="number" class="stock-input treasure-stock" data-treasure-stock="'+treasure+'" value="'+Math.round(num(app.treasureStocks[treasure],0))+'" step="1"></td>';
+}
+function treasureRows(building){
+  const m=metrics(building),expedition=building==='원정 부두';
+  const items=expedition
+    ? [['도자기','도자기 보물',m.out1],['황금','황금 보물',m.out2]]
+    : [['향신료','향신료 보물',m.out1],['보석','보석 보물',m.out2]];
+  const fish=num(m.uses['생선'],0),mead=num(m.uses['미드'],0),dried=num(m.uses['건어물'],0);
+  const shared=commonCells(building,false,2);
+  const uses='<td rowspan="2" class="num calc">'+fmtQty(fish)+'</td><td rowspan="2" class="num calc">'+fmtQty(mead)+'</td><td rowspan="2" class="num calc">'+fmtQty(dried)+'</td>';
+  return items.map(([label,key,out],i)=>{
+    const name='<td class="name">'+label+(detailEnabled(building)?'<span class="detail-badge">상세</span>':'')+'</td>';
+    const stock=treasureStockCell(key),prod='<td class="num calc">'+fmtQty(out)+'</td>';
+    return i===0
+      ? '<tr data-building="'+building+'">'+name+shared+stock+prod+uses+'</tr>'
+      : '<tr data-treasure-pair="'+building+'">'+name+stock+prod+'</tr>';
+  }).join('');
+}
+function renderProduction(){
+  document.querySelector('#tBase tbody').innerHTML=BASE.map(baseRow).join('');
+  document.querySelector('#tMid tbody').innerHTML=MID.map(midRow).join('');
+  document.querySelector('#tTreasure tbody').innerHTML=TREASURE.map(treasureRows).join('');
+  document.querySelectorAll('#panel-prod tbody tr[data-building]').forEach(tr=>{const b=tr.dataset.building;tr.querySelectorAll('[data-k]').forEach(el=>{el.addEventListener('change',()=>commitBuilding(el,b));el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});});
+  document.querySelectorAll('#tTreasure [data-treasure-stock]').forEach(el=>{el.addEventListener('change',()=>{const t=el.dataset.treasureStock;app.treasureStocks[t]=Math.round(num(el.value,0));renderAll();saveState();});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});
+}
+function commitBuilding(el,b){
+  const s=app.buildings[b],k=el.dataset.k;
+  if(k==='lv'){s.lv=closestBuildingLevel(b,parseInt(el.value)||1);const ms=modesFor(b,s.lv);if(!ms.includes(s.mode))s.mode=ms[0]||s.mode;}
+  else if(k==='mode'){s.mode=el.value;s.lv=closestLevel(b,s.mode,s.lv);normalizeDetail(b);}
+  else if(k==='bldgs')s.bldgs=Math.max(0,num(el.value,0));
+  else if(k==='hours'){const v=el.value.trim();s.hours=v===''?'':Math.max(0,num(v,0));}
+  else if(k==='stock')s.stock=Math.round(num(el.value,0));
+  renderAll();saveState();
+}
+function staffAt(profile,lv){
+  const rows=Array.isArray(profile)?profile:[];let value=0,next=null;
+  for(const [at,v] of rows){if(at<=lv)value=v;else{next=at;break;}}
+  return {value,next};
+}
+function renderBonus(){
+  const name=app.settings.wonderName,lv=clamp(parseInt(app.settings.bonusLv)||0,0,50),meta=WONDER_BONUS[name]?.[String(lv)]||{honey:0,penny:0};
+  const bonus=[];if(meta.honey)bonus.push('꿀 +'+fmtPct(meta.honey));if(meta.penny)bonus.push('페니 +'+fmtPct(meta.penny));
+  const profiles=WONDER_STAFF[name]||{worker:[[0,0]],sailor:[[0,0]]},worker=staffAt(profiles.worker,lv),sailor=staffAt(profiles.sailor,lv);
+  const nextWorker=worker.next===null?'최대 레벨':worker.next+'레벨',nextSailor=sailor.next===null?'최대 레벨':sailor.next+'레벨';
+  document.getElementById('bonusBox').innerHTML=
+    '<div class="bonus-item"><span>생산 보너스</span><b>'+(bonus.length?bonus.join(' · '):'없음')+'</b></div>'+ 
+    '<div class="bonus-item"><span>추가 일꾼 수</span><b>'+worker.value+'명</b></div>'+ 
+    '<div class="bonus-item"><span>다음 일꾼 증가</span><b>'+nextWorker+'</b></div>'+ 
+    '<div class="bonus-item"><span>추가 선원 수</span><b>'+sailor.value+'명</b></div>'+ 
+    '<div class="bonus-item"><span>다음 선원 증가</span><b>'+nextSailor+'</b></div>';
+}
+
+function wonderNeed(t){if(app.wonder.tgt<=app.wonder.cur)return 0;let s=0;for(let lv=app.wonder.cur+1;lv<=app.wonder.tgt;lv++)s+=num(WONDER_NEEDS[String(lv)]?.[t],0);return s;}
+function treasurePair(t){return (t==='도자기 보물'||t==='황금 보물')?'원정 부두':'선원 항구';}
+function perCyclePair(building){
+  const mode=app.buildings[building].mode;let out1=0,out2=0,min=null;
+  if(detailEnabled(building)){for(const r of app.details[building].rows){const p=info(building,r.lv,mode);if(!p)continue;out1+=p.out1qty*Math.max(0,num(r.count,0));out2+=p.out2qty*Math.max(0,num(r.count,0));min=p.min;}}
+  else{const s=app.buildings[building],p=info(building,s.lv,mode);if(p){out1=p.out1qty*Math.max(0,num(s.bldgs,0));out2=p.out2qty*Math.max(0,num(s.bldgs,0));min=p.min;}}
+  return {out1,out2,min};
+}
+function treasureTime(t){
+  const need=Math.max(0,wonderNeed(t)-stockOf(t));if(need<=0)return 0;const b=treasurePair(t),pc=perCyclePair(b);const per=(t==='도자기 보물'||t==='향신료 보물')?pc.out1:pc.out2;if(!(per>0)||!pc.min)return null;return Math.ceil(need/per-1e-12)*(pc.min/60);
+}
+function goalRow(t){
+  const need=wonderNeed(t),stock=stockOf(t),prod=producedOf(t),expected=stock+prod,remain=expected-need;
+  return '<tr data-treasure="'+t+'"><td class="name">'+t+'</td><td class="num calc '+remainClass(remain)+'">'+fmtQty(remain)+'</td><td class="num calc">'+fmtQty(need)+'</td><td class="num calc">'+fmtQty(prod)+'</td><td class="num calc">'+fmtQty(expected)+'</td><td class="num calc">'+fmtHours(treasureTime(t))+'</td></tr>';
+}
+function renderGoal(){
+  document.querySelector('#tGoal tbody').innerHTML=TREASURE_NAMES.map(goalRow).join('');
+}
+
+function referenceHours(building){const main=effectiveHours(building);if(main>0)return main;if(detailEnabled(building)){let mx=0;for(const r of app.details[building].rows)if(r.hours!==''&&num(r.hours,0)>mx)mx=num(r.hours,0);if(mx>0)return mx;}return Math.max(0,num(app.settings.baseH,0));}
+function lv6Info(building){return info(building,6,app.buildings[building].mode);}
+function refMetrics(building,h=null){
+  const p=lv6Info(building),hh=h===null?referenceHours(building):Math.max(0,num(h,0));if(!p||hh<=0)return null;return productionForInfo(p,hh,1);
+}
+function currentEquivalent(building,hOverride=null){
+  const m=metrics(building,hOverride),ref=refMetrics(building,hOverride===null?null:hOverride);if(!ref)return null;
+  if(ref.out1>0)return m.out1/ref.out1;if(ref.out2>0)return m.out2/ref.out2;return null;
+}
+function refUse(building,material,h=null){const r=refMetrics(building,h);return r?num(r.uses[material],0):0;}
+
+function targetRequirements(){
+  const refs={};for(const b of BUILDINGS)refs[b]=refMetrics(b);
+  const short={};for(const t of TREASURE_NAMES)short[t]=Math.max(0,wonderNeed(t)-stockOf(t));
+  const expRef=refs['원정 부두'],sailRef=refs['선원 항구'];
+  const pairNeed=(ref,a,b)=>{if(a<=0&&b<=0)return 0;if(!ref)return null;const needs=[];if(a>0){if(!(ref.out1>0))return null;needs.push(a/ref.out1);}if(b>0){if(!(ref.out2>0))return null;needs.push(b/ref.out2);}return needs.length?Math.max(...needs):0;};
+  const needExp=pairNeed(expRef,short['도자기 보물'],short['황금 보물']);
+  const needSail=pairNeed(sailRef,short['향신료 보물'],short['보석 보물']);
+  const demandMead=(needExp===null||needSail===null)?null:needExp*refUse('원정 부두','미드')+needSail*refUse('선원 항구','미드');
+  const demandDried=needSail===null?null:needSail*refUse('선원 항구','건어물');
+  const directFish=needExp===null?null:needExp*refUse('원정 부두','생선');
+  const refMead=refs['미드'],refDried=refs['건어물'];
+  const meadShort=demandMead===null?null:Math.max(0,demandMead-stockOf('미드'));
+  const driedShort=demandDried===null?null:Math.max(0,demandDried-stockOf('건어물'));
+  const needMead=meadShort===null?null:(meadShort<=1e-10?0:(refMead&&refMead.out1>0?meadShort/refMead.out1:null));
+  const needDried=driedShort===null?null:(driedShort<=1e-10?0:(refDried&&refDried.out1>0?driedShort/refDried.out1:null));
+  const demandHoney=(needMead===null||needDried===null)?null:needMead*refUse('미드','꿀')+needDried*refUse('건어물','꿀');
+  const demandFish=(directFish===null||needDried===null)?null:directFish+needDried*refUse('건어물','생선');
+  const refHoney=refs['벌통'],refFish=refs['어업 부두'];
+  const honeyShort=demandHoney===null?null:Math.max(0,demandHoney-stockOf('꿀'));
+  const fishShort=demandFish===null?null:Math.max(0,demandFish-stockOf('생선'));
+  const needHoney=honeyShort===null?null:(honeyShort<=1e-10?0:(refHoney&&refHoney.out1>0?honeyShort/refHoney.out1:null));
+  const needFish=fishShort===null?null:(fishShort<=1e-10?0:(refFish&&refFish.out1>0?fishShort/refFish.out1:null));
+  return {
+    needEq:{'벌통':needHoney,'어업 부두':needFish,'미드':needMead,'건어물':needDried,'원정 부두':needExp,'선원 항구':needSail},
+    needAmount:{'벌통':demandHoney,'어업 부두':demandFish,'미드':demandMead,'건어물':demandDried,'원정 부두':Math.max(short['도자기 보물'],short['황금 보물']),'선원 항구':Math.max(short['향신료 보물'],short['보석 보물'])}
+  };
+}
+function powerRow(building,req){
+  const cur=currentEquivalent(building),need=req.needEq[building],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n,cls=d===null?'':remainClass(d);
+  const divider=(building==='미드'||building==='원정 부두')?' divider-top':'';
+  return '<tr class="'+divider.trim()+'"><td class="name">'+OUTPUT_LABEL[building]+'</td><td class="num calc '+cls+'">'+(d===null?'<span class="badge-warn">—</span>':fmtSignedPower(d))+'</td><td class="num calc">'+fmtPower(c)+'</td><td class="num calc">'+fmtPower(n)+'</td><td class="num calc">'+fmtQty(req.needAmount[building])+'</td></tr>';
+}
+function renderPower(){const req=targetRequirements();document.querySelector('#tPower tbody').innerHTML=BUILDINGS.map(b=>powerRow(b,req)).join('');}
+
+function sleepRecipe(building,lv){
+  const modes=modesFor(building,lv),desired=app.settings.sleepCycle;let chosen=modes.includes(desired)?desired:null;
+  if(!chosen){let best=null;for(const m of modes){const p=info(building,lv,m);if(p&&(!best||p.min>best.p.min))best={p,mode:m};}chosen=best?.mode||null;}
+  const p=chosen?info(building,lv,chosen):null;return p?{p,cycles:Math.max(0,Math.floor(num(app.settings.sleepCount,3))),mode:chosen}:null;
+}
+function sleepUse(building,material){
+  let total=0;
+  if(detailEnabled(building)){for(const r of app.details[building].rows){const x=sleepRecipe(building,r.lv);if(!x)continue;const per=(x.p.mat1===material?x.p.use1:0)+(x.p.mat2===material?x.p.use2:0);total+=x.cycles*per*Math.max(0,num(r.count,0));}}
+  else{const s=app.buildings[building],x=sleepRecipe(building,s.lv);if(x){const per=(x.p.mat1===material?x.p.use1:0)+(x.p.mat2===material?x.p.use2:0);total=x.cycles*per*Math.max(0,num(s.bldgs,0));}}
+  return total;
+}
+function sleepPrepH(){return app.settings.sleepPrepH===''?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(app.settings.sleepPrepH,0));}
+function sleepRequirements(){
+  const h=sleepPrepH();
+  const totalMead=use('원정 부두','미드',h)+use('선원 항구','미드',h)+sleepUse('원정 부두','미드')+sleepUse('선원 항구','미드');
+  const totalDried=use('선원 항구','건어물',h)+sleepUse('선원 항구','건어물');
+  const directFish=use('원정 부두','생선',h)+sleepUse('원정 부두','생선');
+  const rMead=refMetrics('미드',h),rDried=refMetrics('건어물',h);
+  const needMead=rMead&&rMead.out1>0?Math.max(0,totalMead-stockOf('미드'))/rMead.out1:(totalMead<=stockOf('미드')?0:null);
+  const needDried=rDried&&rDried.out1>0?Math.max(0,totalDried-stockOf('건어물'))/rDried.out1:(totalDried<=stockOf('건어물')?0:null);
+  const honeyDemand=(needMead===null||needDried===null)?null:needMead*refUse('미드','꿀',h)+needDried*refUse('건어물','꿀',h);
+  const fishDemand=(needDried===null)?null:directFish+needDried*refUse('건어물','생선',h);
+  const rHoney=refMetrics('벌통',h),rFish=refMetrics('어업 부두',h);
+  const needHoney=honeyDemand===null?null:(rHoney&&rHoney.out1>0?Math.max(0,honeyDemand-stockOf('꿀'))/rHoney.out1:(honeyDemand<=stockOf('꿀')?0:null));
+  const needFish=fishDemand===null?null:(rFish&&rFish.out1>0?Math.max(0,fishDemand-stockOf('생선'))/rFish.out1:(fishDemand<=stockOf('생선')?0:null));
+  return {h,needEq:{'벌통':needHoney,'어업 부두':needFish,'미드':needMead,'건어물':needDried},needAmount:{'벌통':honeyDemand,'어업 부두':fishDemand,'미드':totalMead,'건어물':totalDried}};
+}
+function sleepCurrentEq(building,h){const ref=refMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
+function sleepRow(building,req){
+  const resource=STOCK_KEY[building],cur=sleepCurrentEq(building,req.h),need=req.needEq[building],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n;
+  const produced=metrics(building,req.h).out1,required=req.needAmount[building],projected=stockOf(resource)+produced,remain=required===null?null:projected-required;
+  return '<tr><td class="name">'+resource+'</td><td class="num calc '+(d===null?'':remainClass(d))+'">'+(d===null?'<span class="badge-warn">준비 시간 확인</span>':fmtSignedPower(d))+'</td><td class="num calc">'+fmtPower(c)+'</td><td class="num calc">'+fmtPower(n)+'</td><td class="num calc">'+fmtQty(required)+'</td><td class="num calc">'+fmtQty(projected)+'</td><td class="num calc">'+fmtQty(remain)+'</td></tr>';
+}
+function renderSleep(){const req=sleepRequirements();document.querySelector('#tSleep tbody').innerHTML=BASE.concat(MID).map(b=>sleepRow(b,req)).join('');}
+
+function conversionRatio(building,lv){
+  const mode=app.buildings[building].mode,p=info(building,lv,mode),b=info(building,6,mode);if(!p||!b)return null;
+  const h=Math.max(referenceHours(building),p.min/60,b.min/60,0.0001),a=productionForInfo(p,h,1),z=productionForInfo(b,h,1);
+  if(z.out1>0)return a.out1/z.out1;if(z.out2>0)return a.out2/z.out2;return null;
+}
+function singleInfo(building,lv,product){
+  return RAW.find(r=>r.building===building&&r.lv===Number(lv)&&r.mode.includes('단일')&&((product===r.out1&&r.out1qty>0)||(product===r.out2&&r.out2qty>0)))||null;
+}
+function singleConversionRatio(building,lv,product){
+  const p=singleInfo(building,lv,product),b=singleInfo(building,6,product);if(!p||!b)return null;
+  const pQty=product===p.out1?p.out1qty:p.out2qty,bQty=product===b.out1?b.out1qty:b.out2qty;
+  const pRate=pQty/(p.min/60),bRate=bQty/(b.min/60);
+  return bRate>0?pRate/bRate:null;
+}
+function conversionRow(label,mode,ratios,divider=false){
+  return '<tr class="'+(divider?'divider-top':'')+'"><td class="name">'+label+'</td><td class="calc">'+mode+'</td>'+ratios.map(r=>'<td class="num calc">'+(r===null?'—':fmtPower(r*100))+'</td>').join('')+'</tr>';
+}
+function renderConvert(){
+  const levels=[2,3,4,5,6],rows=[];
+  for(const b of ['벌통','어업 부두','미드','건어물']){
+    const mode=isContinuous(b)?'연속':app.buildings[b].mode;
+    rows.push(conversionRow(OUTPUT_LABEL[b],mode,levels.map(lv=>conversionRatio(b,lv)),b==='미드'));
+  }
+  rows.push(conversionRow(OUTPUT_LABEL['원정 부두'],app.buildings['원정 부두'].mode,levels.map(lv=>conversionRatio('원정 부두',lv)),true));
+  rows.push(conversionRow('도자기','단일',levels.map(lv=>singleConversionRatio('원정 부두',lv,'도자기 보물'))));
+  rows.push(conversionRow('황금','단일',levels.map(lv=>singleConversionRatio('원정 부두',lv,'황금 보물'))));
+  rows.push(conversionRow(OUTPUT_LABEL['선원 항구'],app.buildings['선원 항구'].mode,levels.map(lv=>conversionRatio('선원 항구',lv)),true));
+  rows.push(conversionRow('향신료','단일',levels.map(lv=>singleConversionRatio('선원 항구',lv,'향신료 보물'))));
+  rows.push(conversionRow('보석','단일',levels.map(lv=>singleConversionRatio('선원 항구',lv,'보석 보물'))));
+  document.querySelector('#tConvert tbody').innerHTML=rows.join('');
+}
+
+function renderDetailSummary(){
+  for(const [key,g] of Object.entries(DETAIL_GROUPS)){const active=g.buildings.filter(detailEnabled),el=document.getElementById(g.summaryId);if(el)el.textContent=active.length?'상세 설정 적용: '+active.join(' · '):'상세 설정 미사용';}
+}
+function seedDetail(building){const d=app.details[building];if(d.rows.length)return;const s=app.buildings[building];d.rows=[{lv:closestLevel(building,s.mode,s.lv),count:Math.max(0,num(s.bldgs,0)),hours:s.hours}];}
+function detailLevelStepper(building,value){const ls=compatibleLevels(building,app.buildings[building].mode),min=ls[0]||1,max=ls[ls.length-1]||6,safe=closestLevel(building,app.buildings[building].mode,value);return '<div class="step-wrap"><input type="number" class="step-one" data-detail-k="lv" value="'+safe+'" min="'+min+'" max="'+max+'" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
+function detailRowHtml(building,r,i){return '<div class="detail-row" data-detail-index="'+i+'"><div class="detail-field"><label>레벨</label>'+detailLevelStepper(building,r.lv)+'</div><div class="detail-field"><label>건물 수</label>'+stepper('x',r.count).replace('data-k="x"','data-detail-k="count"')+'</div><div class="detail-field"><label>운영 시간(h)</label>'+stepper('x',r.hours,'일괄').replace('data-k="x"','data-detail-k="hours"')+'</div><button type="button" class="detail-remove" data-detail-remove="'+i+'">−</button><div class="detail-row-note">운영 시간을 비워두면 일괄 운영 시간이 적용됩니다.</div></div>';}
+function renderDetailModal(){
+  const group=DETAIL_GROUPS[detailGroup]||DETAIL_GROUPS.base;if(!group.buildings.includes(detailBuilding))detailBuilding=group.buildings[0];
+  const d=app.details[detailBuilding],mode=app.buildings[detailBuilding].mode;
+  document.getElementById('detailTitle').textContent=group.title;
+  document.getElementById('detailSubtitle').textContent='같은 생산 건물 안에서 레벨·건물 수·운영 시간을 나누어 입력할 수 있습니다. 생산 방식은 건물별로 공통 적용됩니다.';
+  document.getElementById('detailTabs').innerHTML=group.buildings.map(b=>'<button type="button" class="detail-tab'+(b===detailBuilding?' active':'')+'" data-detail-building="'+b+'">'+OUTPUT_LABEL[b]+(detailEnabled(b)?'<span class="dot"></span>':'')+'</button>').join('');
+  document.getElementById('detailEnabled').checked=!!d.enabled;
+  const modeEl=document.getElementById('detailMode');modeEl.innerHTML=allModes(detailBuilding).map(m=>'<option value="'+m+'"'+(m===mode?' selected':'')+'>'+m.replace('(6시간 기준)','연속')+'</option>').join('');modeEl.disabled=isContinuous(detailBuilding);
+  document.getElementById('detailHelp').textContent=(detailGroup==='treasure')?'일반 생산은 두 상품을 동시에 생산하며, Lv2 이상에서는 가장 긴 생산 주기의 단일 상품 집중 생산도 선택할 수 있습니다.':'레벨이 다른 건물을 같은 생산 항목 안에서 나누어 계산할 수 있습니다.';
+  const rows=document.getElementById('detailRows');rows.classList.toggle('detail-disabled',!d.enabled);rows.innerHTML=d.rows.length?d.rows.map((r,i)=>detailRowHtml(detailBuilding,r,i)).join(''):'<div class="detail-help">등록된 건물 구성이 없습니다. 상세 설정을 켜거나 “건물 구성 추가”를 눌러 입력하세요.</div>';
+  document.getElementById('detailAdd').disabled=!d.enabled;
+  const m=metrics(detailBuilding),p=info(detailBuilding,app.buildings[detailBuilding].lv,mode)||RAW.find(r=>r.building===detailBuilding);
+  let text='<b>현재 계산:</b> 건물 '+fmtBldg(actualBuildings(detailBuilding))+'개 · 생산량 '+fmtQty(m.out1);
+  if(m.out2)text+=' / '+fmtQty(m.out2);if(p?.mat1)text+=' · '+p.mat1+' 사용 '+fmtQty(num(m.uses[p.mat1],0));if(p?.mat2)text+=' / '+p.mat2+' '+fmtQty(num(m.uses[p.mat2],0));
+  document.getElementById('detailResult').innerHTML=text;
+}
+function openDetail(groupKey){detailGroup=DETAIL_GROUPS[groupKey]?groupKey:'base';detailBuilding=DETAIL_GROUPS[detailGroup].buildings[0];document.getElementById('detailModal').removeAttribute('hidden');document.getElementById('detailModal').setAttribute('aria-hidden','false');document.body.classList.add('detail-modal-open');renderDetailModal();}
+function closeDetail(){document.getElementById('detailModal').setAttribute('hidden','');document.getElementById('detailModal').setAttribute('aria-hidden','true');document.body.classList.remove('detail-modal-open');}
+
+function normalizeLoaded(obj){
+  const d=clone(DEFAULTS);if(obj&&typeof obj==='object'){if(obj.settings)Object.assign(d.settings,obj.settings);if(obj.wonder)Object.assign(d.wonder,obj.wonder);if(obj.treasureStocks)Object.assign(d.treasureStocks,obj.treasureStocks);for(const b of BUILDINGS)if(obj.buildings?.[b])Object.assign(d.buildings[b],obj.buildings[b]);if(obj.details)for(const b of BUILDINGS)Object.assign(d.details[b],obj.details[b]||{});}
+  if(!WONDER_BONUS[d.settings.wonderName])d.settings.wonderName='발할라';d.settings.bonusLv=clamp(parseInt(d.settings.bonusLv)||0,0,50);d.settings.baseH=Math.max(0,num(d.settings.baseH,0));d.settings.sleepPrepH=d.settings.sleepPrepH===''?'':Math.max(0,num(d.settings.sleepPrepH,0));if(!['30분','1시간','2시간'].includes(d.settings.sleepCycle))d.settings.sleepCycle='2시간';d.settings.sleepCount=Math.max(0,Math.floor(num(d.settings.sleepCount,3)));
+  d.wonder.cur=clamp(parseInt(d.wonder.cur)||0,0,50);d.wonder.tgt=Math.max(d.wonder.cur,clamp(parseInt(d.wonder.tgt)||0,0,50));
+  for(const b of BUILDINGS){const s=d.buildings[b],all=allModes(b);if(!all.includes(s.mode))s.mode=all[0];s.lv=closestLevel(b,s.mode,s.lv);s.bldgs=Math.max(0,num(s.bldgs,0));s.hours=s.hours===''?'':Math.max(0,num(s.hours,0));if('stock' in s)s.stock=Math.round(num(s.stock,0));}
+  for(const t of TREASURE_NAMES)d.treasureStocks[t]=Math.round(num(d.treasureStocks[t],0));
+  return d;
+}
+function syncInputs(){document.getElementById('wonderName').value=app.settings.wonderName;document.getElementById('bonusLv').value=app.settings.bonusLv;document.getElementById('baseH').value=app.settings.baseH;document.getElementById('curLv').value=app.wonder.cur;document.getElementById('tgtLv').value=app.wonder.tgt;document.getElementById('sleepPrepH').value=app.settings.sleepPrepH;document.getElementById('sleepCycle').value=app.settings.sleepCycle;document.getElementById('sleepCount').value=app.settings.sleepCount;}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(app));}catch(e){}}
+function loadState(){try{const s=localStorage.getItem(STORAGE_KEY);app=s?normalizeLoaded(JSON.parse(s)):normalizeLoaded(DEFAULTS);}catch(e){app=normalizeLoaded(DEFAULTS);}normalizeDetails();syncInputs();saveState();}
+function resetState(){app=normalizeLoaded(DEFAULTS);normalizeDetails();try{localStorage.removeItem(STORAGE_KEY);}catch(e){}syncInputs();renderAll();saveState();const el=document.getElementById('resetStatus');el.textContent='초기화 완료';if(resetStatusTimer)clearTimeout(resetStatusTimer);resetStatusTimer=setTimeout(()=>el.textContent='',1800);}
+function renderAll(){syncInputs();renderBonus();renderProduction();renderGoal();renderSleep();renderPower();renderConvert();renderDetailSummary();if(!document.getElementById('detailModal').hasAttribute('hidden'))renderDetailModal();}
+
+function increment(input,delta){let cur=num(input.value,0),next=Math.round((cur+delta)*1e6)/1e6;if(input.min!=='')next=Math.max(num(input.min,next),next);if(input.max!=='')next=Math.min(num(input.max,next),next);input.value=String(next);input.dispatchEvent(new Event('change',{bubbles:true}));}
+document.addEventListener('click',e=>{const btn=e.target.closest('.step-btn');if(!btn)return;const input=btn.closest('.step-wrap')?.querySelector('input');if(input)increment(input,num(btn.dataset.delta,0));});
+document.addEventListener('keydown',e=>{if(!e.target.classList?.contains('step-one'))return;if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();increment(e.target,e.key==='ArrowUp'?1:-1);}});
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active');}));
+document.getElementById('wonderName').addEventListener('change',e=>{app.settings.wonderName=e.target.value;renderAll();saveState();});
+document.getElementById('bonusLv').addEventListener('change',e=>{app.settings.bonusLv=clamp(parseInt(e.target.value)||0,0,50);renderAll();saveState();});
+document.getElementById('baseH').addEventListener('change',e=>{app.settings.baseH=Math.max(0,num(e.target.value,0));renderAll();saveState();});
+document.getElementById('curLv').addEventListener('change',e=>{app.wonder.cur=clamp(parseInt(e.target.value)||0,0,50);if(app.wonder.tgt<app.wonder.cur)app.wonder.tgt=app.wonder.cur;renderAll();saveState();});
+document.getElementById('tgtLv').addEventListener('change',e=>{app.wonder.tgt=Math.max(app.wonder.cur,clamp(parseInt(e.target.value)||0,0,50));renderAll();saveState();});
+document.getElementById('sleepPrepH').addEventListener('change',e=>{const v=e.target.value.trim();app.settings.sleepPrepH=v===''?'':Math.max(0,num(v,0));renderAll();saveState();});
+document.getElementById('sleepCycle').addEventListener('change',e=>{app.settings.sleepCycle=e.target.value;renderAll();saveState();});
+document.getElementById('sleepCount').addEventListener('change',e=>{app.settings.sleepCount=Math.max(0,Math.floor(num(e.target.value,3)));renderAll();saveState();});
+document.getElementById('resetBtn').addEventListener('click',()=>{if(window.confirm('입력한 값을 초기화할까요?\n현재 저장된 값이 기본값으로 돌아갑니다.'))resetState();});
+document.getElementById('convertToggle').addEventListener('click',()=>{const p=document.getElementById('convertPanel'),open=p.hasAttribute('hidden');if(open){p.removeAttribute('hidden');convertToggle.textContent='생산력 환산표 접기';convertToggle.setAttribute('aria-expanded','true');}else{p.setAttribute('hidden','');convertToggle.textContent='생산력 환산표 보기';convertToggle.setAttribute('aria-expanded','false');}});
+document.getElementById('baseDetailOpen').addEventListener('click',()=>openDetail('base'));
+document.getElementById('midDetailOpen').addEventListener('click',()=>openDetail('mid'));
+document.getElementById('treasureDetailOpen').addEventListener('click',()=>openDetail('treasure'));
+document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.closest('[data-detail-close]')){closeDetail();return;}const tab=e.target.closest('[data-detail-building]');if(tab){detailBuilding=tab.dataset.detailBuilding;renderDetailModal();return;}const rm=e.target.closest('[data-detail-remove]');if(rm){const i=parseInt(rm.dataset.detailRemove);if(Number.isInteger(i))app.details[detailBuilding].rows.splice(i,1);if(app.details[detailBuilding].enabled&&!app.details[detailBuilding].rows.length)app.details[detailBuilding].enabled=false;normalizeDetail(detailBuilding);renderAll();saveState();}});
+document.getElementById('detailEnabled').addEventListener('change',e=>{const d=app.details[detailBuilding];d.enabled=!!e.target.checked;if(d.enabled)seedDetail(detailBuilding);normalizeDetail(detailBuilding);renderAll();saveState();});
+document.getElementById('detailMode').addEventListener('change',e=>{if(isContinuous(detailBuilding))return;app.buildings[detailBuilding].mode=e.target.value;app.buildings[detailBuilding].lv=closestLevel(detailBuilding,e.target.value,app.buildings[detailBuilding].lv);normalizeDetail(detailBuilding);renderAll();saveState();});
+document.getElementById('detailAdd').addEventListener('click',()=>{const d=app.details[detailBuilding];if(!d.enabled||d.rows.length>=20)return;const s=app.buildings[detailBuilding];d.rows.push({lv:closestLevel(detailBuilding,s.mode,s.lv),count:1,hours:''});normalizeDetail(detailBuilding);renderAll();saveState();});
+document.getElementById('detailRows').addEventListener('change',e=>{const el=e.target.closest('[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;const r=app.details[detailBuilding].rows[parseInt(rowEl.dataset.detailIndex)];if(!r)return;const k=el.dataset.detailK;if(k==='lv')r.lv=closestLevel(detailBuilding,app.buildings[detailBuilding].mode,parseInt(el.value)||1);else if(k==='count')r.count=Math.max(0,num(el.value,0));else if(k==='hours')r.hours=el.value.trim()===''?'':Math.max(0,num(el.value,0));normalizeDetail(detailBuilding);renderAll();saveState();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('detailModal').hasAttribute('hidden'))closeDetail();});
+
+loadState();renderAll();
+</script>
+</body>
+</html>
