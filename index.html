@@ -31,9 +31,9 @@ h2{font-size:15px;margin:16px 0 8px;padding-left:8px;border-left:4px solid var(-
 .legend-input{background:var(--input);border-color:var(--input-border)}.legend-calc{background:var(--soft-2);border-color:var(--border)}
 .settings{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:100%}
 .settings label{font-size:12px;font-weight:800;color:#38515f;white-space:nowrap}.settings .spacer{flex:1 1 20px}
-#panel-prod>.settings{width:1200px}
-#panel-wonder>.settings{width:1200px;max-width:100%}
+#panel-prod>.settings,#panel-wonder>.settings{width:1200px;max-width:100%;height:50px;min-height:50px}
 .wonder-settings{margin:0 0 8px;width:1200px;max-width:100%;flex-wrap:nowrap}
+.wonder-settings .convert-toggle{min-height:30px;height:30px;padding:4px 9px}
 .sleep-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:48px}
 .sleep-settings .sleep-time-wrap{width:92px}
 .sleep-settings .sleep-time-wrap input{width:72px;min-width:0}
@@ -117,7 +117,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
 .detail-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:9px}.detail-add{min-height:40px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:#dce9ee;color:var(--primary);cursor:pointer;font:800 12px var(--font)}.detail-add:disabled{opacity:.45;cursor:not-allowed}.detail-disabled{opacity:.62}
 body.detail-modal-open{overflow:hidden}
 @media(max-width:1260px){.power-layout{flex-direction:column;width:100%}.power-main,.power-side{width:100%}}
-@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0;flex-wrap:wrap}#panel-prod>.note,#panel-wonder>.note{width:100%;max-width:100%;white-space:normal}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
+@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{height:auto;min-height:0;flex-wrap:wrap}.wonder-settings .convert-toggle{height:auto;min-height:44px;padding:7px 11px}#panel-prod>.settings{height:auto;min-height:0}#panel-wonder>.settings{height:auto;min-height:0}#panel-prod>.note,#panel-wonder>.note{width:100%;max-width:100%;white-space:normal}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
 </style>
 </head>
 <body>
