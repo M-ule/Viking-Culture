@@ -53,7 +53,7 @@ td.fixed-input{padding:5px 8px}
 input,select{font:inherit;font-size:12px;border:1px solid var(--input-border);background:#fff8d9;padding:4px 6px;border-radius:4px;width:100%;min-width:60px;color:#243a45}
 input:focus,select:focus{outline:none;border-color:var(--input-focus);box-shadow:0 0 0 2px rgba(158,123,24,.15)}
 input[type=number]{text-align:center}select{cursor:pointer;text-align:center;text-align-last:center}
-.settings input,.settings select{width:auto;min-width:90px}
+.settings input,.settings select{width:auto;min-width:90px}.setting-value{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel);color:var(--primary-dark);font-weight:800;white-space:nowrap}
 .reset-btn{padding:6px 12px;background:#f7e0df;color:#8e2d2d;border:1px solid #e6b5b2;border-radius:5px;cursor:pointer;font:700 12px var(--font)}
 .reset-btn:hover{background:#efcccc}.reset-status{min-width:70px;font-size:12px;font-weight:800;color:var(--primary)}
 .remain-ok{background:var(--ok-bg)!important;color:var(--ok)!important;font-weight:800}
@@ -115,7 +115,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
 .detail-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:9px}.detail-add{min-height:40px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:#dce9ee;color:var(--primary);cursor:pointer;font:800 12px var(--font)}.detail-add:disabled{opacity:.45;cursor:not-allowed}.detail-disabled{opacity:.62}
 body.detail-modal-open{overflow:hidden}
 @media(max-width:1260px){.power-layout{flex-direction:column;width:100%}.power-main,.power-side{width:100%}}
-@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
+@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0}#panel-prod>.note,#panel-wonder>.note{width:100%;max-width:100%;white-space:normal}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
 </style>
 </head>
 <body>
@@ -170,6 +170,7 @@ body.detail-modal-open{overflow:hidden}
     <div class="step-wrap settings-step"><input id="curLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
     <label for="tgtLv">목표 레벨</label>
     <div class="step-wrap settings-step"><input id="tgtLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
+    <label>일괄 운영 시간</label><span id="wonderBaseHDisplay" class="setting-value">0 h</span>
     <button id="convertToggle" class="convert-toggle" type="button" aria-expanded="false">생산력 환산표 보기</button>
     <span class="spacer"></span>
   </div>
@@ -265,7 +266,8 @@ const DEFAULTS={
   details:Object.fromEntries(BUILDINGS.map(n=>[n,{enabled:false,rows:[]}]))
 };
 const STORAGE_KEY='vikingCultureCalcState_v1';
-let app=clone(DEFAULTS), detailGroup='base', detailBuilding=BASE[0], resetStatusTimer=null;
+let app=clone(DEFAULTS), detailGroup='base', detailBuilding=BASE[0], resetStatusTimer=null, liveInputTimer=null;
+function queueLiveInput(fn){if(liveInputTimer)clearTimeout(liveInputTimer);liveInputTimer=setTimeout(()=>{liveInputTimer=null;fn();},250);}
 
 function clone(v){return JSON.parse(JSON.stringify(v));}
 function num(v,d=0){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
@@ -402,17 +404,23 @@ function renderProduction(){
   document.querySelector('#tBase tbody').innerHTML=BASE.map(baseRow).join('');
   document.querySelector('#tMid tbody').innerHTML=MID.map(midRow).join('');
   document.querySelector('#tTreasure tbody').innerHTML=TREASURE.map(treasureRows).join('');
-  document.querySelectorAll('#panel-prod tbody tr[data-building]').forEach(tr=>{const b=tr.dataset.building;tr.querySelectorAll('[data-k]').forEach(el=>{el.addEventListener('change',()=>commitBuilding(el,b));el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});});
-  document.querySelectorAll('#tTreasure [data-treasure-stock]').forEach(el=>{el.addEventListener('change',()=>{const t=el.dataset.treasureStock;app.treasureStocks[t]=Math.round(num(el.value,0));renderAll();saveState();});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});
+  document.querySelectorAll('#panel-prod tbody tr[data-building]').forEach(tr=>{const b=tr.dataset.building;tr.querySelectorAll('[data-k]').forEach(el=>{el.addEventListener('change',()=>commitBuilding(el,b));if(el.tagName==='INPUT')el.addEventListener('input',()=>{const k=el.dataset.k,v=el.value;queueLiveInput(()=>commitBuildingValue(b,k,v,true));});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});});
+  document.querySelectorAll('#tTreasure [data-treasure-stock]').forEach(el=>{el.addEventListener('change',()=>commitTreasureStock(el.dataset.treasureStock,el.value));el.addEventListener('input',()=>{const t=el.dataset.treasureStock,v=el.value;queueLiveInput(()=>commitTreasureStock(t,v,true));});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});});
 }
-function commitBuilding(el,b){
-  const s=app.buildings[b],k=el.dataset.k;
-  if(k==='lv'){s.lv=closestBuildingLevel(b,parseInt(el.value)||1);const ms=modesFor(b,s.lv);if(!ms.includes(s.mode))s.mode=ms[0]||s.mode;}
-  else if(k==='mode'){s.mode=el.value;s.lv=closestLevel(b,s.mode,s.lv);normalizeDetail(b);}
-  else if(k==='bldgs')s.bldgs=Math.max(0,num(el.value,0));
-  else if(k==='hours'){const v=el.value.trim();s.hours=v===''?'':Math.max(0,num(v,0));}
-  else if(k==='stock')s.stock=Math.round(num(el.value,0));
+function commitBuilding(el,b){commitBuildingValue(b,el.dataset.k,el.value,false);}
+function commitBuildingValue(b,k,value,restore=false){
+  const s=app.buildings[b];
+  if(k==='lv'){s.lv=closestBuildingLevel(b,parseInt(value)||1);const ms=modesFor(b,s.lv);if(!ms.includes(s.mode))s.mode=ms[0]||s.mode;}
+  else if(k==='mode'){s.mode=value;s.lv=closestLevel(b,s.mode,s.lv);normalizeDetail(b);}
+  else if(k==='bldgs')s.bldgs=Math.max(0,num(value,0));
+  else if(k==='hours'){const v=String(value).trim();s.hours=v===''?'':Math.max(0,num(v,0));}
+  else if(k==='stock')s.stock=Math.round(num(value,0));
   renderAll();saveState();
+  if(restore){const target=document.querySelector('#panel-prod tr[data-building="'+b+'"] [data-k="'+k+'"]');if(target)target.focus();}
+}
+function commitTreasureStock(t,value,restore=false){
+  app.treasureStocks[t]=Math.round(num(value,0));renderAll();saveState();
+  if(restore){const target=document.querySelector('#tTreasure [data-treasure-stock="'+t+'"]');if(target)target.focus();}
 }
 function staffAt(profile,lv){
   const rows=Array.isArray(profile)?profile:[];let value=0,next=null;
@@ -490,6 +498,22 @@ function currentEquivalent(building,hOverride=null){
   }
   return seen?total:null;
 }
+function treasureOutputKey(t){return (t==='도자기 보물'||t==='향신료 보물')?'out1':'out2';}
+function productPowerRatioForInfo(building,p,key){
+  const base=powerBenchmarkInfo(building),den=infoHourlyRate(base,key);
+  if(!p||!(den>0))return null;
+  return infoHourlyRate(p,key)/den;
+}
+function currentTreasureEquivalent(t){
+  const building=treasurePair(t),key=treasureOutputKey(t);let total=0,seen=false;
+  if(detailEnabled(building)){
+    for(const r of app.details[building].rows){const count=Math.max(0,num(r.count,0)),ratio=productPowerRatioForInfo(building,info(building,r.lv,r.mode),key);if(ratio===null)continue;total+=ratio*count;seen=true;}
+  }else{
+    const s=app.buildings[building],count=Math.max(0,num(s.bldgs,0)),ratio=productPowerRatioForInfo(building,info(building,s.lv,s.mode),key);
+    if(ratio!==null){total=ratio*count;seen=true;}
+  }
+  return seen?total:null;
+}
 function refUse(building,material,h=null){const r=refMetrics(building,h);return r?num(r.uses[material],0):0;}
 function powerRefMetrics(building,h=null){
   const p=powerBenchmarkInfo(building),hh=h===null?referenceHours(building):Math.max(0,num(h,0));if(!p||hh<=0)return null;return productionForInfo(p,hh,1);
@@ -503,6 +527,11 @@ function targetRequirements(){
   const pairNeed=(ref,a,b)=>{if(a<=0&&b<=0)return 0;if(!ref)return null;const needs=[];if(a>0){if(!(ref.out1>0))return null;needs.push(a/ref.out1);}if(b>0){if(!(ref.out2>0))return null;needs.push(b/ref.out2);}return needs.length?Math.max(...needs):0;};
   const needExp=pairNeed(expRef,short['도자기 보물'],short['황금 보물']);
   const needSail=pairNeed(sailRef,short['향신료 보물'],short['보석 보물']);
+  const productNeed={};
+  for(const t of TREASURE_NAMES){
+    const ref=treasurePair(t)==='원정 부두'?expRef:sailRef,key=treasureOutputKey(t);
+    productNeed[t]=short[t]<=1e-10?0:(ref&&ref[key]>0?short[t]/ref[key]:null);
+  }
   const demandMead=(needExp===null||needSail===null)?null:needExp*powerRefUse('원정 부두','미드')+needSail*powerRefUse('선원 항구','미드');
   const demandDried=needSail===null?null:needSail*powerRefUse('선원 항구','건어물');
   const directFish=needExp===null?null:needExp*powerRefUse('원정 부두','생선');
@@ -519,16 +548,17 @@ function targetRequirements(){
   const needHoney=honeyShort===null?null:(honeyShort<=1e-10?0:(refHoney&&refHoney.out1>0?honeyShort/refHoney.out1:null));
   const needFish=fishShort===null?null:(fishShort<=1e-10?0:(refFish&&refFish.out1>0?fishShort/refFish.out1:null));
   return {
-    needEq:{'벌통':needHoney,'어업 부두':needFish,'미드':needMead,'건어물':needDried,'원정 부두':needExp,'선원 항구':needSail},
-    needAmount:{'벌통':demandHoney,'어업 부두':demandFish,'미드':demandMead,'건어물':demandDried,'원정 부두':Math.max(short['도자기 보물'],short['황금 보물']),'선원 항구':Math.max(short['향신료 보물'],short['보석 보물'])}
+    needEq:{'벌통':needHoney,'어업 부두':needFish,'미드':needMead,'건어물':needDried,...productNeed},
+    needAmount:{'벌통':demandHoney,'어업 부두':demandFish,'미드':demandMead,'건어물':demandDried,...short}
   };
 }
-function powerRow(building,req){
-  const cur=currentEquivalent(building),need=req.needEq[building],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n,cls=d===null?'':remainClass(d);
-  const divider=(building==='미드'||building==='원정 부두')?' divider-top':'';
-  return '<tr class="'+divider.trim()+'"><td class="name">'+OUTPUT_LABEL[building]+'</td><td class="num calc '+cls+'">'+(d===null?'<span class="badge-warn">—</span>':fmtSignedPower(d))+'</td><td class="num calc">'+fmtPower(c)+'</td><td class="num calc">'+fmtPower(n)+'</td><td class="num calc">'+fmtQty(req.needAmount[building])+'</td></tr>';
+function powerRow(item,req){
+  const isTreasure=TREASURE_NAMES.includes(item),cur=isTreasure?currentTreasureEquivalent(item):currentEquivalent(item),need=req.needEq[item],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n,cls=d===null?'':remainClass(d);
+  const divider=(item==='미드'||item==='도자기 보물')?' divider-top':'';
+  const label=isTreasure?item.replace(' 보물',''):OUTPUT_LABEL[item];
+  return '<tr class="'+divider.trim()+'"><td class="name">'+label+'</td><td class="num calc '+cls+'">'+(d===null?'<span class="badge-warn">—</span>':fmtSignedPower(d))+'</td><td class="num calc">'+fmtPower(c)+'</td><td class="num calc">'+fmtPower(n)+'</td><td class="num calc">'+fmtQty(req.needAmount[item])+'</td></tr>';
 }
-function renderPower(){const req=targetRequirements();document.querySelector('#tPower tbody').innerHTML=BUILDINGS.map(b=>powerRow(b,req)).join('');}
+function renderPower(){const req=targetRequirements(),items=BASE.concat(MID,TREASURE_NAMES);document.querySelector('#tPower tbody').innerHTML=items.map(x=>powerRow(x,req)).join('');}
 
 function sleepRecipe(building,lv){
   const modes=modesFor(building,lv),desired=app.settings.sleepCycle;let chosen=modes.includes(desired)?desired:null;
@@ -633,7 +663,7 @@ function normalizeLoaded(obj){
   for(const t of TREASURE_NAMES)d.treasureStocks[t]=Math.round(num(d.treasureStocks[t],0));
   return d;
 }
-function syncInputs(){document.getElementById('wonderName').value=app.settings.wonderName;document.getElementById('bonusLv').value=app.settings.bonusLv;document.getElementById('baseH').value=app.settings.baseH;document.getElementById('curLv').value=app.wonder.cur;document.getElementById('tgtLv').value=app.wonder.tgt;document.getElementById('sleepPrepH').value=app.settings.sleepPrepH;document.getElementById('sleepCycle').value=app.settings.sleepCycle;document.getElementById('sleepCount').value=app.settings.sleepCount;}
+function syncInputs(){document.getElementById('wonderName').value=app.settings.wonderName;document.getElementById('bonusLv').value=app.settings.bonusLv;document.getElementById('baseH').value=app.settings.baseH;document.getElementById('curLv').value=app.wonder.cur;document.getElementById('tgtLv').value=app.wonder.tgt;document.getElementById('sleepPrepH').value=app.settings.sleepPrepH;document.getElementById('sleepCycle').value=app.settings.sleepCycle;document.getElementById('sleepCount').value=app.settings.sleepCount;const h=document.getElementById('wonderBaseHDisplay');if(h)h.textContent=fmtHours(app.settings.baseH)+' h';}
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(app));}catch(e){}}
 function loadState(){try{const s=localStorage.getItem(STORAGE_KEY);app=s?normalizeLoaded(JSON.parse(s)):normalizeLoaded(DEFAULTS);}catch(e){app=normalizeLoaded(DEFAULTS);}normalizeDetails();syncInputs();saveState();}
 function resetState(){app=normalizeLoaded(DEFAULTS);normalizeDetails();try{localStorage.removeItem(STORAGE_KEY);}catch(e){}syncInputs();renderAll();saveState();const el=document.getElementById('resetStatus');el.textContent='초기화 완료';if(resetStatusTimer)clearTimeout(resetStatusTimer);resetStatusTimer=setTimeout(()=>el.textContent='',1800);}
@@ -644,13 +674,14 @@ document.addEventListener('click',e=>{const btn=e.target.closest('.step-btn');if
 document.addEventListener('keydown',e=>{if(!e.target.classList?.contains('step-one'))return;if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();increment(e.target,e.key==='ArrowUp'?1:-1);}});
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active');}));
 document.getElementById('wonderName').addEventListener('change',e=>{app.settings.wonderName=e.target.value;renderAll();saveState();});
-document.getElementById('bonusLv').addEventListener('change',e=>{app.settings.bonusLv=clamp(parseInt(e.target.value)||0,0,50);renderAll();saveState();});
-document.getElementById('baseH').addEventListener('change',e=>{app.settings.baseH=Math.max(0,num(e.target.value,0));renderAll();saveState();});
-document.getElementById('curLv').addEventListener('change',e=>{app.wonder.cur=clamp(parseInt(e.target.value)||0,0,50);if(app.wonder.tgt<app.wonder.cur)app.wonder.tgt=app.wonder.cur;renderAll();saveState();});
-document.getElementById('tgtLv').addEventListener('change',e=>{app.wonder.tgt=Math.max(app.wonder.cur,clamp(parseInt(e.target.value)||0,0,50));renderAll();saveState();});
-document.getElementById('sleepPrepH').addEventListener('change',e=>{const v=e.target.value.trim();app.settings.sleepPrepH=v===''?'':Math.max(0,num(v,0));renderAll();saveState();});
+function bindLiveNumber(id,apply){const el=document.getElementById(id);el.addEventListener('change',e=>{apply(e.target.value);renderAll();saveState();});el.addEventListener('input',e=>{const v=e.target.value;queueLiveInput(()=>{apply(v);renderAll();saveState();el.focus();});});}
+bindLiveNumber('bonusLv',v=>{app.settings.bonusLv=clamp(parseInt(v)||0,0,50);});
+bindLiveNumber('baseH',v=>{app.settings.baseH=Math.max(0,num(v,0));});
+bindLiveNumber('curLv',v=>{app.wonder.cur=clamp(parseInt(v)||0,0,50);if(app.wonder.tgt<app.wonder.cur)app.wonder.tgt=app.wonder.cur;});
+bindLiveNumber('tgtLv',v=>{app.wonder.tgt=Math.max(app.wonder.cur,clamp(parseInt(v)||0,0,50));});
+bindLiveNumber('sleepPrepH',v=>{const x=String(v).trim();app.settings.sleepPrepH=x===''?'':Math.max(0,num(x,0));});
 document.getElementById('sleepCycle').addEventListener('change',e=>{app.settings.sleepCycle=e.target.value;renderAll();saveState();});
-document.getElementById('sleepCount').addEventListener('change',e=>{app.settings.sleepCount=Math.max(0,Math.floor(num(e.target.value,3)));renderAll();saveState();});
+bindLiveNumber('sleepCount',v=>{app.settings.sleepCount=Math.max(0,Math.floor(num(v,3)));});
 document.getElementById('resetBtn').addEventListener('click',()=>{if(window.confirm('입력한 값을 초기화할까요?\n현재 저장된 값이 기본값으로 돌아갑니다.'))resetState();});
 document.getElementById('convertToggle').addEventListener('click',()=>{const p=document.getElementById('convertPanel'),open=p.hasAttribute('hidden');if(open){p.removeAttribute('hidden');convertToggle.textContent='생산력 환산표 접기';convertToggle.setAttribute('aria-expanded','true');}else{p.setAttribute('hidden','');convertToggle.textContent='생산력 환산표 보기';convertToggle.setAttribute('aria-expanded','false');}});
 document.getElementById('baseDetailOpen').addEventListener('click',()=>openDetail('base'));
@@ -659,7 +690,9 @@ document.getElementById('treasureDetailOpen').addEventListener('click',()=>openD
 document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.closest('[data-detail-close]')){closeDetail();return;}const tab=e.target.closest('[data-detail-building]');if(tab){detailBuilding=tab.dataset.detailBuilding;renderDetailModal();return;}const rm=e.target.closest('[data-detail-remove]');if(rm){const i=parseInt(rm.dataset.detailRemove);if(Number.isInteger(i))app.details[detailBuilding].rows.splice(i,1);if(app.details[detailBuilding].enabled&&!app.details[detailBuilding].rows.length)app.details[detailBuilding].enabled=false;normalizeDetail(detailBuilding);renderAll();saveState();}});
 document.getElementById('detailEnabled').addEventListener('change',e=>{const d=app.details[detailBuilding];d.enabled=!!e.target.checked;if(d.enabled)seedDetail(detailBuilding);normalizeDetail(detailBuilding);renderAll();saveState();});
 document.getElementById('detailAdd').addEventListener('click',()=>{const d=app.details[detailBuilding];if(!d.enabled||d.rows.length>=20)return;const s=app.buildings[detailBuilding],lv=closestAvailableLevel(detailBuilding,s.lv);d.rows.push({lv,mode:modeForLevel(detailBuilding,lv,s.mode),count:1,hours:''});normalizeDetail(detailBuilding);renderAll();saveState();});
-document.getElementById('detailRows').addEventListener('change',e=>{const el=e.target.closest('[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;const r=app.details[detailBuilding].rows[parseInt(rowEl.dataset.detailIndex)];if(!r)return;const k=el.dataset.detailK;if(k==='lv'){r.lv=closestAvailableLevel(detailBuilding,parseInt(el.value)||1);r.mode=modeForLevel(detailBuilding,r.lv,r.mode);}else if(k==='mode')r.mode=modeForLevel(detailBuilding,r.lv,el.value);else if(k==='count')r.count=Math.max(0,num(el.value,0));else if(k==='hours')r.hours=el.value.trim()===''?'':Math.max(0,num(el.value,0));normalizeDetail(detailBuilding);renderAll();saveState();});
+function commitDetailValue(index,k,value,restore=false){const r=app.details[detailBuilding].rows[index];if(!r)return;if(k==='lv'){r.lv=closestAvailableLevel(detailBuilding,parseInt(value)||1);r.mode=modeForLevel(detailBuilding,r.lv,r.mode);}else if(k==='mode')r.mode=modeForLevel(detailBuilding,r.lv,value);else if(k==='count')r.count=Math.max(0,num(value,0));else if(k==='hours'){const v=String(value).trim();r.hours=v===''?'':Math.max(0,num(v,0));}normalizeDetail(detailBuilding);renderAll();saveState();if(restore){const target=document.querySelector('#detailRows [data-detail-index="'+index+'"] [data-detail-k="'+k+'"]');if(target)target.focus();}}
+document.getElementById('detailRows').addEventListener('change',e=>{const el=e.target.closest('[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;commitDetailValue(parseInt(rowEl.dataset.detailIndex),el.dataset.detailK,el.value,false);});
+document.getElementById('detailRows').addEventListener('input',e=>{const el=e.target.closest('input[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;const i=parseInt(rowEl.dataset.detailIndex),k=el.dataset.detailK,v=el.value;queueLiveInput(()=>commitDetailValue(i,k,v,true));});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('detailModal').hasAttribute('hidden'))closeDetail();});
 
 loadState();renderAll();
