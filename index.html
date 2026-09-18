@@ -104,11 +104,11 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
 .detail-close{width:40px;height:40px;border:1px solid var(--border);border-radius:8px;background:var(--soft-2);color:var(--primary);cursor:pointer;font-size:20px}
 .detail-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:10px}.detail-tab{min-height:40px;border:1px solid var(--border);border-radius:7px;background:var(--soft-2);color:#38515f;cursor:pointer;font:800 12px var(--font);padding:6px}
 .detail-tab.active{background:var(--primary);color:white;border-color:var(--primary)}.detail-tab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#72b6d5;margin-left:3px}.detail-tab.active .dot{background:white}
-.detail-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:#f3f7f9;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.detail-toolbar{display:grid;grid-template-columns:1fr;gap:8px;padding:10px;background:#f3f7f9;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
 .detail-field{display:flex;flex-direction:column;gap:4px;min-width:0}.detail-field label{font-size:11px;font-weight:800;color:#38515f}.detail-field input,.detail-field select{min-height:40px;font-size:14px}
 .detail-toggle-wrap{display:flex;align-items:center;gap:8px;min-height:40px}.detail-toggle-wrap input{width:18px;height:18px;min-width:18px}.detail-toggle-wrap label{font-size:12px;font-weight:800}
 .detail-help,.detail-result{font-size:11px;line-height:1.6;border-radius:7px;padding:8px 10px;margin-bottom:8px}.detail-help{color:#50636e;background:#fff8d9;border:1px solid var(--input-border)}.detail-result{color:#38515f;background:#dce9ee;border:1px solid var(--border)}
-.detail-rows{display:flex;flex-direction:column;gap:7px}.detail-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:7px;align-items:end;padding:9px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px}
+.detail-rows{display:flex;flex-direction:column;gap:7px}.detail-row{display:grid;grid-template-columns:.8fr 1.5fr 1fr 1fr auto;gap:7px;align-items:end;padding:9px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px}
 .detail-row .detail-field input,.detail-row .detail-field select{background:#fff8d9}.detail-row-note{grid-column:1/-1;font-size:10px;color:var(--muted);line-height:1.45}
 .detail-remove{width:40px;height:40px;border:1px solid #e8b8b6;border-radius:7px;background:#f7e0df;color:#8e2d2d;cursor:pointer;font:900 16px var(--font)}
 .detail-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:9px}.detail-add{min-height:40px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:#dce9ee;color:var(--primary);cursor:pointer;font:800 12px var(--font)}.detail-add:disabled{opacity:.45;cursor:not-allowed}.detail-disabled{opacity:.62}
@@ -215,7 +215,6 @@ body.detail-modal-open{overflow:hidden}
     <div id="detailTabs" class="detail-tabs"></div>
     <div class="detail-toolbar">
       <div class="detail-toggle-wrap"><input id="detailEnabled" type="checkbox"><label for="detailEnabled">이 항목에 상세 설정 적용</label></div>
-      <div class="detail-field"><label for="detailMode">생산 방식</label><select id="detailMode"></select></div>
     </div>
     <div id="detailHelp" class="detail-help"></div>
     <div id="detailResult" class="detail-result"></div>
@@ -283,8 +282,11 @@ function rowsFor(building,lv){return RAW.filter(r=>r.building===building&&r.lv==
 function modesFor(building,lv){return rowsFor(building,lv).map(r=>r.mode);}
 function info(building,lv,mode){return RAW.find(r=>r.building===building&&r.lv===Number(lv)&&r.mode===mode)||null;}
 function allModes(building){const order=['연속(6시간 기준)','1분','5분','30분','1시간','1시간 · 도자기 단일','1시간 · 황금 단일','1시간 · 향신료 단일','1시간 · 보석 단일','2시간','2시간 · 도자기 단일','2시간 · 황금 단일','2시간 · 향신료 단일','2시간 · 보석 단일'],s=new Set();RAW.filter(r=>r.building===building).forEach(r=>s.add(r.mode));return order.filter(x=>s.has(x));}
+function modeLabel(mode){return mode==='연속(6시간 기준)'?'연속':mode;}
 function compatibleLevels(building,mode){const a=[];for(let lv=1;lv<=6;lv++)if(info(building,lv,mode))a.push(lv);return a;}
 function closestLevel(building,mode,lv){const ls=compatibleLevels(building,mode);if(!ls.length)return clamp(parseInt(lv)||1,1,6);const n=clamp(parseInt(lv)||ls[0],1,6);return ls.reduce((b,x)=>Math.abs(x-n)<Math.abs(b-n)?x:b,ls[0]);}
+function closestAvailableLevel(building,lv){const ls=availableLevels(building);if(!ls.length)return clamp(parseInt(lv)||1,1,6);const n=clamp(parseInt(lv)||ls[0],ls[0],ls[ls.length-1]);return ls.reduce((b,x)=>Math.abs(x-n)<Math.abs(b-n)?x:b,ls[0]);}
+function modeForLevel(building,lv,preferred=''){const modes=modesFor(building,lv);if(preferred&&modes.includes(preferred))return preferred;return modes[0]||allModes(building)[0]||'';}
 function isContinuous(building){return building==='벌통'||building==='어업 부두';}
 function effectiveHours(building){const h=app.buildings[building].hours;return h===''||h===null||!Number.isFinite(parseFloat(h))?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(h,0));}
 function cyclesFor(hours,min){return Math.max(0,Math.floor((hours*60)/min+1e-10));}
@@ -302,8 +304,11 @@ function productionForInfo(p,h,bldgs){
 function normalizeDetail(building){
   const d=app.details[building]||(app.details[building]={enabled:false,rows:[]});
   d.enabled=!!d.enabled;if(!Array.isArray(d.rows))d.rows=[];
-  const mode=app.buildings[building].mode;
-  d.rows=d.rows.slice(0,20).map(r=>({lv:closestLevel(building,mode,r?.lv),count:Math.max(0,num(r?.count,0)),hours:r?.hours===''||r?.hours===null||r?.hours===undefined?'':Math.max(0,num(r.hours,0))}));
+  d.rows=d.rows.slice(0,20).map(r=>{
+    const lv=closestAvailableLevel(building,r?.lv);
+    const mode=modeForLevel(building,lv,r?.mode||app.buildings[building].mode);
+    return {lv,mode,count:Math.max(0,num(r?.count,0)),hours:r?.hours===''||r?.hours===null||r?.hours===undefined?'':Math.max(0,num(r.hours,0))};
+  });
 }
 function normalizeDetails(){BUILDINGS.forEach(normalizeDetail);}
 function detailEnabled(building){return !!(app.details[building]?.enabled&&app.details[building]?.rows?.length);}
@@ -315,7 +320,7 @@ function metrics(building,hOverride=null){
   if(detailEnabled(building)){
     for(const r of app.details[building].rows){
       const h=hOverride===null?(r.hours===''?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(r.hours,0))):Math.max(0,num(hOverride,0));
-      add(productionForInfo(info(building,r.lv,mode),h,Math.max(0,num(r.count,0))));
+      add(productionForInfo(info(building,r.lv,r.mode),h,Math.max(0,num(r.count,0))));
     }
   }else{
     const s=app.buildings[building],h=hOverride===null?effectiveHours(building):Math.max(0,num(hOverride,0));
@@ -335,24 +340,31 @@ function demandOf(resource,hOverride=null){
 }
 function resourceRemain(resource){return stockOf(resource)+producedOf(resource)-demandOf(resource);}
 function resourceProducer(resource){if(resource==='꿀')return '벌통';if(resource==='생선')return '어업 부두';if(resource==='미드')return '미드';if(resource==='건어물')return '건어물';return null;}
+function timeToOutput(building,need,key='out1'){
+  if(!(need>0))return 0;
+  if(isContinuous(building)){const hourly=metrics(building,1)[key];return hourly>0?need/hourly:null;}
+  const producedAtMinutes=min=>metrics(building,min/60)[key];
+  if(!(producedAtMinutes(120)>0))return null;
+  let hi=1;while(hi<10000000&&producedAtMinutes(hi)+1e-9<need)hi*=2;
+  if(hi>=10000000&&producedAtMinutes(hi)+1e-9<need)return null;
+  let lo=0;while(lo+1<hi){const mid=Math.floor((lo+hi)/2);if(producedAtMinutes(mid)+1e-9>=need)hi=mid;else lo=mid;}
+  return hi/60;
+}
 function resourceTime(resource){
   const need=Math.max(0,demandOf(resource)-stockOf(resource));if(need<=0)return 0;
   const building=resourceProducer(resource);if(!building)return null;
-  if(isContinuous(building)){const hourly=metrics(building,1).out1;return hourly>0?need/hourly:null;}
-  const mode=app.buildings[building].mode,p=RAW.find(r=>r.building===building&&r.mode===mode);if(!p||!(p.min>0))return null;
-  const cycleH=p.min/60,perCycle=metrics(building,cycleH).out1;if(!(perCycle>0))return null;
-  return Math.ceil(need/perCycle-1e-12)*cycleH;
+  return timeToOutput(building,need,'out1');
 }
 
 function stepper(k,value,placeholder=''){const v=value===''?'':value;return '<div class="step-wrap"><input type="number" class="step-one" data-k="'+k+'" value="'+v+'" step="any" min="0"'+(placeholder?' placeholder="'+placeholder+'"':'')+'><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
 function availableLevels(building){return [...new Set(RAW.filter(r=>r.building===building).map(r=>r.lv))].sort((a,b)=>a-b);}
 function closestBuildingLevel(building,lv){const ls=availableLevels(building);if(!ls.length)return clamp(parseInt(lv)||1,1,6);const n=parseInt(lv)||ls[0];return ls.reduce((best,x)=>Math.abs(x-n)<Math.abs(best-n)?x:best,ls[0]);}
 function levelStepper(building,value){const ls=availableLevels(building),min=ls[0]||1,max=ls[ls.length-1]||6;return '<div class="step-wrap"><input type="number" class="step-one" data-k="lv" value="'+value+'" step="1" min="'+min+'" max="'+max+'"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
-function modeHtml(building){const s=app.buildings[building],modes=detailEnabled(building)?allModes(building):modesFor(building,s.lv);return modes.map(m=>'<option value="'+m+'"'+(m===s.mode?' selected':'')+'>'+m.replace('(6시간 기준)','')+'</option>').join('');}
+function modeHtml(building){const s=app.buildings[building],modes=modesFor(building,s.lv);return modes.map(m=>'<option value="'+m+'"'+(m===s.mode?' selected':'')+'>'+modeLabel(m)+'</option>').join('');}
 function commonCells(building,hasStock=true,rowspan=1){
   const s=app.buildings[building],detail=detailEnabled(building),rs=rowspan>1?' rowspan="'+rowspan+'"':'';
   const lv=detail?'<td'+rs+' class="calc detail-active-cell">'+detailLevelText(building)+'</td>':'<td'+rs+' class="input-cell">'+levelStepper(building,s.lv)+'</td>';
-  const mode='<td'+rs+' class="'+(isContinuous(building)?'fixed-input':'input-cell')+'">'+(isContinuous(building)?'연속':'<select data-k="mode">'+modeHtml(building)+'</select>')+'</td>';
+  const mode=detail?'<td'+rs+' class="calc detail-active-cell">상세</td>':'<td'+rs+' class="'+(isContinuous(building)?'fixed-input':'input-cell')+'">'+(isContinuous(building)?'연속':'<select data-k="mode">'+modeHtml(building)+'</select>')+'</td>';
   const b=detail?'<td'+rs+' class="num calc detail-active-cell">'+fmtBldg(actualBuildings(building))+'</td>':'<td'+rs+' class="input-cell">'+stepper('bldgs',s.bldgs)+'</td>';
   const h=detail?'<td'+rs+' class="calc detail-active-cell">상세</td>':'<td'+rs+' class="input-cell">'+stepper('hours',s.hours,'일괄')+'</td>';
   const st=hasStock?'<td'+rs+' class="input-cell"><input type="number" class="stock-input" data-k="stock" value="'+num(s.stock,0)+'" step="1"></td>':'';
@@ -428,7 +440,9 @@ function perCyclePair(building){
   return {out1,out2,min};
 }
 function treasureTime(t){
-  const need=Math.max(0,wonderNeed(t)-stockOf(t));if(need<=0)return 0;const b=treasurePair(t),pc=perCyclePair(b);const per=(t==='도자기 보물'||t==='향신료 보물')?pc.out1:pc.out2;if(!(per>0)||!pc.min)return null;return Math.ceil(need/per-1e-12)*(pc.min/60);
+  const need=Math.max(0,wonderNeed(t)-stockOf(t));if(need<=0)return 0;
+  const b=treasurePair(t),key=(t==='도자기 보물'||t==='향신료 보물')?'out1':'out2';
+  return timeToOutput(b,need,key);
 }
 function goalRow(t){
   const need=wonderNeed(t),stock=stockOf(t),prod=producedOf(t),expected=stock+prod,remain=expected-need;
@@ -553,21 +567,21 @@ function renderConvert(){
 function renderDetailSummary(){
   for(const [key,g] of Object.entries(DETAIL_GROUPS)){const active=g.buildings.filter(detailEnabled),el=document.getElementById(g.summaryId);if(el)el.textContent=active.length?'상세 설정 적용: '+active.join(' · '):'상세 설정 미사용';}
 }
-function seedDetail(building){const d=app.details[building];if(d.rows.length)return;const s=app.buildings[building];d.rows=[{lv:closestLevel(building,s.mode,s.lv),count:Math.max(0,num(s.bldgs,0)),hours:s.hours}];}
-function detailLevelStepper(building,value){const ls=compatibleLevels(building,app.buildings[building].mode),min=ls[0]||1,max=ls[ls.length-1]||6,safe=closestLevel(building,app.buildings[building].mode,value);return '<div class="step-wrap"><input type="number" class="step-one" data-detail-k="lv" value="'+safe+'" min="'+min+'" max="'+max+'" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
-function detailRowHtml(building,r,i){return '<div class="detail-row" data-detail-index="'+i+'"><div class="detail-field"><label>레벨</label>'+detailLevelStepper(building,r.lv)+'</div><div class="detail-field"><label>건물 수</label>'+stepper('x',r.count).replace('data-k="x"','data-detail-k="count"')+'</div><div class="detail-field"><label>운영 시간(h)</label>'+stepper('x',r.hours,'일괄').replace('data-k="x"','data-detail-k="hours"')+'</div><button type="button" class="detail-remove" data-detail-remove="'+i+'">−</button><div class="detail-row-note">운영 시간을 비워두면 일괄 운영 시간이 적용됩니다.</div></div>';}
+function seedDetail(building){const d=app.details[building];if(d.rows.length)return;const s=app.buildings[building],lv=closestAvailableLevel(building,s.lv);d.rows=[{lv,mode:modeForLevel(building,lv,s.mode),count:Math.max(0,num(s.bldgs,0)),hours:s.hours}];}
+function detailLevelStepper(building,value){const ls=availableLevels(building),min=ls[0]||1,max=ls[ls.length-1]||6,safe=closestAvailableLevel(building,value);return '<div class="step-wrap"><input type="number" class="step-one" data-detail-k="lv" value="'+safe+'" min="'+min+'" max="'+max+'" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>';}
+function detailModeHtml(building,r){const modes=modesFor(building,r.lv),mode=modeForLevel(building,r.lv,r.mode);return '<select data-detail-k="mode">'+modes.map(m=>'<option value="'+m+'"'+(m===mode?' selected':'')+'>'+modeLabel(m)+'</option>').join('')+'</select>';}
+function detailRowHtml(building,r,i){return '<div class="detail-row" data-detail-index="'+i+'"><div class="detail-field"><label>레벨</label>'+detailLevelStepper(building,r.lv)+'</div><div class="detail-field"><label>생산 방식</label>'+detailModeHtml(building,r)+'</div><div class="detail-field"><label>건물 수</label>'+stepper('x',r.count).replace('data-k="x"','data-detail-k="count"')+'</div><div class="detail-field"><label>운영 시간(h)</label>'+stepper('x',r.hours,'일괄').replace('data-k="x"','data-detail-k="hours"')+'</div><button type="button" class="detail-remove" data-detail-remove="'+i+'">−</button><div class="detail-row-note">레벨을 먼저 정하면 해당 레벨에서 가능한 생산 방식만 표시됩니다. 운영 시간을 비워두면 일괄 운영 시간이 적용됩니다.</div></div>';}
 function renderDetailModal(){
   const group=DETAIL_GROUPS[detailGroup]||DETAIL_GROUPS.base;if(!group.buildings.includes(detailBuilding))detailBuilding=group.buildings[0];
-  const d=app.details[detailBuilding],mode=app.buildings[detailBuilding].mode;
+  const d=app.details[detailBuilding];
   document.getElementById('detailTitle').textContent=group.title;
-  document.getElementById('detailSubtitle').textContent='같은 생산 건물 안에서 레벨·건물 수·운영 시간을 나누어 입력할 수 있습니다. 생산 방식은 건물별로 공통 적용됩니다.';
+  document.getElementById('detailSubtitle').textContent='레벨을 먼저 입력하면 각 행에서 해당 레벨에 사용할 수 있는 생산 방식만 선택할 수 있습니다.';
   document.getElementById('detailTabs').innerHTML=group.buildings.map(b=>'<button type="button" class="detail-tab'+(b===detailBuilding?' active':'')+'" data-detail-building="'+b+'">'+OUTPUT_LABEL[b]+(detailEnabled(b)?'<span class="dot"></span>':'')+'</button>').join('');
   document.getElementById('detailEnabled').checked=!!d.enabled;
-  const modeEl=document.getElementById('detailMode');modeEl.innerHTML=allModes(detailBuilding).map(m=>'<option value="'+m+'"'+(m===mode?' selected':'')+'>'+m.replace('(6시간 기준)','연속')+'</option>').join('');modeEl.disabled=isContinuous(detailBuilding);
-  document.getElementById('detailHelp').textContent=(detailGroup==='treasure')?'일반 생산은 두 상품을 동시에 생산하며, Lv2 이상에서는 가장 긴 생산 주기의 단일 상품 집중 생산도 선택할 수 있습니다.':'레벨이 다른 건물을 같은 생산 항목 안에서 나누어 계산할 수 있습니다.';
+  document.getElementById('detailHelp').textContent=(detailGroup==='treasure')?'레벨별 일반 생산과 단일 상품 집중 생산을 각 건물 구성마다 따로 선택할 수 있습니다.':'레벨이 다른 건물은 각 행에서 해당 레벨에 맞는 생산 방식을 따로 선택할 수 있습니다.';
   const rows=document.getElementById('detailRows');rows.classList.toggle('detail-disabled',!d.enabled);rows.innerHTML=d.rows.length?d.rows.map((r,i)=>detailRowHtml(detailBuilding,r,i)).join(''):'<div class="detail-help">등록된 건물 구성이 없습니다. 상세 설정을 켜거나 “건물 구성 추가”를 눌러 입력하세요.</div>';
   document.getElementById('detailAdd').disabled=!d.enabled;
-  const m=metrics(detailBuilding),p=info(detailBuilding,app.buildings[detailBuilding].lv,mode)||RAW.find(r=>r.building===detailBuilding);
+  const m=metrics(detailBuilding),first=d.rows.find(r=>num(r.count,0)>0),p=first?info(detailBuilding,first.lv,first.mode):RAW.find(r=>r.building===detailBuilding);
   let text='<b>현재 계산:</b> 건물 '+fmtBldg(actualBuildings(detailBuilding))+'개 · 생산량 '+fmtQty(m.out1);
   if(m.out2)text+=' / '+fmtQty(m.out2);if(p?.mat1)text+=' · '+p.mat1+' 사용 '+fmtQty(num(m.uses[p.mat1],0));if(p?.mat2)text+=' / '+p.mat2+' '+fmtQty(num(m.uses[p.mat2],0));
   document.getElementById('detailResult').innerHTML=text;
@@ -608,9 +622,8 @@ document.getElementById('midDetailOpen').addEventListener('click',()=>openDetail
 document.getElementById('treasureDetailOpen').addEventListener('click',()=>openDetail('treasure'));
 document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.closest('[data-detail-close]')){closeDetail();return;}const tab=e.target.closest('[data-detail-building]');if(tab){detailBuilding=tab.dataset.detailBuilding;renderDetailModal();return;}const rm=e.target.closest('[data-detail-remove]');if(rm){const i=parseInt(rm.dataset.detailRemove);if(Number.isInteger(i))app.details[detailBuilding].rows.splice(i,1);if(app.details[detailBuilding].enabled&&!app.details[detailBuilding].rows.length)app.details[detailBuilding].enabled=false;normalizeDetail(detailBuilding);renderAll();saveState();}});
 document.getElementById('detailEnabled').addEventListener('change',e=>{const d=app.details[detailBuilding];d.enabled=!!e.target.checked;if(d.enabled)seedDetail(detailBuilding);normalizeDetail(detailBuilding);renderAll();saveState();});
-document.getElementById('detailMode').addEventListener('change',e=>{if(isContinuous(detailBuilding))return;app.buildings[detailBuilding].mode=e.target.value;app.buildings[detailBuilding].lv=closestLevel(detailBuilding,e.target.value,app.buildings[detailBuilding].lv);normalizeDetail(detailBuilding);renderAll();saveState();});
-document.getElementById('detailAdd').addEventListener('click',()=>{const d=app.details[detailBuilding];if(!d.enabled||d.rows.length>=20)return;const s=app.buildings[detailBuilding];d.rows.push({lv:closestLevel(detailBuilding,s.mode,s.lv),count:1,hours:''});normalizeDetail(detailBuilding);renderAll();saveState();});
-document.getElementById('detailRows').addEventListener('change',e=>{const el=e.target.closest('[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;const r=app.details[detailBuilding].rows[parseInt(rowEl.dataset.detailIndex)];if(!r)return;const k=el.dataset.detailK;if(k==='lv')r.lv=closestLevel(detailBuilding,app.buildings[detailBuilding].mode,parseInt(el.value)||1);else if(k==='count')r.count=Math.max(0,num(el.value,0));else if(k==='hours')r.hours=el.value.trim()===''?'':Math.max(0,num(el.value,0));normalizeDetail(detailBuilding);renderAll();saveState();});
+document.getElementById('detailAdd').addEventListener('click',()=>{const d=app.details[detailBuilding];if(!d.enabled||d.rows.length>=20)return;const s=app.buildings[detailBuilding],lv=closestAvailableLevel(detailBuilding,s.lv);d.rows.push({lv,mode:modeForLevel(detailBuilding,lv,s.mode),count:1,hours:''});normalizeDetail(detailBuilding);renderAll();saveState();});
+document.getElementById('detailRows').addEventListener('change',e=>{const el=e.target.closest('[data-detail-k]');if(!el)return;const rowEl=el.closest('[data-detail-index]');if(!rowEl)return;const r=app.details[detailBuilding].rows[parseInt(rowEl.dataset.detailIndex)];if(!r)return;const k=el.dataset.detailK;if(k==='lv'){r.lv=closestAvailableLevel(detailBuilding,parseInt(el.value)||1);r.mode=modeForLevel(detailBuilding,r.lv,r.mode);}else if(k==='mode')r.mode=modeForLevel(detailBuilding,r.lv,el.value);else if(k==='count')r.count=Math.max(0,num(el.value,0));else if(k==='hours')r.hours=el.value.trim()===''?'':Math.max(0,num(el.value,0));normalizeDetail(detailBuilding);renderAll();saveState();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('detailModal').hasAttribute('hidden'))closeDetail();});
 
 loadState();renderAll();
