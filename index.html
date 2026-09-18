@@ -204,7 +204,7 @@ body.detail-modal-open{overflow:hidden}
     1. <b>목표 달성 현황</b>은 <b>현재 레벨</b>과 <b>목표 레벨</b>을 기준으로 필요한 최종 상품량과 목표 달성 여부를 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 최종 상품이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
     2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
     3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
-    ※ <b>생산력</b>은 현재 선택한 생산 방식의 <b>Lv6 건물 1개를 100</b>으로 둔 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력을 나타내며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표를 충족하는 데 필요한 생산 능력을 환산한 값입니다.
+    ※ <b>생산력</b>은 생산 항목별 <b>Lv6의 가장 짧은 일반 생산 주기 건물 1개를 100</b>으로 둔 시간당 생산 지수입니다. 상세 설정에서 여러 생산 방식을 사용하면 각 방식의 실제 생산 속도를 같은 기준으로 환산해 합산합니다. 단일 생산은 해당 상품의 Lv6 최단 일반 생산 속도를 100으로 두고 환산합니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력을 나타내며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표를 충족하는 데 필요한 생산 능력을 같은 기준으로 환산한 값입니다.
   </div>
 </section>
 
@@ -457,29 +457,61 @@ function lv6Info(building){return info(building,6,app.buildings[building].mode);
 function refMetrics(building,h=null){
   const p=lv6Info(building),hh=h===null?referenceHours(building):Math.max(0,num(h,0));if(!p||hh<=0)return null;return productionForInfo(p,hh,1);
 }
+function isSingleMode(mode){return String(mode||'').includes('단일');}
+function powerBenchmarkInfo(building){
+  const rows=RAW.filter(r=>r.building===building&&r.lv===6&&!isSingleMode(r.mode));
+  if(!rows.length)return null;
+  return rows.reduce((best,r)=>!best||r.min<best.min?r:best,null);
+}
+function infoHourlyRate(p,key){
+  if(!p||!(p.min>0))return 0;
+  const qty=key==='out2'?num(p.out2qty,0):num(p.out1qty,0);
+  return qty/(p.min/60);
+}
+function powerRatioForInfo(building,p){
+  const base=powerBenchmarkInfo(building);if(!p||!base)return null;
+  if(isSingleMode(p.mode)){
+    const key=p.out1qty>0?'out1':(p.out2qty>0?'out2':null);if(!key)return null;
+    const den=infoHourlyRate(base,key);return den>0?infoHourlyRate(p,key)/den:null;
+  }
+  const ratios=[];
+  if(base.out1qty>0){const den=infoHourlyRate(base,'out1');if(den>0)ratios.push(infoHourlyRate(p,'out1')/den);}
+  if(base.out2qty>0){const den=infoHourlyRate(base,'out2');if(den>0)ratios.push(infoHourlyRate(p,'out2')/den);}
+  return ratios.length?ratios.reduce((a,b)=>a+b,0)/ratios.length:null;
+}
 function currentEquivalent(building,hOverride=null){
-  const m=metrics(building,hOverride),ref=refMetrics(building,hOverride===null?null:hOverride);if(!ref)return null;
-  if(ref.out1>0)return m.out1/ref.out1;if(ref.out2>0)return m.out2/ref.out2;return null;
+  let total=0,seen=false;
+  if(detailEnabled(building)){
+    for(const r of app.details[building].rows){const count=Math.max(0,num(r.count,0));if(count<=0)continue;const ratio=powerRatioForInfo(building,info(building,r.lv,r.mode));if(ratio===null)continue;total+=ratio*count;seen=true;}
+  }else{
+    const s=app.buildings[building],count=Math.max(0,num(s.bldgs,0)),ratio=powerRatioForInfo(building,info(building,s.lv,s.mode));
+    if(ratio!==null){total=ratio*count;seen=true;}
+  }
+  return seen?total:null;
 }
 function refUse(building,material,h=null){const r=refMetrics(building,h);return r?num(r.uses[material],0):0;}
+function powerRefMetrics(building,h=null){
+  const p=powerBenchmarkInfo(building),hh=h===null?referenceHours(building):Math.max(0,num(h,0));if(!p||hh<=0)return null;return productionForInfo(p,hh,1);
+}
+function powerRefUse(building,material,h=null){const r=powerRefMetrics(building,h);return r?num(r.uses[material],0):0;}
 
 function targetRequirements(){
-  const refs={};for(const b of BUILDINGS)refs[b]=refMetrics(b);
+  const refs={};for(const b of BUILDINGS)refs[b]=powerRefMetrics(b);
   const short={};for(const t of TREASURE_NAMES)short[t]=Math.max(0,wonderNeed(t)-stockOf(t));
   const expRef=refs['원정 부두'],sailRef=refs['선원 항구'];
   const pairNeed=(ref,a,b)=>{if(a<=0&&b<=0)return 0;if(!ref)return null;const needs=[];if(a>0){if(!(ref.out1>0))return null;needs.push(a/ref.out1);}if(b>0){if(!(ref.out2>0))return null;needs.push(b/ref.out2);}return needs.length?Math.max(...needs):0;};
   const needExp=pairNeed(expRef,short['도자기 보물'],short['황금 보물']);
   const needSail=pairNeed(sailRef,short['향신료 보물'],short['보석 보물']);
-  const demandMead=(needExp===null||needSail===null)?null:needExp*refUse('원정 부두','미드')+needSail*refUse('선원 항구','미드');
-  const demandDried=needSail===null?null:needSail*refUse('선원 항구','건어물');
-  const directFish=needExp===null?null:needExp*refUse('원정 부두','생선');
+  const demandMead=(needExp===null||needSail===null)?null:needExp*powerRefUse('원정 부두','미드')+needSail*powerRefUse('선원 항구','미드');
+  const demandDried=needSail===null?null:needSail*powerRefUse('선원 항구','건어물');
+  const directFish=needExp===null?null:needExp*powerRefUse('원정 부두','생선');
   const refMead=refs['미드'],refDried=refs['건어물'];
   const meadShort=demandMead===null?null:Math.max(0,demandMead-stockOf('미드'));
   const driedShort=demandDried===null?null:Math.max(0,demandDried-stockOf('건어물'));
   const needMead=meadShort===null?null:(meadShort<=1e-10?0:(refMead&&refMead.out1>0?meadShort/refMead.out1:null));
   const needDried=driedShort===null?null:(driedShort<=1e-10?0:(refDried&&refDried.out1>0?driedShort/refDried.out1:null));
-  const demandHoney=(needMead===null||needDried===null)?null:needMead*refUse('미드','꿀')+needDried*refUse('건어물','꿀');
-  const demandFish=(directFish===null||needDried===null)?null:directFish+needDried*refUse('건어물','생선');
+  const demandHoney=(needMead===null||needDried===null)?null:needMead*powerRefUse('미드','꿀')+needDried*powerRefUse('건어물','꿀');
+  const demandFish=(directFish===null||needDried===null)?null:directFish+needDried*powerRefUse('건어물','생선');
   const refHoney=refs['벌통'],refFish=refs['어업 부두'];
   const honeyShort=demandHoney===null?null:Math.max(0,demandHoney-stockOf('꿀'));
   const fishShort=demandFish===null?null:Math.max(0,demandFish-stockOf('생선'));
@@ -532,35 +564,38 @@ function sleepRow(building,req){
 }
 function renderSleep(){const req=sleepRequirements();document.querySelector('#tSleep tbody').innerHTML=BASE.concat(MID).map(b=>sleepRow(b,req)).join('');}
 
-function conversionRatio(building,lv){
-  const mode=app.buildings[building].mode,p=info(building,lv,mode),b=info(building,6,mode);if(!p||!b)return null;
-  const h=Math.max(referenceHours(building),p.min/60,b.min/60,0.0001),a=productionForInfo(p,h,1),z=productionForInfo(b,h,1);
-  if(z.out1>0)return a.out1/z.out1;if(z.out2>0)return a.out2/z.out2;return null;
+function conversionRatio(building,lv,mode){
+  return powerRatioForInfo(building,info(building,lv,mode));
 }
-function singleInfo(building,lv,product){
-  return RAW.find(r=>r.building===building&&r.lv===Number(lv)&&r.mode.includes('단일')&&((product===r.out1&&r.out1qty>0)||(product===r.out2&&r.out2qty>0)))||null;
+function configuredModes(building){
+  if(isContinuous(building))return [app.buildings[building].mode];
+  const raw=detailEnabled(building)?app.details[building].rows.map(r=>r.mode):[app.buildings[building].mode];
+  const unique=[...new Set(raw.filter(Boolean))],order=allModes(building);
+  return unique.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?999:ia)-(ib<0?999:ib);});
 }
-function singleConversionRatio(building,lv,product){
-  const p=singleInfo(building,lv,product),b=singleInfo(building,6,product);if(!p||!b)return null;
-  const pQty=product===p.out1?p.out1qty:p.out2qty,bQty=product===b.out1?b.out1qty:b.out2qty;
-  const pRate=pQty/(p.min/60),bRate=bQty/(b.min/60);
-  return bRate>0?pRate/bRate:null;
+function singleProductLabel(p){
+  if(!p)return '';
+  const key=p.out1qty>0?p.out1:(p.out2qty>0?p.out2:'');
+  return String(key||'').replace(' 보물','')+'(단일)';
+}
+function displayModeForConvert(mode){
+  if(isSingleMode(mode))return mode.split(' · ')[0];
+  return modeLabel(mode);
 }
 function conversionRow(label,mode,ratios,divider=false){
   return '<tr class="'+(divider?'divider-top':'')+'"><td class="name">'+label+'</td><td class="calc">'+mode+'</td>'+ratios.map(r=>'<td class="num calc">'+(r===null?'—':fmtPower(r*100))+'</td>').join('')+'</tr>';
 }
 function renderConvert(){
   const levels=[2,3,4,5,6],rows=[];
-  for(const b of ['벌통','어업 부두','미드','건어물']){
-    const mode=isContinuous(b)?'연속':app.buildings[b].mode;
-    rows.push(conversionRow(OUTPUT_LABEL[b],mode,levels.map(lv=>conversionRatio(b,lv)),b==='미드'));
+  for(const b of BUILDINGS){
+    const modes=configuredModes(b);let first=true;
+    for(const mode of modes){
+      const sample=RAW.find(r=>r.building===b&&r.mode===mode),label=isSingleMode(mode)?singleProductLabel(sample):OUTPUT_LABEL[b];
+      const divider=(b==='미드'||b==='원정 부두')&&first;
+      rows.push(conversionRow(label,displayModeForConvert(mode),levels.map(lv=>conversionRatio(b,lv,mode)),divider));
+      first=false;
+    }
   }
-  rows.push(conversionRow(OUTPUT_LABEL['원정 부두'],app.buildings['원정 부두'].mode,levels.map(lv=>conversionRatio('원정 부두',lv)),true));
-  rows.push(conversionRow('도자기','단일',levels.map(lv=>singleConversionRatio('원정 부두',lv,'도자기 보물'))));
-  rows.push(conversionRow('황금','단일',levels.map(lv=>singleConversionRatio('원정 부두',lv,'황금 보물'))));
-  rows.push(conversionRow(OUTPUT_LABEL['선원 항구'],app.buildings['선원 항구'].mode,levels.map(lv=>conversionRatio('선원 항구',lv)),true));
-  rows.push(conversionRow('향신료','단일',levels.map(lv=>singleConversionRatio('선원 항구',lv,'향신료 보물'))));
-  rows.push(conversionRow('보석','단일',levels.map(lv=>singleConversionRatio('선원 항구',lv,'보석 보물'))));
   document.querySelector('#tConvert tbody').innerHTML=rows.join('');
 }
 
