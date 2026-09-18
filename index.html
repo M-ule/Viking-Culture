@@ -171,6 +171,7 @@ body.detail-modal-open{overflow:hidden}
     <label for="tgtLv">목표 레벨</label>
     <div class="step-wrap settings-step"><input id="tgtLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
     <label>일괄 운영 시간</label><span id="wonderBaseHDisplay" class="setting-value">0 h</span>
+    <label>최대 도달 예측(물고기)</label><span id="maxFishLv" class="setting-value">Lv—</span>
     <button id="convertToggle" class="convert-toggle" type="button" aria-expanded="false">생산력 환산표 보기</button>
     <span class="spacer"></span>
   </div>
@@ -206,6 +207,7 @@ body.detail-modal-open{overflow:hidden}
     1. <b>목표 달성 현황</b>은 <b>현재 레벨</b>과 <b>목표 레벨</b>을 기준으로 필요한 최종 상품량과 목표 달성 여부를 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 최종 상품이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
     2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
     3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
+    4. <b>최대 도달 예측(물고기)</b>은 현재 물고기 보유량과 어업 부두의 예상 생산량을 사용할 수 있는 물고기로 보고, 현재 건어물과 최종 상품 보유량을 반영해 도달 가능한 최고 레벨을 계산합니다. Lv6 기준으로 원정 부두·선원 항구의 <b>30분 일반 생산을 우선 적용</b>하고 남는 부족분은 <b>2시간 단일 생산</b>으로 보완하며, 부족한 건어물은 <b>건어물 Lv6·30분</b> 효율로 물고기로 환산합니다. 꿀·미드·생산시간과 현재 설정된 건어물·최종 상품의 예상 생산량은 고려하지 않습니다.<br>
     ※ <b>생산력</b>은 각 생산 항목의 <b>Lv6 최단 일반 생산을 100</b>으로 환산한 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력이며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표 달성에 필요한 생산 능력입니다.
   </div>
 </section>
@@ -441,6 +443,48 @@ function renderBonus(){
 }
 
 function wonderNeed(t){if(app.wonder.tgt<=app.wonder.cur)return 0;let s=0;for(let lv=app.wonder.cur+1;lv<=app.wonder.tgt;lv++)s+=num(WONDER_NEEDS[String(lv)]?.[t],0);return s;}
+function wonderNeedTo(target,t){let s=0;for(let lv=app.wonder.cur+1;lv<=target;lv++)s+=num(WONDER_NEEDS[String(lv)]?.[t],0);return s;}
+function rowMaterialUse(p,material){if(!p)return 0;return (p.mat1===material?num(p.use1,0):0)+(p.mat2===material?num(p.use2,0):0);}
+function pairMinimumResource(need1,need2,general,single1,single2,material){
+  const a=Math.max(0,num(need1,0)),b=Math.max(0,num(need2,0));
+  if(a<=1e-10&&b<=1e-10)return 0;
+  if(!general||!single1||!single2)return Infinity;
+  const g1=num(general.out1qty,0),g2=num(general.out2qty,0),s1=num(single1.out1qty,0),s2=num(single2.out2qty,0);
+  if(!(g1>0&&g2>0&&s1>0&&s2>0))return Infinity;
+  const gRuns=Math.min(a/g1,b/g2);
+  const rem1=Math.max(0,a-gRuns*g1),rem2=Math.max(0,b-gRuns*g2);
+  return gRuns*rowMaterialUse(general,material)+(rem1/s1)*rowMaterialUse(single1,material)+(rem2/s2)*rowMaterialUse(single2,material);
+}
+function fishNeededForTarget(target){
+  const pottery=Math.max(0,wonderNeedTo(target,'도자기 보물')-stockOf('도자기 보물'));
+  const gold=Math.max(0,wonderNeedTo(target,'황금 보물')-stockOf('황금 보물'));
+  const spice=Math.max(0,wonderNeedTo(target,'향신료 보물')-stockOf('향신료 보물'));
+  const gem=Math.max(0,wonderNeedTo(target,'보석 보물')-stockOf('보석 보물'));
+
+  const expGeneral=info('원정 부두',6,'30분');
+  const expPottery=info('원정 부두',6,'2시간 · 도자기 단일');
+  const expGold=info('원정 부두',6,'2시간 · 황금 단일');
+  const directFish=pairMinimumResource(pottery,gold,expGeneral,expPottery,expGold,'생선');
+
+  const sailGeneral=info('선원 항구',6,'30분');
+  const sailSpice=info('선원 항구',6,'2시간 · 향신료 단일');
+  const sailGem=info('선원 항구',6,'2시간 · 보석 단일');
+  const driedNeeded=pairMinimumResource(spice,gem,sailGeneral,sailSpice,sailGem,'건어물');
+
+  const driedShort=Math.max(0,driedNeeded-stockOf('건어물'));
+  const driedRef=info('건어물',6,'30분');
+  const driedFishRate=driedRef&&num(driedRef.out1qty,0)>0?rowMaterialUse(driedRef,'생선')/num(driedRef.out1qty,0):Infinity;
+  return directFish+driedShort*driedFishRate;
+}
+function maxReachFishLevel(){
+  const cur=clamp(parseInt(app.wonder.cur)||0,0,50);
+  const availableFish=stockOf('생선')+producedOf('생선');
+  for(let target=50;target>=cur;target--){
+    if(fishNeededForTarget(target)<=availableFish+1e-9)return target;
+  }
+  return cur;
+}
+function renderMaxReachFish(){const el=document.getElementById('maxFishLv');if(el)el.textContent='Lv'+maxReachFishLevel();}
 function treasurePair(t){return (t==='도자기 보물'||t==='황금 보물')?'원정 부두':'선원 항구';}
 function perCyclePair(building){
   const mode=app.buildings[building].mode;let out1=0,out2=0,min=null;
@@ -667,7 +711,7 @@ function syncInputs(){document.getElementById('wonderName').value=app.settings.w
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(app));}catch(e){}}
 function loadState(){try{const s=localStorage.getItem(STORAGE_KEY);app=s?normalizeLoaded(JSON.parse(s)):normalizeLoaded(DEFAULTS);}catch(e){app=normalizeLoaded(DEFAULTS);}normalizeDetails();syncInputs();saveState();}
 function resetState(){app=normalizeLoaded(DEFAULTS);normalizeDetails();try{localStorage.removeItem(STORAGE_KEY);}catch(e){}syncInputs();renderAll();saveState();const el=document.getElementById('resetStatus');el.textContent='초기화 완료';if(resetStatusTimer)clearTimeout(resetStatusTimer);resetStatusTimer=setTimeout(()=>el.textContent='',1800);}
-function renderAll(){syncInputs();renderBonus();renderProduction();renderGoal();renderSleep();renderPower();renderConvert();renderDetailSummary();if(!document.getElementById('detailModal').hasAttribute('hidden'))renderDetailModal();}
+function renderAll(){syncInputs();renderBonus();renderProduction();renderGoal();renderMaxReachFish();renderSleep();renderPower();renderConvert();renderDetailSummary();if(!document.getElementById('detailModal').hasAttribute('hidden'))renderDetailModal();}
 
 function increment(input,delta){let cur=num(input.value,0),next=Math.round((cur+delta)*1e6)/1e6;if(input.min!=='')next=Math.max(num(input.min,next),next);if(input.max!=='')next=Math.min(num(input.max,next),next);input.value=String(next);input.dispatchEvent(new Event('change',{bubbles:true}));}
 document.addEventListener('click',e=>{const btn=e.target.closest('.step-btn');if(!btn)return;const input=btn.closest('.step-wrap')?.querySelector('input');if(input)increment(input,num(btn.dataset.delta,0));});
