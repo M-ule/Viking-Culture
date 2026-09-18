@@ -641,7 +641,7 @@ function sleepRequirements(){
   }
   return {h,needEq,needAmount:{'벌통':demand['꿀'],'어업 부두':demand['생선'],'미드':demand['미드'],'건어물':demand['건어물']}};
 }
-function sleepCurrentEq(building,h){const ref=powerRefMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
+function sleepCurrentEq(building,h){if(!(h>0))return 0;const ref=powerRefMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
 function sleepRow(building,req){
   const resource=STOCK_KEY[building],cur=sleepCurrentEq(building,req.h),need=req.needEq[building],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n;
   const produced=metrics(building,req.h).out1,required=req.needAmount[building],projected=stockOf(resource)+produced,remain=required===null?null:projected-required;
