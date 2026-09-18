@@ -32,8 +32,9 @@ h2{font-size:15px;margin:16px 0 8px;padding-left:8px;border-left:4px solid var(-
 .settings{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:100%}
 .settings label{font-size:12px;font-weight:800;color:#38515f;white-space:nowrap}.settings .spacer{flex:1 1 20px}
 #panel-prod>.settings{width:1200px}
-#panel-wonder>.settings{width:700px}
-.wonder-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:58px}
+#panel-wonder>.settings{width:1200px;max-width:100%}
+.wonder-settings{margin:0 0 8px;width:1200px;max-width:100%;min-height:58px;flex-wrap:nowrap}
+.wonder-settings .convert-toggle{margin-left:auto}
 .sleep-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:48px}
 .sleep-settings .sleep-time-wrap{width:92px}
 .sleep-settings .sleep-time-wrap input{width:72px;min-width:0}
@@ -55,7 +56,7 @@ td.fixed-input{padding:5px 8px}
 input,select{font:inherit;font-size:12px;border:1px solid var(--input-border);background:#fff8d9;padding:4px 6px;border-radius:4px;width:100%;min-width:60px;color:#243a45}
 input:focus,select:focus{outline:none;border-color:var(--input-focus);box-shadow:0 0 0 2px rgba(158,123,24,.15)}
 input[type=number]{text-align:center}select{cursor:pointer;text-align:center;text-align-last:center}
-.settings input,.settings select{width:auto;min-width:90px}.setting-value{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel);color:var(--primary-dark);font-size:12px;font-weight:800;white-space:nowrap}
+.settings input,.settings select{width:auto;min-width:90px}.setting-value{display:inline;min-height:0;padding:0;border:0;border-radius:0;background:none;color:var(--text);font-size:12px;font-weight:800;white-space:nowrap}
 .reset-btn{padding:6px 12px;background:#f7e0df;color:#8e2d2d;border:1px solid #e6b5b2;border-radius:5px;cursor:pointer;font:700 12px var(--font)}
 .reset-btn:hover{background:#efcccc}.reset-status{min-width:70px;font-size:12px;font-weight:800;color:var(--primary)}
 .remain-ok{background:var(--ok-bg)!important;color:var(--ok)!important;font-weight:800}
@@ -117,7 +118,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
 .detail-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:9px}.detail-add{min-height:40px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:#dce9ee;color:var(--primary);cursor:pointer;font:800 12px var(--font)}.detail-add:disabled{opacity:.45;cursor:not-allowed}.detail-disabled{opacity:.62}
 body.detail-modal-open{overflow:hidden}
 @media(max-width:1260px){.power-layout{flex-direction:column;width:100%}.power-main,.power-side{width:100%}}
-@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0}#panel-prod>.note,#panel-wonder>.note{width:100%;max-width:100%;white-space:normal}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
+@media(max-width:720px){body{padding:10px}h1{font-size:18px}.settings{gap:8px}.settings .spacer{display:none}.section-title-row{align-items:flex-start}.detail-open-btn,.convert-toggle{min-height:44px;font-size:13px}.sleep-settings{max-width:100%;padding:9px 10px;min-height:0}.sleep-settings label{flex:1 1 auto}.sleep-settings .sleep-time-wrap{width:104px}.sleep-settings .sleep-time-wrap input{width:78px;font-size:16px;min-height:44px}.sleep-settings .sleep-time-wrap .step-controls{width:26px;flex-basis:26px}.sleep-settings .sleep-time-wrap .step-btn{min-height:22px;font-size:10px}.wonder-settings{min-height:0;flex-wrap:wrap}.wonder-settings .convert-toggle{margin-left:0}#panel-prod>.note,#panel-wonder>.note{width:100%;max-width:100%;white-space:normal}.detail-modal{align-items:flex-end;padding:0}.detail-sheet{width:100%;max-height:90vh;border-radius:14px 14px 0 0;padding:12px 10px 14px}.detail-tabs{grid-template-columns:repeat(2,1fr)}.detail-tab{min-height:44px;font-size:13px}.detail-toolbar{grid-template-columns:1fr}.detail-row{grid-template-columns:1fr 1fr}.detail-row .detail-field input,.detail-row .detail-field select{min-height:44px;font-size:16px}}
 </style>
 </head>
 <body>
@@ -175,7 +176,6 @@ body.detail-modal-open{overflow:hidden}
     <label>일괄 운영 시간</label><span id="wonderBaseHDisplay" class="setting-value">0 h</span>
     <label>최대 도달 레벨(물고기)</label><span id="maxFishLv" class="setting-value">Lv—</span>
     <button id="convertToggle" class="convert-toggle" type="button" aria-expanded="false">생산력 환산표 보기</button>
-    <span class="spacer"></span>
   </div>
   <h2>목표 달성 현황</h2>
   <div class="table-wrap"><table id="tGoal"><thead><tr>
@@ -210,7 +210,7 @@ body.detail-modal-open{overflow:hidden}
     2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
     3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
     ※ <b>생산력</b>은 각 생산 항목의 <b>Lv6 최단 일반 생산을 100</b>으로 환산한 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력이며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표 달성에 필요한 생산 능력입니다.<br>
-    4. <b>최대 도달 레벨(물고기)</b>은 현재 물고기 보유량과 어업 부두의 예상 생산량을 사용할 수 있는 물고기로 보고, 현재 건어물과 최종 상품 보유량을 반영해 도달 가능한 최고 레벨을 계산합니다. 꿀·미드·생산시간과 현재 설정된 건어물·최종 상품의 예상 생산량은 고려하지 않습니다.
+    4. <b>최대 도달 레벨(물고기)</b>은 현재 물고기 보유량·예상 생산량·건어물 및 최종 상품 보유량을 반영해 도달 가능한 최고 레벨을 계산합니다. 꿀·미드 및 생산시간은 고려하지 않습니다.
   </div>
 </section>
 
