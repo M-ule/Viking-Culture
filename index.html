@@ -8,6 +8,7 @@
 <style>
 :root{
   --font:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+  --main-width:1200px;
   --primary:#17324f;--primary-2:#426b91;--primary-dark:#10263d;
   --page:#e7edf0;--panel:#f9fbfc;--text:#263640;--muted:#62737d;
   --border:#9fb0ba;--soft:#d9e3e8;--soft-2:#eef3f5;
@@ -31,14 +32,14 @@ h2{font-size:15px;margin:16px 0 8px;padding-left:8px;border-left:4px solid var(-
 .legend-input{background:var(--input);border-color:var(--input-border)}.legend-calc{background:var(--soft-2);border-color:var(--border)}
 .settings{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;background:var(--soft-2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;max-width:100%}
 .settings label{font-size:12px;font-weight:800;color:#38515f;white-space:nowrap}.settings .spacer{flex:1 1 20px}
-#panel-prod>.settings,#panel-wonder>.settings{width:1200px;max-width:100%;height:50px;min-height:50px}
-.wonder-settings{margin:0 0 8px;width:1200px;max-width:100%;flex-wrap:nowrap}
+#panel-prod>.settings,#panel-wonder>.settings{width:var(--main-width);max-width:100%;height:50px;min-height:50px}
+.wonder-settings{margin:0 0 8px;width:var(--main-width);max-width:100%;flex-wrap:nowrap}
 .wonder-settings .convert-toggle{min-height:30px;height:30px;padding:4px 9px}
 .sleep-settings{margin:0 0 8px;width:700px;max-width:100%;min-height:48px}
 .sleep-settings .sleep-time-wrap{width:92px}
 .sleep-settings .sleep-time-wrap input{width:72px;min-width:0}
 .bonus-box{display:flex;flex-wrap:wrap;gap:8px 18px;padding:9px 12px;background:#dce9ee;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:12px;max-width:100%}
-#panel-prod>.bonus-box{width:1200px}
+#panel-prod>.bonus-box{width:var(--main-width)}
 .bonus-item{display:flex;gap:6px;align-items:baseline}.bonus-item b{color:var(--primary-dark)}
 .table-wrap{overflow-x:auto;position:relative}
 table{border-collapse:separate;border-spacing:0;margin-bottom:4px;font-size:12px;table-layout:fixed}
@@ -61,7 +62,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
 .remain-ok{background:var(--ok-bg)!important;color:var(--ok)!important;font-weight:800}
 .remain-bad{background:var(--bad-bg)!important;color:var(--bad)!important;font-weight:800}
 .note{font-size:11px;color:#50636e;line-height:1.7;padding:9px 12px;background:#f4f8f9;border:1px solid var(--border);border-radius:8px;margin-top:10px;max-width:100%}
-#panel-prod>.note,#panel-wonder>.note{width:1200px;max-width:100%;white-space:normal}
+#panel-prod>.note,#panel-wonder>.note{width:var(--main-width);max-width:100%;white-space:normal}
 .step-wrap{display:flex;align-items:stretch;width:100%;min-width:72px}
 .step-wrap input{min-width:0;border-radius:4px 0 0 4px;border-right:0}
 .step-controls{width:20px;display:flex;flex-direction:column;flex:0 0 20px}
@@ -85,7 +86,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
   border-spacing:0 !important;
 }
 #tBase{width:1000px !important;min-width:1000px !important;}
-#tMid{width:1200px !important;min-width:1200px !important;}
+#tMid{width:var(--main-width) !important;min-width:var(--main-width) !important;}
 #tTreasure{width:1000px !important;min-width:1000px !important;}
 #tGoal{width:600px !important;min-width:600px !important;}
 #tSleep{width:700px !important;min-width:700px !important;}
