@@ -453,9 +453,16 @@ function pairMinimumResource(need1,need2,general,single1,single2,material){
   if(!general||!single1||!single2)return Infinity;
   const g1=num(general.out1qty,0),g2=num(general.out2qty,0),s1=num(single1.out1qty,0),s2=num(single2.out2qty,0);
   if(!(g1>0&&g2>0&&s1>0&&s2>0))return Infinity;
-  const gRuns=Math.min(a/g1,b/g2);
-  const rem1=Math.max(0,a-gRuns*g1),rem2=Math.max(0,b-gRuns*g2);
-  return gRuns*rowMaterialUse(general,material)+(rem1/s1)*rowMaterialUse(single1,material)+(rem2/s2)*rowMaterialUse(single2,material);
+  const gCost=rowMaterialUse(general,material),s1Cost=rowMaterialUse(single1,material),s2Cost=rowMaterialUse(single2,material);
+  const maxGeneral=Math.ceil(Math.max(a/g1,b/g2))+1;
+  let best=Infinity;
+  for(let gRuns=0;gRuns<=maxGeneral;gRuns++){
+    const rem1=Math.max(0,a-gRuns*g1),rem2=Math.max(0,b-gRuns*g2);
+    const s1Runs=Math.max(0,Math.ceil(rem1/s1-1e-12)),s2Runs=Math.max(0,Math.ceil(rem2/s2-1e-12));
+    const cost=gRuns*gCost+s1Runs*s1Cost+s2Runs*s2Cost;
+    if(cost<best)best=cost;
+  }
+  return best;
 }
 function fishNeededForTarget(target){
   const pottery=Math.max(0,wonderNeedTo(target,'도자기 보물')-stockOf('도자기 보물'));
@@ -475,8 +482,9 @@ function fishNeededForTarget(target){
 
   const driedShort=Math.max(0,driedNeeded-stockOf('건어물'));
   const driedRef=info('건어물',6,'30분');
-  const driedFishRate=driedRef&&num(driedRef.out1qty,0)>0?rowMaterialUse(driedRef,'생선')/num(driedRef.out1qty,0):Infinity;
-  return directFish+driedShort*driedFishRate;
+  if(!driedRef||!(num(driedRef.out1qty,0)>0))return Infinity;
+  const driedRuns=Math.max(0,Math.ceil(driedShort/num(driedRef.out1qty,0)-1e-12));
+  return directFish+driedRuns*rowMaterialUse(driedRef,'생선');
 }
 function maxReachFishLevel(){
   const cur=clamp(parseInt(app.wonder.cur)||0,0,50);
