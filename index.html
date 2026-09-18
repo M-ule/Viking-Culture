@@ -652,6 +652,9 @@ function renderSleep(){const req=sleepRequirements();document.querySelector('#tS
 function conversionRatio(building,lv,mode){
   return powerRatioForInfo(building,info(building,lv,mode));
 }
+function conversionProductRatio(building,lv,mode,key){
+  return productPowerRatioForInfo(building,info(building,lv,mode),key);
+}
 function configuredModes(building){
   if(isContinuous(building))return [app.buildings[building].mode];
   const raw=detailEnabled(building)?app.details[building].rows.map(r=>r.mode):[app.buildings[building].mode];
@@ -675,9 +678,19 @@ function renderConvert(){
   for(const b of BUILDINGS){
     const modes=configuredModes(b);let first=true;
     for(const mode of modes){
-      const sample=RAW.find(r=>r.building===b&&r.mode===mode),label=isSingleMode(mode)?singleProductLabel(sample):OUTPUT_LABEL[b];
-      const divider=(b==='미드'||b==='원정 부두')&&first;
-      rows.push(conversionRow(label,displayModeForConvert(mode),levels.map(lv=>conversionRatio(b,lv,mode)),divider));
+      const sample=RAW.find(r=>r.building===b&&r.mode===mode),divider=(b==='미드'||b==='원정 부두')&&first;
+      if(b==='원정 부두'||b==='선원 항구'){
+        if(isSingleMode(mode)){
+          const key=sample?.out1qty>0?'out1':'out2';
+          rows.push(conversionRow(singleProductLabel(sample),displayModeForConvert(mode),levels.map(lv=>conversionProductRatio(b,lv,mode,key)),divider));
+        }else{
+          const firstLabel=b==='원정 부두'?'도자기':'향신료',secondLabel=b==='원정 부두'?'황금':'보석';
+          rows.push(conversionRow(firstLabel,displayModeForConvert(mode),levels.map(lv=>conversionProductRatio(b,lv,mode,'out1')),divider));
+          rows.push(conversionRow(secondLabel,displayModeForConvert(mode),levels.map(lv=>conversionProductRatio(b,lv,mode,'out2')),false));
+        }
+      }else{
+        rows.push(conversionRow(OUTPUT_LABEL[b],displayModeForConvert(mode),levels.map(lv=>conversionRatio(b,lv,mode)),divider));
+      }
       first=false;
     }
   }
