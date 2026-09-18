@@ -96,7 +96,7 @@ input[type=number]{text-align:center}select{cursor:pointer;text-align:center;tex
   height:30px !important;min-height:30px !important;
   padding:4px 6px !important;line-height:20px !important;vertical-align:middle !important;
 }
-#tBase th,#tMid th,#tTreasure th,#tGoal th,#tSleep th,#tPower th,#tConvert th{white-space:nowrap;}
+#tBase th,#tMid th,#tTreasure th,#tGoal th,#tSleep th,#tPower th,#tConvert th{white-space:nowrap;}\n#tConvert tbody td.num{font-weight:800;}
 /* modal */
 .detail-modal[hidden]{display:none}.detail-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
 .detail-backdrop{position:absolute;inset:0;background:rgba(21,40,50,.48)}.detail-sheet{position:relative;z-index:1;width:min(860px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.18)}
@@ -204,14 +204,14 @@ body.detail-modal-open{overflow:hidden}
     1. <b>목표 달성 현황</b>은 <b>현재 레벨</b>과 <b>목표 레벨</b>을 기준으로 필요한 최종 상품량과 목표 달성 여부를 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 최종 상품이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
     2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
     3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
-    ※ <b>생산력</b>은 생산 항목별 <b>Lv6의 가장 짧은 일반 생산 주기 건물 1개를 100</b>으로 둔 시간당 생산 지수입니다. 상세 설정에서 여러 생산 방식을 사용하면 각 방식의 실제 생산 속도를 같은 기준으로 환산해 합산합니다. 단일 생산은 해당 상품의 Lv6 최단 일반 생산 속도를 100으로 두고 환산합니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력을 나타내며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표를 충족하는 데 필요한 생산 능력을 같은 기준으로 환산한 값입니다.
+    ※ <b>생산력</b>은 각 생산 항목의 <b>Lv6 최단 일반 생산을 100</b>으로 환산한 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력이며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표 달성에 필요한 생산 능력입니다.
   </div>
 </section>
 
 <div id="detailModal" class="detail-modal" hidden aria-hidden="true">
   <div class="detail-backdrop" data-detail-close></div>
   <div class="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-    <div class="detail-head"><div><h3 id="detailTitle">상세 설정</h3><p id="detailSubtitle">같은 생산 건물 안에서 레벨·건물 수·운영 시간을 나누어 입력할 수 있습니다. 생산 방식은 건물별로 공통 적용됩니다.</p></div><button class="detail-close" type="button" data-detail-close>×</button></div>
+    <div class="detail-head"><div><h3 id="detailTitle">상세 설정</h3><p id="detailSubtitle">같은 생산 건물 안에서 레벨·생산 방식·건물 수·운영 시간을 나누어 입력할 수 있습니다.</p></div><button class="detail-close" type="button" data-detail-close>×</button></div>
     <div id="detailTabs" class="detail-tabs"></div>
     <div class="detail-toolbar">
       <div class="detail-toggle-wrap"><input id="detailEnabled" type="checkbox"><label for="detailEnabled">이 항목에 상세 설정 적용</label></div>
@@ -482,7 +482,7 @@ function powerRatioForInfo(building,p){
 function currentEquivalent(building,hOverride=null){
   let total=0,seen=false;
   if(detailEnabled(building)){
-    for(const r of app.details[building].rows){const count=Math.max(0,num(r.count,0));if(count<=0)continue;const ratio=powerRatioForInfo(building,info(building,r.lv,r.mode));if(ratio===null)continue;total+=ratio*count;seen=true;}
+    for(const r of app.details[building].rows){const count=Math.max(0,num(r.count,0)),ratio=powerRatioForInfo(building,info(building,r.lv,r.mode));if(ratio===null)continue;total+=ratio*count;seen=true;}
   }else{
     const s=app.buildings[building],count=Math.max(0,num(s.bldgs,0)),ratio=powerRatioForInfo(building,info(building,s.lv,s.mode));
     if(ratio!==null){total=ratio*count;seen=true;}
@@ -546,17 +546,17 @@ function sleepRequirements(){
   const totalMead=use('원정 부두','미드',h)+use('선원 항구','미드',h)+sleepUse('원정 부두','미드')+sleepUse('선원 항구','미드');
   const totalDried=use('선원 항구','건어물',h)+sleepUse('선원 항구','건어물');
   const directFish=use('원정 부두','생선',h)+sleepUse('원정 부두','생선');
-  const rMead=refMetrics('미드',h),rDried=refMetrics('건어물',h);
+  const rMead=powerRefMetrics('미드',h),rDried=powerRefMetrics('건어물',h);
   const needMead=rMead&&rMead.out1>0?Math.max(0,totalMead-stockOf('미드'))/rMead.out1:(totalMead<=stockOf('미드')?0:null);
   const needDried=rDried&&rDried.out1>0?Math.max(0,totalDried-stockOf('건어물'))/rDried.out1:(totalDried<=stockOf('건어물')?0:null);
-  const honeyDemand=(needMead===null||needDried===null)?null:needMead*refUse('미드','꿀',h)+needDried*refUse('건어물','꿀',h);
-  const fishDemand=(needDried===null)?null:directFish+needDried*refUse('건어물','생선',h);
-  const rHoney=refMetrics('벌통',h),rFish=refMetrics('어업 부두',h);
+  const honeyDemand=(needMead===null||needDried===null)?null:needMead*powerRefUse('미드','꿀',h)+needDried*powerRefUse('건어물','꿀',h);
+  const fishDemand=(needDried===null)?null:directFish+needDried*powerRefUse('건어물','생선',h);
+  const rHoney=powerRefMetrics('벌통',h),rFish=powerRefMetrics('어업 부두',h);
   const needHoney=honeyDemand===null?null:(rHoney&&rHoney.out1>0?Math.max(0,honeyDemand-stockOf('꿀'))/rHoney.out1:(honeyDemand<=stockOf('꿀')?0:null));
   const needFish=fishDemand===null?null:(rFish&&rFish.out1>0?Math.max(0,fishDemand-stockOf('생선'))/rFish.out1:(fishDemand<=stockOf('생선')?0:null));
   return {h,needEq:{'벌통':needHoney,'어업 부두':needFish,'미드':needMead,'건어물':needDried},needAmount:{'벌통':honeyDemand,'어업 부두':fishDemand,'미드':totalMead,'건어물':totalDried}};
 }
-function sleepCurrentEq(building,h){const ref=refMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
+function sleepCurrentEq(building,h){const ref=powerRefMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
 function sleepRow(building,req){
   const resource=STOCK_KEY[building],cur=sleepCurrentEq(building,req.h),need=req.needEq[building],c=cur===null?null:cur*100,n=need===null?null:need*100,d=(c===null||n===null)?null:c-n;
   const produced=metrics(building,req.h).out1,required=req.needAmount[building],projected=stockOf(resource)+produced,remain=required===null?null:projected-required;
