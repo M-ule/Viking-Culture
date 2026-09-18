@@ -55,7 +55,7 @@ td.fixed-input{padding:5px 8px}
 input,select{font:inherit;font-size:12px;border:1px solid var(--input-border);background:#fff8d9;padding:4px 6px;border-radius:4px;width:100%;min-width:60px;color:#243a45}
 input:focus,select:focus{outline:none;border-color:var(--input-focus);box-shadow:0 0 0 2px rgba(158,123,24,.15)}
 input[type=number]{text-align:center}select{cursor:pointer;text-align:center;text-align-last:center}
-.settings input,.settings select{width:auto;min-width:90px}.setting-value{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel);color:var(--primary-dark);font-weight:800;white-space:nowrap}
+.settings input,.settings select{width:auto;min-width:90px}.setting-value{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel);color:var(--primary-dark);font-size:12px;font-weight:800;white-space:nowrap}
 .reset-btn{padding:6px 12px;background:#f7e0df;color:#8e2d2d;border:1px solid #e6b5b2;border-radius:5px;cursor:pointer;font:700 12px var(--font)}
 .reset-btn:hover{background:#efcccc}.reset-status{min-width:70px;font-size:12px;font-weight:800;color:var(--primary)}
 .remain-ok{background:var(--ok-bg)!important;color:var(--ok)!important;font-weight:800}
@@ -173,7 +173,7 @@ body.detail-modal-open{overflow:hidden}
     <label for="tgtLv">목표 레벨</label>
     <div class="step-wrap settings-step"><input id="tgtLv" class="step-one" type="number" min="0" max="50" step="1"><div class="step-controls"><button type="button" class="step-btn" data-delta="1">▲</button><button type="button" class="step-btn" data-delta="-1">▼</button></div></div>
     <label>일괄 운영 시간</label><span id="wonderBaseHDisplay" class="setting-value">0 h</span>
-    <label>최대 도달 예측(물고기)</label><span id="maxFishLv" class="setting-value">Lv—</span>
+    <label>최대 도달 레벨(물고기)</label><span id="maxFishLv" class="setting-value">Lv—</span>
     <button id="convertToggle" class="convert-toggle" type="button" aria-expanded="false">생산력 환산표 보기</button>
     <span class="spacer"></span>
   </div>
@@ -209,8 +209,8 @@ body.detail-modal-open{overflow:hidden}
     1. <b>목표 달성 현황</b>은 <b>현재 레벨</b>과 <b>목표 레벨</b>을 기준으로 필요한 최종 상품량과 목표 달성 여부를 계산합니다. <b>소요 시간(h)</b>은 현재 보유량을 포함하여 부족한 최종 상품이 처음 ‘잔여’가 되기까지 필요한 운영 시간입니다.<br>
     2. <b>수면 대비 자원 확보</b>는 <b>수면까지 남은 시간(h)</b> 동안의 최종 상품 생산에 사용되는 기초·중간 상품, 각 자원의 현재 보유량과 수면 중 생산 주기·횟수를 함께 반영하여 필요한 생산력을 계산합니다.<br>
     3. <b>목표 레벨 생산력 비교</b>는 <b>현재 생산력</b>과 <b>목표 레벨 달성에 필요한 생산력</b>을 비교하여 <b>생산력 차이</b>를 계산합니다. 최종 상품 부족분과 그 생산에 필요한 중간·기초 자원까지 반영합니다.<br>
-    4. <b>최대 도달 예측(물고기)</b>은 현재 물고기 보유량과 어업 부두의 예상 생산량을 사용할 수 있는 물고기로 보고, 현재 건어물과 최종 상품 보유량을 반영해 도달 가능한 최고 레벨을 계산합니다. Lv6 기준으로 원정 부두·선원 항구의 <b>30분 일반 생산을 우선 적용</b>하고 남는 부족분은 <b>2시간 단일 생산</b>으로 보완하며, 부족한 건어물은 <b>건어물 Lv6·30분</b> 효율로 물고기로 환산합니다. 꿀·미드·생산시간과 현재 설정된 건어물·최종 상품의 예상 생산량은 고려하지 않습니다.<br>
-    ※ <b>생산력</b>은 각 생산 항목의 <b>Lv6 최단 일반 생산을 100</b>으로 환산한 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력이며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표 달성에 필요한 생산 능력입니다.
+    ※ <b>생산력</b>은 각 생산 항목의 <b>Lv6 최단 일반 생산을 100</b>으로 환산한 지수입니다. <b>현재 생산력</b>은 현재 설정된 건물 구성의 생산 능력이며, <b>필요 생산력</b>은 현재 보유량을 고려해 목표 달성에 필요한 생산 능력입니다.<br>
+    4. <b>최대 도달 레벨(물고기)</b>은 현재 물고기 보유량과 어업 부두의 예상 생산량을 사용할 수 있는 물고기로 보고, 현재 건어물과 최종 상품 보유량을 반영해 도달 가능한 최고 레벨을 계산합니다. 꿀·미드·생산시간과 현재 설정된 건어물·최종 상품의 예상 생산량은 고려하지 않습니다.
   </div>
 </section>
 
