@@ -396,35 +396,35 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 #panel-prod #t2 .pair-output{font-size:16px;line-height:1.65}
 @media(min-width:1101px){
  #panel-prod:not(.expanded) #t2 th:nth-child(1){width:14%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(2){width:9%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(3){width:23%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(4){width:12%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(2){width:10%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(3){width:16%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(4){width:14%!important}
  #panel-prod:not(.expanded) #t2 th:nth-child(5){width:10%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(6){width:32%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(6){width:36%!important}
  #panel-prod.expanded #t2 th:nth-child(1){width:12%!important}
  #panel-prod.expanded #t2 th:nth-child(2){width:6%!important}
- #panel-prod.expanded #t2 th:nth-child(3){width:18%!important}
+ #panel-prod.expanded #t2 th:nth-child(3){width:16%!important}
  #panel-prod.expanded #t2 th:nth-child(4){width:7%!important}
  #panel-prod.expanded #t2 th:nth-child(5){width:8%!important}
- #panel-prod.expanded #t2 th:nth-child(6){width:24%!important}
- #panel-prod.expanded #t2 th:nth-child(7){width:11%!important}
+ #panel-prod.expanded #t2 th:nth-child(6){width:25%!important}
+ #panel-prod.expanded #t2 th:nth-child(7){width:12%!important}
  #panel-prod.expanded #t2 th:nth-child(8){width:14%!important}
  #panel-prod:not(.expanded) #t3 th:nth-child(1){width:10%!important}
  #panel-prod:not(.expanded) #t3 th:nth-child(2){width:8%!important}
- #panel-prod:not(.expanded) #t3 th:nth-child(3){width:18%!important}
- #panel-prod:not(.expanded) #t3 th:nth-child(4){width:10%!important}
+ #panel-prod:not(.expanded) #t3 th:nth-child(3){width:12%!important}
+ #panel-prod:not(.expanded) #t3 th:nth-child(4){width:12%!important}
  #panel-prod:not(.expanded) #t3 th:nth-child(5){width:10%!important}
- #panel-prod:not(.expanded) #t3 th:nth-child(6){width:16%!important}
- #panel-prod:not(.expanded) #t3 th:nth-child(9){width:14%!important}
+ #panel-prod:not(.expanded) #t3 th:nth-child(6){width:18%!important}
+ #panel-prod:not(.expanded) #t3 th:nth-child(9){width:16%!important}
  #panel-prod:not(.expanded) #t3 th:nth-child(10){width:14%!important}
  #panel-prod.expanded #t3 th:nth-child(1){width:8%!important}
  #panel-prod.expanded #t3 th:nth-child(2){width:6%!important}
- #panel-prod.expanded #t3 th:nth-child(3){width:16%!important}
+ #panel-prod.expanded #t3 th:nth-child(3){width:12%!important}
  #panel-prod.expanded #t3 th:nth-child(4){width:7%!important}
  #panel-prod.expanded #t3 th:nth-child(5){width:8%!important}
- #panel-prod.expanded #t3 th:nth-child(6){width:13%!important}
+ #panel-prod.expanded #t3 th:nth-child(6){width:15%!important}
  #panel-prod.expanded #t3 th:nth-child(7){width:11%!important}
- #panel-prod.expanded #t3 th:nth-child(8){width:12%!important}
+ #panel-prod.expanded #t3 th:nth-child(8){width:14%!important}
  #panel-prod.expanded #t3 th:nth-child(9){width:10%!important}
  #panel-prod.expanded #t3 th:nth-child(10){width:9%!important}
  #panel-prod #t3 th .term-text{white-space:normal}
@@ -1131,12 +1131,14 @@ TOOLTIPS['페니 현황']='현재 보유량과 예상 생산량을 합하고 건
 const originalSyncInputs=syncInputs;
 syncInputs=function(){originalSyncInputs();$('referenceCycle').value=app.settings.referenceCycle;};
 function shortName(t){return t.replace(' 보물','');}
+// Compact labels only; option values retain the original production recipe keys.
+modeLabel=function(mode){return mode==='연속(6시간 기준)'?'연속':String(mode).replace(/^(\d+시간) · (.+) 단일$/,'$1($2)');};
 function commonProductionCells(building){
  const s=app.buildings[building],detailed=detailEnabled(building),active=configRows(building).filter(r=>r.count>0),values=fn=>[...new Set(active.map(fn))],lv=values(r=>r.lv),modes=values(r=>modeLabel(r.mode)),hours=values(r=>rowHours(building,r));
  const dis=detailed?'disabled':'',input=(k,v,attrs='')=>'<input type="number" data-k="'+k+'" value="'+v+'" '+attrs+'>';
  const levels=availableLevels(building);
  return td(detailed?(lv.length===1?'Lv.'+lv[0]:'혼합'):input('lv',s.lv,'min="'+levels[0]+'" max="'+levels.at(-1)+'" step="1"'))+
- td(detailed?(modes.length===1?modes[0]:'혼합'):isContinuous(building)?'연속':'<select data-k="mode">'+modeHtml(building)+'</select>')+
+ td(detailed?(modes.length===1?modes[0]:'혼합'):isContinuous(building)?'연속':'<select data-k="mode" title="'+safeText(s.mode)+'">'+modeHtml(building)+'</select>')+
  td(input('bldgs',detailed?actualBuildings(building):s.bldgs,'min="0" step="1" '+dis))+
  td(detailed?(hours.length===1?duration(hours[0]):'혼합'):input('hours',s.hours,'min="0" step="any" placeholder="기본"'));
 }
