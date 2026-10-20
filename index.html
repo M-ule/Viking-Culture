@@ -1059,6 +1059,8 @@ Object.assign(TOOLTIPS,{
 });
 // Reuse the same wording and tooltip behavior for all headings and inputs.
 for(const key of Object.keys(TOOLTIPS))if(key.includes('디르함'))TOOLTIPS[key.replaceAll('디르함','페니')]=TOOLTIPS[key].replaceAll('디르함','페니');
+TOOLTIPS['자원']='바이킹의 기초·중간 자원인 꿀·생선·미드·건어물입니다.';
+TOOLTIPS['페니 현황']='현재 보유량과 예상 생산량을 합하고 건설·목표 연구 비용을 차감한 잔여/부족을 표시합니다.';
 const originalSyncInputs=syncInputs;
 syncInputs=function(){originalSyncInputs();$('referenceCycle').value=app.settings.referenceCycle;};
 function shortName(t){return t.replace(' 보물','');}
