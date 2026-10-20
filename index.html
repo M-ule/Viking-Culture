@@ -391,7 +391,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 /* Readable paired stock fields; keep names on one line next to full-size inputs. */
 #panel-prod #t2 .pair-line{gap:8px;margin:4px 0;min-width:0}
 #panel-prod #t2 .pair-line>span{flex:0 0 54px;white-space:nowrap;font-size:16px;line-height:1.4;text-align:left}
-#panel-prod #t2 .pair-line input{flex:1 1 0;width:0;min-width:0;height:46px;min-height:46px;font-size:18px}
+#panel-prod #t2 .pair-line input{flex:1 1 0;width:0;min-width:0;height:44px;min-height:44px;font-size:18px}
 #panel-prod #t2 td.viking-stock{padding:8px 10px}
 #panel-prod #t2 .pair-output{font-size:16px;line-height:1.65}
 @media(min-width:1101px){
@@ -454,11 +454,11 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .research-filter-empty{padding:24px 14px;color:#62737d;font-size:16px;text-align:center}
 .research-tree.filter-empty{height:auto!important;min-height:0;width:100%}
 .detail-config-count{font-size:14px;color:#62737d;margin-left:auto}
-.compact-mode{position:relative;display:block;width:100%;min-width:0;border:1px solid #d8c36b;border-radius:4px;background:var(--input)}
-.mode-display{position:relative;display:flex;min-height:56px;flex-direction:column;align-items:center;justify-content:center;padding:5px 20px 5px 5px;line-height:1.35;font-size:16px}
+.compact-mode{position:relative;display:block;width:100%;min-width:0;height:44px;min-height:44px;border:1px solid #d8c36b;border-radius:4px;background:var(--input)}
+.mode-display{position:relative;display:flex;height:100%;min-height:0;flex-direction:column;align-items:center;justify-content:center;padding:0 18px 0 4px;line-height:1.2;font-size:16px}
 .mode-product{display:block;white-space:nowrap;font-size:16px}
 .mode-chevron{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:13px;color:#294c68}
-#panel-prod #t2 .compact-mode select{position:absolute;inset:0;width:100%!important;height:100%!important;opacity:0;cursor:pointer}
+#panel-prod #t2 .compact-mode select{position:absolute;inset:0;width:100%!important;height:100%!important;min-height:0;opacity:0;cursor:pointer}
 .compact-mode:focus-within{outline:3px solid #dfa24c;outline-offset:2px}
 @media(max-width:720px){.summary .metric{height:auto;min-height:94px}.modalhead{flex-wrap:wrap}.detail-config-count{width:100%;margin:0}.research-mobile .research-filter-empty{border:1px dashed var(--line);border-radius:6px}}
 </style></head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend muted"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><div class="card"><div class="bar"><label class="wide" data-tip-key="불가사의">불가사의 <select id="wonderName" aria-label="불가사의 선택"><option>발할라</option><option>위그드라실</option><option>드래곤십 엘리다</option></select></label><label data-tip-key="보너스 적용 레벨">보너스 적용 레벨 <input id="bonusLv" type="number" min="0" max="50" step="1"></label><label data-tip-key="기본 운영 시간(h)">기본 운영 시간(h) <input id="baseH" type="number" min="0" step="any"></label><button class="push" id="prodView">상세 보기</button><button id="manualSave">입력값 저장</button><button id="resetBtn" class="danger">초기화</button><span id="resetStatus" role="status" class="status"></span></div><div id="bonusSummary" class="summary"></div></div><div id="productionSections"><div class="card" id="stage0"><div class="sectionbar"><h2 data-tip-key="기초 자원">기초 자원</h2><span class="section-actions"><button data-detail-group="0">기초 자원 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t1"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage1"><div class="sectionbar"><h2 data-tip-key="중간 자원">중간 자원</h2><span class="section-actions"><button data-detail-group="1">중간 자원 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t3"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage2"><div class="sectionbar"><h2 data-tip-key="상품">상품</h2><span class="section-actions"><button data-detail-group="2">상품 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t2"><thead></thead><tbody></tbody></table></div></div></div></section>
