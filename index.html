@@ -1137,6 +1137,9 @@ TOOLTIPS['페니 현황']='현재 보유량과 예상 생산량을 합하고 건
 const originalSyncInputs=syncInputs;
 syncInputs=function(){originalSyncInputs();$('referenceCycle').value=app.settings.referenceCycle;};
 function shortName(t){return t.replace(' 보물','');}
+function fmtPenny(value){if(!Number.isFinite(value))return '—';const abs=Math.abs(value),unit=abs>=1e6||Math.round(abs/1000*100)>=100000?1e6:abs>=1000?1000:1;return unit===1?fmtQty(value):(value/unit).toLocaleString('en-US',{maximumFractionDigits:2})+(unit===1e6?'M':'K');}
+function pennyStatus(value){return fmtPenny(Math.abs(value))+' '+(value<0?'부족':'잔여');}
+money=function(costs){return Object.entries(costs).filter(([,v])=>v).map(([k,v])=>(k==='pennies'?fmtPenny(v):fmtQty(v))+' '+({pennies:'페니',premium:'보석'}[k]||k)).join(' · ')||'0 페니';};
 // Compact labels only; option values retain the original production recipe keys.
 modeLabel=function(mode){return mode==='연속(6시간 기준)'?'연속':String(mode).replace(/^(\d+시간) · (.+) 단일$/,'$1($2)');};
 function compactProductMode(mode){const parts=String(mode).match(/^(\d+시간) · (.+) 단일$/);return parts?safeText(parts[1])+'<span class="mode-product">'+safeText(parts[2])+'</span>':safeText(modeLabel(mode));}
@@ -1190,13 +1193,13 @@ function cityStatus(label,value,cls=''){return '<div class="inline-status-row"><
 function citySupplyData(){let workers=0,sailors=0,usedWorkers=0,usedSailors=0;const staff=WONDER_STAFF[app.settings.wonderName];workers+=staffAt(staff.worker,app.settings.bonusLv).value;sailors+=staffAt(staff.sailor,app.settings.bonusLv).value;for(const b of CITY_DATA.buildings){const n=cityCount(b),l=cityLevel(b);workers+=n*l.supply;sailors+=n*l.sailorSupply;usedWorkers+=n*l.workers;usedSailors+=n*l.sailors;}return{workers,sailors,usedWorkers,usedSailors};}
 renderCity=function(){
  const c=app.city,st=cityStats(),pop=citySupplyData(),area=k=>c[k]===''?'영토 입력 필요':statusAmount(c[k]*9-st[k]);
- $('citySummary').innerHTML=metricBox('일꾼·선원 현황',[['일꾼',statusAmount(st.workers,'명')],['선원',statusAmount(st.sailors,'명')]])+metricBox('면적 현황',[['육지',area('land')],['해안',area('sea')]])+metricBox('페니 현황',statusAmount(st.remaining));
+ $('citySummary').innerHTML=metricBox('일꾼·선원 현황',[['일꾼',statusAmount(st.workers,'명')],['선원',statusAmount(st.sailors,'명')]])+metricBox('면적 현황',[['육지',area('land')],['해안',area('sea')]])+metricBox('페니 현황',pennyStatus(st.remaining));
  $('workerStatus').innerHTML=cityStatus('현재 일꾼',fmtQty(pop.workers)+'명')+cityStatus('사용 일꾼',fmtQty(pop.usedWorkers)+'명')+cityStatus('일꾼 잔여/부족',fmtQty(st.workers)+'명',st.workers<0?'bad':'ok')+cityStatus('현재 선원',fmtQty(pop.sailors)+'명')+cityStatus('사용 선원',fmtQty(pop.usedSailors)+'명')+cityStatus('선원 잔여/부족',fmtQty(st.sailors)+'명',st.sailors<0?'bad':'ok');
  $('areaStatus').innerHTML=['land','sea'].map(k=>cityStatus(k==='land'?'육지 면적 계산':'해안 면적 계산',c[k]===''?'사용 '+fmtQty(st[k])+' · 현재 영토를 입력하세요.':'전체 '+fmtQty(c[k]*9)+' − 사용 '+fmtQty(st[k])+' = '+fmtQty(c[k]*9-st[k]),c[k]!==''&&c[k]*9<st[k]?'bad':'')).join('')+cityStatus('배치 기준','1칸 = 3×3');
- for(const [id,k]of [['dirhamStock','pennyStock'],['dirhamRate','pennyRate'],['dirhamHours','pennyHours'],['landPlots','land'],['seaPlots','sea']])$(id).value=c[k];$('dirhamRate').placeholder='자동 '+fmtQty(st.rate)+'/h';
+ for(const [id,k]of [['dirhamStock','pennyStock'],['dirhamRate','pennyRate'],['dirhamHours','pennyHours'],['landPlots','land'],['seaPlots','sea']])$(id).value=c[k];$('dirhamRate').placeholder='자동 '+fmtPenny(st.rate)+'/h';
  let guidance=$('dirhamGuidance');if(!guidance){guidance=document.createElement('p');guidance.id='dirhamGuidance';guidance.className='note';$('dirhamBreakdown').before(guidance);}guidance.textContent='현재 보유량 + 예상 생산량 − 건설·목표 연구 비용으로 계획 후 잔여/부족을 계산합니다.';
- $('dirhamBreakdown').innerHTML=cityStatus('운영 중 예상 생산량','+'+fmtQty(st.production)+' 페니')+cityStatus('건설 비용','−'+fmtQty(num(st.build.pennies))+' 페니')+cityStatus('목표 연구 비용','−'+fmtQty(num(st.research.pennies))+' 페니');
- $('cityBudgetSummary').innerHTML=metricBox('총 확보 페니',fmtQty(c.pennyStock+st.production))+metricBox('총 필요 페니',fmtQty(st.required))+metricBox('계획 후 잔여/부족',statusAmount(st.remaining));
+ $('dirhamBreakdown').innerHTML=cityStatus('운영 중 예상 생산량','+'+fmtPenny(st.production)+' 페니')+cityStatus('건설 비용','−'+fmtPenny(num(st.build.pennies))+' 페니')+cityStatus('목표 연구 비용','−'+fmtPenny(num(st.research.pennies))+' 페니');
+ $('cityBudgetSummary').innerHTML=metricBox('총 확보 페니',fmtPenny(c.pennyStock+st.production))+metricBox('총 필요 페니',fmtPenny(st.required))+metricBox('계획 후 잔여/부족',pennyStatus(st.remaining));
  $('cityBudgetBreakdown').innerHTML=num(st.build.premium)>0?cityStatus('별도 보석 비용',fmtQty(st.build.premium)+' 보석'):'';$('cityBudgetBreakdown').hidden=!(num(st.build.premium)>0);
  const order=['City_CityHall',...cityHomeIds,...Object.keys(CITY_MAP),'FishingPier_Premium','SailorPort_Premium'];
  $('cityBuildings').innerHTML='<table class="result-table">'+head(['건물','건물 수','레벨','가로×세로','면적 합계','일꾼','선원'])+'<tbody>'+order.map(id=>{
