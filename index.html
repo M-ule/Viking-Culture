@@ -397,16 +397,16 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 @media(min-width:1101px){
  #panel-prod:not(.expanded) #t2 th:nth-child(1){width:14%!important}
  #panel-prod:not(.expanded) #t2 th:nth-child(2){width:10%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(3){width:16%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(3){width:10%!important}
  #panel-prod:not(.expanded) #t2 th:nth-child(4){width:14%!important}
  #panel-prod:not(.expanded) #t2 th:nth-child(5){width:10%!important}
- #panel-prod:not(.expanded) #t2 th:nth-child(6){width:36%!important}
+ #panel-prod:not(.expanded) #t2 th:nth-child(6){width:42%!important}
  #panel-prod.expanded #t2 th:nth-child(1){width:12%!important}
  #panel-prod.expanded #t2 th:nth-child(2){width:6%!important}
- #panel-prod.expanded #t2 th:nth-child(3){width:16%!important}
+ #panel-prod.expanded #t2 th:nth-child(3){width:10%!important}
  #panel-prod.expanded #t2 th:nth-child(4){width:7%!important}
  #panel-prod.expanded #t2 th:nth-child(5){width:8%!important}
- #panel-prod.expanded #t2 th:nth-child(6){width:25%!important}
+ #panel-prod.expanded #t2 th:nth-child(6){width:31%!important}
  #panel-prod.expanded #t2 th:nth-child(7){width:12%!important}
  #panel-prod.expanded #t2 th:nth-child(8){width:14%!important}
  #panel-prod:not(.expanded) #t3 th:nth-child(1){width:10%!important}
@@ -454,6 +454,12 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .research-filter-empty{padding:24px 14px;color:#62737d;font-size:16px;text-align:center}
 .research-tree.filter-empty{height:auto!important;min-height:0;width:100%}
 .detail-config-count{font-size:14px;color:#62737d;margin-left:auto}
+.compact-mode{position:relative;display:block;width:100%;min-width:0;border:1px solid #d8c36b;border-radius:4px;background:var(--input)}
+.mode-display{position:relative;display:flex;min-height:56px;flex-direction:column;align-items:center;justify-content:center;padding:5px 20px 5px 5px;line-height:1.35;font-size:16px}
+.mode-product{display:block;white-space:nowrap;font-size:16px}
+.mode-chevron{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:13px;color:#294c68}
+#panel-prod #t2 .compact-mode select{position:absolute;inset:0;width:100%!important;height:100%!important;opacity:0;cursor:pointer}
+.compact-mode:focus-within{outline:3px solid #dfa24c;outline-offset:2px}
 @media(max-width:720px){.summary .metric{height:auto;min-height:94px}.modalhead{flex-wrap:wrap}.detail-config-count{width:100%;margin:0}.research-mobile .research-filter-empty{border:1px dashed var(--line);border-radius:6px}}
 </style></head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend muted"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><div class="card"><div class="bar"><label class="wide" data-tip-key="불가사의">불가사의 <select id="wonderName" aria-label="불가사의 선택"><option>발할라</option><option>위그드라실</option><option>드래곤십 엘리다</option></select></label><label data-tip-key="보너스 적용 레벨">보너스 적용 레벨 <input id="bonusLv" type="number" min="0" max="50" step="1"></label><label data-tip-key="기본 운영 시간(h)">기본 운영 시간(h) <input id="baseH" type="number" min="0" step="any"></label><button class="push" id="prodView">상세 보기</button><button id="manualSave">입력값 저장</button><button id="resetBtn" class="danger">초기화</button><span id="resetStatus" role="status" class="status"></span></div><div id="bonusSummary" class="summary"></div></div><div id="productionSections"><div class="card" id="stage0"><div class="sectionbar"><h2 data-tip-key="기초 자원">기초 자원</h2><span class="section-actions"><button data-detail-group="0">기초 자원 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t1"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage1"><div class="sectionbar"><h2 data-tip-key="중간 자원">중간 자원</h2><span class="section-actions"><button data-detail-group="1">중간 자원 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t3"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage2"><div class="sectionbar"><h2 data-tip-key="상품">상품</h2><span class="section-actions"><button data-detail-group="2">상품 상세 설정</button><span class="title-help" data-tip-key="상세 설정"></span></span></div><div class="wrap"><table class="prodtable" id="t2"><thead></thead><tbody></tbody></table></div></div></div></section>
 <section id="panel-wonder" class="panel"><nav class="mobile-section-nav" aria-label="불가사의 목표 섹션 바로가기"><a href="#goalCard">목표 현황</a><a href="#sleepCard">수면</a><a href="#powerCard">생산력</a><a href="#conversionCard">환산표</a></nav><div class="card"><div class="bar"><label data-tip-key="현재 레벨">현재 레벨 <input id="curLv" type="number" min="0" max="50"></label><label data-tip-key="목표 레벨">목표 레벨 <input id="tgtLv" type="number" min="1" max="50"></label><span class="wonder-context" id="wonderContext"></span><button id="wonderView" class="push">상세 보기</button></div><div id="goalSummary" class="summary"></div></div><div class="card" id="goalCard"><div class="sectionbar"><h2 data-tip-key="목표 달성 현황">목표 달성 현황</h2></div><div id="goalTable" class="wrap"><table class="result-table" id="tw"><thead></thead><tbody></tbody></table></div></div><div class="card" id="sleepCard"><div class="sectionbar"><h2 data-tip-key="수면 대비 자원 확보">수면 대비 자원 확보</h2></div><div class="bar"><label data-tip-key="수면까지 남은 시간(h)">수면까지 남은 시간(h) <input id="sleepPrepH" type="number" min="0" step="any" placeholder="기본"></label><label data-tip-key="수면 중 생산 주기">수면 중 생산 주기 <select id="sleepCycle"><option value="long">레벨별 최장</option><option value="30분">30분</option><option value="1시간">1시간</option><option value="2시간">2시간</option></select></label><label data-tip-key="생산 횟수">생산 횟수 <input id="sleepCount" type="number" min="0" step="1"></label></div><div id="sleepTable" class="wrap"><table class="result-table" id="ts"><thead></thead><tbody></tbody></table></div><p class="note">생산력 수치의 기준은 아래 <a href="#conversionCard" class="conversion-reference">생산력 환산표</a>를 참고하세요.</p></div><div class="card" id="powerCard"><div class="sectionbar"><h2 data-tip-key="목표 레벨 생산력 비교">목표 레벨 생산력 비교</h2></div><div class="bar"><label data-tip-key="필요량 환산 기준 주기">필요량 환산 기준 주기 <select id="referenceCycle"><option>30분</option><option>1시간</option><option>2시간</option></select></label></div><div id="powerTable" class="wrap"><table class="result-table" id="ta"><thead></thead><tbody></tbody></table></div><p class="note">생산력 수치의 기준은 아래 <a href="#conversionCard" class="conversion-reference">생산력 환산표</a>를 참고하세요.</p></div><div class="card" id="conversionCard"><div class="sectionbar"><h2 data-tip-key="생산력 환산표">생산력 환산표</h2></div><div id="convert" class="wrap"><table class="result-table" id="tc"><thead></thead><tbody></tbody></table></div></div></section>
@@ -1133,12 +1139,13 @@ syncInputs=function(){originalSyncInputs();$('referenceCycle').value=app.setting
 function shortName(t){return t.replace(' 보물','');}
 // Compact labels only; option values retain the original production recipe keys.
 modeLabel=function(mode){return mode==='연속(6시간 기준)'?'연속':String(mode).replace(/^(\d+시간) · (.+) 단일$/,'$1($2)');};
+function compactProductMode(mode){const parts=String(mode).match(/^(\d+시간) · (.+) 단일$/);return parts?safeText(parts[1])+'<span class="mode-product">'+safeText(parts[2])+'</span>':safeText(modeLabel(mode));}
 function commonProductionCells(building){
  const s=app.buildings[building],detailed=detailEnabled(building),active=configRows(building).filter(r=>r.count>0),values=fn=>[...new Set(active.map(fn))],lv=values(r=>r.lv),modes=values(r=>modeLabel(r.mode)),hours=values(r=>rowHours(building,r));
  const dis=detailed?'disabled':'',input=(k,v,attrs='')=>'<input type="number" data-k="'+k+'" value="'+v+'" '+attrs+'>';
  const levels=availableLevels(building);
  return td(detailed?(lv.length===1?'Lv.'+lv[0]:'혼합'):input('lv',s.lv,'min="'+levels[0]+'" max="'+levels.at(-1)+'" step="1"'))+
- td(detailed?(modes.length===1?modes[0]:'혼합'):isContinuous(building)?'연속':'<select data-k="mode" title="'+safeText(s.mode)+'">'+modeHtml(building)+'</select>')+
+ td(detailed?(modes.length===1?(TREASURE.includes(building)?compactProductMode(active[0].mode):modes[0]):'혼합'):isContinuous(building)?'연속':TREASURE.includes(building)?'<span class="compact-mode"><span class="mode-display" aria-hidden="true">'+compactProductMode(s.mode)+'<span class="mode-chevron">▾</span></span><select data-k="mode" title="'+safeText(s.mode)+'">'+modeHtml(building)+'</select></span>':'<select data-k="mode" title="'+safeText(s.mode)+'">'+modeHtml(building)+'</select>')+
  td(input('bldgs',detailed?actualBuildings(building):s.bldgs,'min="0" step="1" '+dis))+
  td(detailed?(hours.length===1?duration(hours[0]):'혼합'):input('hours',s.hours,'min="0" step="any" placeholder="기본"'));
 }
