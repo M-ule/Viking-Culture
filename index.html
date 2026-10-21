@@ -1117,7 +1117,7 @@ Object.assign(TOOLTIPS,{
  '중간 자원':'미드·건어물을 생산합니다. 상품 생산에 필요한 양과 꿀·생선 소비량을 반영합니다.',
  '상품':'원정 부두·선원 항구의 두 상품 생산과 단일 상품 생산 방식을 사용합니다. 완료한 생산 주기만 반영합니다.',
  '생산 방식':'한 번 생산을 완료하는 데 걸리는 주기입니다. 기초 자원은 연속 생산하며 중간 자원·상품은 완료한 생산 주기만 반영합니다.',
- '소비·필요량':'자원 표의 총 소비는 다른 생산에 사용하는 해당 자원의 총량이며, 자원명으로 표시된 수치는 해당 건물의 원료 소비량입니다. 상품 표의 원료 소비는 현재 생산 설정의 소비량, 목표 필요는 불가사의 현재 레벨부터 목표 레벨까지 요구되는 상품 수량입니다.',
+ '소비·필요량':'자원 표의 총 소비는 다른 생산에 사용하는 해당 자원의 총량이며, '필요 꿀' 등은 해당 건물의 생산에 투입하는 원료량입니다. 상품 표의 원료 소비는 현재 생산 설정의 소비량, 목표 필요는 불가사의 현재 레벨부터 목표 레벨까지 요구되는 상품 수량입니다.',
  '상세 설정':'같은 생산 항목의 건물마다 레벨·생산 방식·건물 수·운영 시간이 다를 때 나누어 입력합니다.',
  '최대 도달(생선 기준)':'보유 상품·건어물과 보유·예상 생산 생선을 바탕으로 최대 도달 레벨을 계산합니다. 부족한 상품만 Lv6 기준으로 일반 생산(선택한 환산 주기)과 2시간 단일 생산을 조합해 생선 소비를 최소화합니다. 꿀·미드는 충분하다고 가정하며, 추가 생산 시간은 제외합니다.',
  '수면 대비 자원 확보':'취침 전까지 수면 중 예약 생산에 필요한 자원을 확보할 수 있는지 확인합니다. 현재 보유량과 취침 전 생산·소비를 반영합니다.',
@@ -1181,7 +1181,7 @@ function commonProductionCells(building){
  td(detailed?(hours.length===1?duration(hours[0]):'혼합'):input('hours',s.hours,'min="0" step="any" placeholder="기본"'));
 }
 function resourceRow(building){
- const n=STOCK_KEY[building],s=app.buildings[building],m=metrics(building),need=demandOf(n),remain=resourceRemain(n),uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([name,v])=>name+' '+amountHtml(v)),useText='총 소비 '+amountHtml(need)+(uses.length?'<br>'+uses.join('<br>'):'');
+ const n=STOCK_KEY[building],s=app.buildings[building],m=metrics(building),need=demandOf(n),remain=resourceRemain(n),uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([name,v])=>'필요 '+name+' '+amountHtml(v)),useText='총 소비 '+amountHtml(need)+(uses.length?'<br>'+uses.join('<br>'):'');
  return '<tr data-building="'+building+'">'+td(n+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td('<input type="text" class="amount-input" data-k="stock" value="'+s.stock+'">')+td(amountHtml(m.out1),'calc detailcol')+td(useText,'calc detailcol')+td(amountHtml(remain),'calc '+(remain<0?'bad':'ok'))+td(duration(resourceTime(n)),'calc')+'</tr>';
 }
 function pairedProductRow(building){
