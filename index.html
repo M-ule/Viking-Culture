@@ -404,11 +404,11 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
  #panel-prod.expanded #t2 th:nth-child(1){width:12%!important}
  #panel-prod.expanded #t2 th:nth-child(2){width:6%!important}
  #panel-prod.expanded #t2 th:nth-child(3){width:10%!important}
- #panel-prod.expanded #t2 th:nth-child(4){width:7%!important}
- #panel-prod.expanded #t2 th:nth-child(5){width:8%!important}
- #panel-prod.expanded #t2 th:nth-child(6){width:31%!important}
- #panel-prod.expanded #t2 th:nth-child(7){width:12%!important}
- #panel-prod.expanded #t2 th:nth-child(8){width:14%!important}
+ #panel-prod.expanded #t2 th:nth-child(4){width:8%!important}
+ #panel-prod.expanded #t2 th:nth-child(5){width:13%!important}
+ #panel-prod.expanded #t2 th:nth-child(6){width:20%!important}
+ #panel-prod.expanded #t2 th:nth-child(7){width:15%!important}
+ #panel-prod.expanded #t2 th:nth-child(8){width:16%!important}
  #panel-prod:not(.expanded) :is(#t1,#t3) th:nth-child(1){width:10%!important}
  #panel-prod:not(.expanded) :is(#t1,#t3) th:nth-child(2){width:8%!important}
  #panel-prod:not(.expanded) :is(#t1,#t3) th:nth-child(3){width:12%!important}
@@ -421,8 +421,8 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(2){width:6%!important}
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(3){width:12%!important}
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(4){width:7%!important}
- #panel-prod.expanded :is(#t1,#t3) th:nth-child(5){width:8%!important}
- #panel-prod.expanded :is(#t1,#t3) th:nth-child(6){width:15%!important}
+ #panel-prod.expanded :is(#t1,#t3) th:nth-child(5){width:11%!important}
+ #panel-prod.expanded :is(#t1,#t3) th:nth-child(6){width:12%!important}
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(7){width:11%!important}
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(8){width:14%!important}
  #panel-prod.expanded :is(#t1,#t3) th:nth-child(9){width:10%!important}
@@ -1117,7 +1117,7 @@ Object.assign(TOOLTIPS,{
  '중간 자원':'미드·건어물을 생산합니다. 상품 생산에 필요한 양과 꿀·생선 소비량을 반영합니다.',
  '상품':'원정 부두·선원 항구의 두 상품 생산과 단일 상품 생산 방식을 사용합니다. 완료한 생산 주기만 반영합니다.',
  '생산 방식':'한 번 생산을 완료하는 데 걸리는 주기입니다. 기초 자원은 연속 생산하며 중간 자원·상품은 완료한 생산 주기만 반영합니다.',
- '소비·필요량':'총 소비는 다른 생산에서 사용하는 해당 자원의 총량입니다. 아래에 자원명으로 표시된 수치는 해당 건물이 생산할 때 소비하는 원료량입니다. 상품에는 원료별 소비량을 표시합니다.',
+ '소비·필요량':'자원 표의 총 소비는 다른 생산에 사용하는 해당 자원의 총량이며, 자원명으로 표시된 수치는 해당 건물의 원료 소비량입니다. 상품 표의 원료 소비는 현재 생산 설정의 소비량, 목표 필요는 불가사의 현재 레벨부터 목표 레벨까지 요구되는 상품 수량입니다.',
  '상세 설정':'같은 생산 항목의 건물마다 레벨·생산 방식·건물 수·운영 시간이 다를 때 나누어 입력합니다.',
  '최대 도달(생선 기준)':'보유 상품·건어물과 보유·예상 생산 생선을 바탕으로 최대 도달 레벨을 계산합니다. 부족한 상품만 Lv6 기준으로 일반 생산(선택한 환산 주기)과 2시간 단일 생산을 조합해 생선 소비를 최소화합니다. 꿀·미드는 충분하다고 가정하며, 추가 생산 시간은 제외합니다.',
  '수면 대비 자원 확보':'취침 전까지 수면 중 예약 생산에 필요한 자원을 확보할 수 있는지 확인합니다. 현재 보유량과 취침 전 생산·소비를 반영합니다.',
@@ -1185,8 +1185,8 @@ function resourceRow(building){
  return '<tr data-building="'+building+'">'+td(n+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td('<input type="text" class="amount-input" data-k="stock" value="'+s.stock+'">')+td(amountHtml(m.out1),'calc detailcol')+td(useText,'calc detailcol')+td(amountHtml(remain),'calc '+(remain<0?'bad':'ok'))+td(duration(resourceTime(n)),'calc')+'</tr>';
 }
 function pairedProductRow(building){
- const m=metrics(building),names=building==='원정 부두'?TREASURE_NAMES.slice(0,2):TREASURE_NAMES.slice(2),stock=names.map(t=>'<label class="pair-line"><span>'+shortName(t)+'</span><input type="text" class="raw-stock amount-input" data-treasure-stock="'+t+'" value="'+stockOf(t)+'" aria-label="'+shortName(t)+' 현재 보유량"></label>').join(''),outputs=names.map((t,i)=>'<span class="pair-output">'+shortName(t)+' '+amountHtml(i===0?m.out1:m.out2)+'</span>').join(''),uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([n,v])=>n+' '+amountHtml(v)).join('<br>')||'0';
- return '<tr data-building="'+building+'">'+td(building+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td(stock,'viking-stock')+td(outputs,'calc detailcol')+td(uses,'calc detailcol')+'</tr>';
+ const m=metrics(building),names=building==='원정 부두'?TREASURE_NAMES.slice(0,2):TREASURE_NAMES.slice(2),stock=names.map(t=>'<label class="pair-line"><span>'+shortName(t)+'</span><input type="text" class="raw-stock amount-input" data-treasure-stock="'+t+'" value="'+stockOf(t)+'" aria-label="'+shortName(t)+' 현재 보유량"></label>').join(''),outputs=names.map((t,i)=>'<span class="pair-output">'+shortName(t)+' '+amountHtml(i===0?m.out1:m.out2)+'</span>').join(''),uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([n,v])=>'원료 소비 '+n+' '+amountHtml(v)).join('<br>')||'원료 소비 0',needs=names.map(t=>'목표 필요 '+shortName(t)+' '+amountHtml(wonderNeed(t))).join('<br>'),useText=uses+'<br>'+needs;
+ return '<tr data-building="'+building+'">'+td(building+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td(stock,'viking-stock')+td(outputs,'calc detailcol')+td(useText,'calc detailcol')+'</tr>';
 }
 renderProduction=function(){
  const labels=['생산 항목','레벨','생산 방식','건물 수','운영 시간(h)','현재 보유량','예상 생산량','소비·필요량'];
