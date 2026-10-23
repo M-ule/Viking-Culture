@@ -5,18 +5,18 @@
   const BASE_W = 1536, BASE_H = 709;
   const TYPES = {
     buildings: [
-      {id:"bee",name:"벌집",prod:"벌통",level:[91,118,171,152],count:[181,51,232,102]},
-      {id:"fishpier",name:"부두",prod:"어업 부두",level:[222,118,301,151],count:[310,51,362,102]},
-      {id:"expedition",name:"탐험 부두",prod:"원정 부두",level:[220,250,307,285],count:[310,184,361,236]},
+      {id:"bee",name:"벌집",prod:"벌집",level:[91,118,171,152],count:[181,51,232,102]},
+      {id:"fishpier",name:"부두",prod:"부두",level:[222,118,301,151],count:[310,51,362,102]},
+      {id:"expedition",name:"탐험 부두",prod:"탐험 부두",level:[220,250,307,285],count:[310,184,361,236]},
       {id:"tavern",name:"선술집",prod:null,level:[91,380,171,417],count:[182,314,232,375]},
       {id:"workerhome",name:"일꾼의 집",home:"Home_Worker",level:[222,382,304,415],count:[304,312,360,368]},
       {id:"sailorhome",name:"선원의 집",home:"Home_Sailor",level:[91,513,176,548],count:[181,451,233,503]}
     ],
     stock: [
       {id:"penny",name:"페니",box:[438,8,517,41],target:"penny"},
-      {id:"honey",name:"꿀",box:[538,9,625,42],target:"벌통"},
-      {id:"fish",name:"생선",box:[630,9,731,41],target:"어업 부두"},
-      {id:"mead",name:"벌꿀 술(미드)",box:[367,182,457,217],target:"미드"},
+      {id:"honey",name:"꿀",box:[538,9,625,42],target:"벌집"},
+      {id:"fish",name:"생선",box:[630,9,731,41],target:"부두"},
+      {id:"mead",name:"벌꿀 술",box:[367,182,457,217],target:"벌꿀 술"},
       {id:"pottery",name:"도자기 보물",box:[684,182,764,219],target:"도자기 보물"},
       {id:"gold",name:"황금 보물",box:[1000,182,1080,220],target:"황금 보물"},
       {id:"dried",name:"건어물",box:[367,260,449,299],target:"건어물"},
@@ -39,7 +39,7 @@
     if(level){
       return /^[1-6]$/.test(cleaned)?Number(cleaned):null;
     }
-    const match=cleaned.match(/(\d[\d,]*(?:\.\d+)?)([KM]?)/);
+    const match=cleaned.match(/^(?:[X×])?(\d[\d,]*(?:\.\d+)?)([KM]?)$/);
     if(!match)return null;
     const raw=Number(match[1].replace(/,/g,""));
     const value=raw*(match[2]==="M"?1e6:match[2]==="K"?1e3:1);
@@ -119,7 +119,8 @@
     const v=String(text||"").replace(/[\s.,·"'‘’“”()[\]{}~^\-]/g,"");
     if(/탐험.*부두|원정부두/.test(v))return "expedition";
     if(/일꾼/.test(v))return "workerhome";
-    if(/선원|서워의|서원의/.test(v))return "sailorhome";
+    if(/선원항구|호화/.test(v))return "ignore";
+    if(/선원의집|선원주택|서워의|서원의/.test(v))return "sailorhome";
     if(/선술집|술집/.test(v))return "tavern";
     if(/벌집|벌통|벌질|벌짐|벌진|별집|법집/.test(v))return "bee";
     if(/시청/.test(v))return "ignore";
@@ -398,7 +399,7 @@
     const cards=extractLevels(result.data.tsv),recognized=new Map();
     await ocr.setParameters({tessedit_pageseg_mode:"7"});
     for(const card of cards){
-      const region=[card.x-8,card.y-37,card.x+72,card.y-9];
+      const region=[card.x-8,card.y-37,card.x+110,card.y-9];
       const name=(await ocr.recognize(blackWhite(img,region,4))).data.text;
       let id=buildingId(name);
       if(!id)id=buildingId((await ocr.recognize(crop(img,region,4))).data.text);
@@ -431,17 +432,32 @@
     }
     return best;
   }
-  async function badgeQuantity(worker,img,badge){
-    const source=crop(img,[badge.cx-20,badge.cy-20,badge.cx+20,badge.cy+20],6);
-    const cv=document.createElement("canvas");cv.width=156;cv.height=192;
-    cv.getContext("2d").drawImage(source,source.width*.25,source.height*.10,source.width*.65,source.height*.80,0,0,156,192);
-    await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:"13"});
-    let value=numeric((await worker.recognize(cv)).data.text);
-    if(value===null||value<1||value>10000){
-      await worker.setParameters({tessedit_pageseg_mode:"10"});
-      value=numeric((await worker.recognize(cv)).data.text);
+  function badgeDigitImage(img,badge,threshold){
+    // Keep the complete interior, including the left digit; remove the orange
+    // background and circular edge before OCR, then add a small white border.
+    const cv=crop(img,[badge.cx-15,badge.cy-15,badge.cx+15,badge.cy+15],6);
+    const ctx=cv.getContext("2d",{willReadFrequently:true}),d=ctx.getImageData(0,0,cv.width,cv.height);
+    for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){
+      const p=(y*cv.width+x)*4,r=d.data[p],g=d.data[p+1],b=d.data[p+2];
+      const inside=(x-cv.width/2)**2+(y-cv.height/2)**2<(cv.width*.44)**2;
+      const ink=inside&&r<threshold&&g<threshold&&b<110;
+      d.data[p]=d.data[p+1]=d.data[p+2]=ink?0:255;
     }
-    return value!==null&&value>=1&&value<=10000?value:null;
+    ctx.putImageData(d,0,0);
+    const padded=document.createElement("canvas");padded.width=cv.width+24;padded.height=cv.height+24;
+    const c=padded.getContext("2d");c.fillStyle="white";c.fillRect(0,0,padded.width,padded.height);c.drawImage(cv,12,12);
+    return padded;
+  }
+  async function badgeQuantity(worker,img,badge){
+    const votes=new Map();
+    for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
+      await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:mode});
+      const value=numeric((await worker.recognize(badgeDigitImage(img,badge,threshold))).data.text);
+      if(value===null||value<1||value>10000)continue;
+      votes.set(value,(votes.get(value)||0)+1);
+      if(votes.get(value)>=2)return value;
+    }
+    return null; // Disagreement must be reviewed, never silently applied.
   }
   async function recognizeBuildings(img,worker){
     const cards=badgeLocatedCards(img);
@@ -449,8 +465,12 @@
     if(TYPES.buildings.some(item=>!cards.has(item.id))){
       try{
         const ocrCards=await locateCards(img);
-        for(const [id,card] of ocrCards){
-          if(!cards.has(id)&&card)cards.set(id,[card]);
+        for(const [id,entries] of ocrCards){
+          const existing=cards.get(id)||[];
+          for(const card of entries){
+            if(!existing.some(c=>Math.abs(c.x-card.x)<35&&Math.abs(c.y-card.y)<24))existing.push(card);
+          }
+          cards.set(id,existing);
         }
       }catch(e){console.warn("보조 건물 OCR 실패",e);}
     }
@@ -541,6 +561,7 @@
     if(busy)return;
     const building=$p("photoBuildings").files[0], goods=$p("photoStocks").files[0];
     if(!building&&!goods){setStatus("건물 사진 또는 생산물 사진을 선택하세요.",true);return;}
+    findings=[];$p("photoReview").replaceChildren();
     busy=true;$p("photoScan").disabled=true;$p("photoApply").disabled=true;
     try{
       setStatus("인식 엔진 준비 중… 처음 이용할 때 다운로드가 필요합니다.");
@@ -593,7 +614,7 @@
     }
     if(!selected){setStatus("적용할 항목을 체크하세요.",true);return;}
     const affected=TYPES.buildings.filter(item=>item.prod&&(values[item.id+"_lv"]!==undefined||values[item.id+"_count"]!==undefined)).map(item=>item.prod);
-    if(values.tavern_lv!==undefined||values.tavern_count!==undefined)affected.push("미드","건어물");
+    if(values.tavern_lv!==undefined||values.tavern_count!==undefined)affected.push("벌꿀 술","건어물");
     const active=[...new Set(affected)].filter(b=>app.details?.[b]?.enabled);
     if(active.length&&!window.confirm("상세 설정이 적용 중인 건물이 있습니다: "+active.join(", ")+"\n사진의 기본 수량·레벨을 반영하려면 해당 상세 설정을 해제해야 합니다. 계속하시겠습니까?"))return;
     for(const b of active)app.details[b].enabled=false;
@@ -627,15 +648,15 @@
     if(tavernCount!==undefined){
       app.city.manual.Workshop_Tavern=tavernCount;
       if(tavernLv!==undefined&&tavernLv<4){
-        app.buildings["미드"].bldgs=tavernCount;
+        app.buildings["벌꿀 술"].bldgs=tavernCount;
         app.buildings["건어물"].bldgs=0;
       }
     }
     if(tavernLv!==undefined&&tavernLv<4){
-      app.buildings["미드"].lv=tavernLv;
-      app.buildings["미드"].mode=modeForLevel("미드",tavernLv,app.buildings["미드"].mode);
+      app.buildings["벌꿀 술"].lv=tavernLv;
+      app.buildings["벌꿀 술"].mode=modeForLevel("벌꿀 술",tavernLv,app.buildings["벌꿀 술"].mode);
     }
-    const stocks={penny:["city","pennyStock"],honey:["벌통","stock"],fish:["어업 부두","stock"],mead:["미드","stock"],dried:["건어물","stock"],pottery:["도자기 보물"],gold:["황금 보물"],spice:["향신료 보물"],gem:["보석 보물"]};
+    const stocks={penny:["city","pennyStock"],honey:["벌집","stock"],fish:["부두","stock"],mead:["벌꿀 술","stock"],dried:["건어물","stock"],pottery:["도자기 보물"],gold:["황금 보물"],spice:["향신료 보물"],gem:["보석 보물"]};
     for(const [key,destination]of Object.entries(stocks)){
       if(values[key]===undefined)continue;
       if(destination[0]==="city")app.city.pennyStock=values[key];
@@ -655,3 +676,4 @@
   $p("photoScan").addEventListener("click",scan);
   $p("photoApply").addEventListener("click",apply);
 })();
+
