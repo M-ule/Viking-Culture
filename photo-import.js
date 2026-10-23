@@ -37,9 +37,7 @@
   function numeric(text, level=false) {
     const cleaned=String(text||"").toUpperCase().replace(/\s/g,"").replace(/[O]/g,"0");
     if(level){
-      const matches=cleaned.match(/\d/g)||[];
-      const digit=Number(matches[matches.length-1]);
-      return Number.isInteger(digit)&&digit>=1&&digit<=6?digit:null;
+      return /^[1-6]$/.test(cleaned)?Number(cleaned):null;
     }
     const match=cleaned.match(/(\d[\d,]*(?:\.\d+)?)([KM]?)/);
     if(!match)return null;
@@ -114,6 +112,122 @@
     }
     return val;
   }
+
+  // Locate building cards by text, not their fixed row or column.
+  let koreanWorker;
+  function buildingId(text){
+    const v=String(text||"").replace(/[\s.,·"'‘’“”()[\]{}~^\-]/g,"");
+    if(/탐험.*부두|원정부두/.test(v))return "expedition";
+    if(/일꾼/.test(v))return "workerhome";
+    if(/선원/.test(v))return "sailorhome";
+    if(/선술집|술집/.test(v))return "tavern";
+    if(/벌집|벌통/.test(v))return "bee";
+    if(/시청/.test(v))return "ignore";
+    if(/어업|부두/.test(v))return "fishpier";
+    return null;
+  }
+  async function koreanOCR(){
+    if(koreanWorker)return koreanWorker;
+    await loadOCR();
+    koreanWorker=await window.Tesseract.createWorker(["kor","eng"],1,{logger:()=>{}});
+    return koreanWorker;
+  }
+  function blackWhite(img,box,zoom=3){
+    const cv=crop(img,box,zoom),c=cv.getContext("2d",{willReadFrequently:true}),d=c.getImageData(0,0,cv.width,cv.height);
+    for(let i=0;i<d.data.length;i+=4){
+      const gray=.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2],v=gray>=155?255:0;
+      d.data[i]=d.data[i+1]=d.data[i+2]=v;
+    }
+    c.putImageData(d,0,0);return cv;
+  }
+  function extractLevels(tsv){
+    const groups=new Map();
+    for(const row of String(tsv||"").split(/\r?\n/).slice(1)){
+      const a=row.split("\t");if(a.length<12||a[0]!=="5"||!a.slice(11).join("\t").trim())continue;
+      const key=a.slice(1,5).join(":");
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push({text:a.slice(11).join("\t"),x:Number(a[6]),y:Number(a[7])});
+    }
+    const arr=[];
+    for(const words of groups.values()){
+      words.sort((a,b)=>a.x-b.x);
+      const found=words.map(w=>w.text).join("").replace(/\s/g,"").match(/레벨([1-6])/);
+      if(found)arr.push({x:45+Math.min(...words.map(w=>w.x))/3,y:Math.min(...words.map(w=>w.y))/3,lv:Number(found[1])});
+    }
+    return arr.filter((c,i)=>arr.findIndex(p=>Math.abs(p.x-c.x)<18&&Math.abs(p.y-c.y)<18)===i);
+  }
+  async function locateCards(img){
+    const ocr=await koreanOCR();
+    await ocr.setParameters({tessedit_pageseg_mode:"11"});
+    const result=await ocr.recognize(blackWhite(img,[45,0,430,BASE_H]),{}, {tsv:true});
+    const cards=extractLevels(result.data.tsv),recognized=new Map();
+    await ocr.setParameters({tessedit_pageseg_mode:"7"});
+    for(const card of cards){
+      const region=[card.x-2,card.y-35,card.x+111,card.y-3];
+      let name=(await ocr.recognize(blackWhite(img,region))).data.text;
+      let id=buildingId(name);
+      if(!id)id=buildingId((await ocr.recognize(crop(img,region,3))).data.text);
+      if(!id||id==="ignore")continue;
+      if(recognized.has(id)){recognized.set(id,null);continue;}
+      recognized.set(id,card);
+    }
+    return recognized;
+  }
+  function isOrange(r,g,b){return r>175&&g>98&&g<227&&b<140&&r>g+30&&g>b+20;}
+  function badgeAt(pixels,x,y){
+    const {data,width,height}=pixels;let best=null;
+    for(let cx=Math.round(x+98);cx<=Math.round(x+120);cx+=2){
+      for(let cy=Math.round(y-63);cy<=Math.round(y-34);cy+=2){
+        let ok=0,all=0;
+        for(let dx=-18;dx<=18;dx+=3)for(let dy=-18;dy<=18;dy+=3){
+          const r2=dx*dx+dy*dy;if(r2<145||r2>312)continue;
+          const px=cx+dx,py=cy+dy;
+          if(px<0||py<0||px>=width||py>=height)continue;
+          const n=(py*width+px)*4;
+          if(isOrange(data[n],data[n+1],data[n+2]))ok++;
+          all++;
+        }
+        const rate=all?ok/all:0,score=rate-.002*(Math.abs(cx-x-108)+Math.abs(cy-y+49));
+        if(rate>=.47&&(!best||score>best.score))best={cx,cy,score};
+      }
+    }
+    return best;
+  }
+  async function badgeQuantity(worker,img,badge){
+    const source=crop(img,[badge.cx-20,badge.cy-20,badge.cx+20,badge.cy+20],6);
+    const cv=document.createElement("canvas");cv.width=210;cv.height=180;
+    cv.getContext("2d").drawImage(source,source.width*.35,source.height*.12,source.width*.53,source.height*.76,0,0,210,180);
+    await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:"13"});
+    let value=numeric((await worker.recognize(cv)).data.text);
+    if(value===null||value<1||value>10000){
+      await worker.setParameters({tessedit_pageseg_mode:"10"});
+      value=numeric((await worker.recognize(cv)).data.text);
+    }
+    return value!==null&&value>=1&&value<=10000?value:null;
+  }
+  async function recognizeBuildings(img,worker){
+    const cards=await locateCards(img);
+    const cv=document.createElement("canvas");cv.width=BASE_W;cv.height=BASE_H;
+    const ctx=cv.getContext("2d",{willReadFrequently:true});
+    ctx.drawImage(img,0,0,BASE_W,BASE_H);
+    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H);
+    const rows=[];
+    for(const item of TYPES.buildings){
+      const card=cards.get(item.id);
+      if(!card){
+        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","건물명 미인식 · 직접 확인"));
+        rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","건물명 미인식 · 직접 확인"));
+        continue;
+      }
+      setStatus(item.name+" 수량 인식 중…");
+      const badge=badgeAt(pixels,card.x,card.y),count=badge?await badgeQuantity(worker,img,badge):1;
+      rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level"));
+      rows.push(makeEntry(item.id+"_count",item.name+" 수량",count,"buildings","count",!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""));
+    }
+    await worker.setParameters({tessedit_char_whitelist:"0123456789.,KkMmXx",tessedit_pageseg_mode:"7"});
+    return rows;
+  }
+
   function review(){
     const root=$p("photoReview");
     root.replaceChildren();
@@ -159,15 +273,16 @@
       let done=0;
       const results=[];
       if(imgs.buildings){
-        for(const item of TYPES.buildings){
-          setStatus("건물 사진 분석 중… "+(done+1)+"/"+total);
-          const lv=await readValue(worker,imgs.buildings,item.level,true);done++;
-          const hasBadge=badgeExists(imgs.buildings,item.count);
-          setStatus("건물 사진 분석 중… "+(done+1)+"/"+total);
-          const count=hasBadge?await readValue(worker,imgs.buildings,item.count,false):1;done++;
-          results.push(makeEntry(item.id+"_lv",item.name+" 레벨",lv,"buildings","level"));
-          results.push(makeEntry(item.id+"_count",item.name+" 수량",count,"buildings","count",hasBadge?"":"배지가 없어 1개로 추정"));
+        setStatus("건물 이름과 레벨 표시를 검색하는 중…");
+        try{results.push(...await recognizeBuildings(imgs.buildings,worker));}
+        catch(err){
+          for(const item of TYPES.buildings){
+            results.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","한글 카드 분석 실패 · 직접 입력"));
+            results.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","한글 카드 분석 실패 · 직접 입력"));
+          }
+          setStatus(err?.message||"건물 분석 실패. 자원 사진 분석은 진행합니다.",true);
         }
+        done+=TYPES.buildings.length*2;
       }
       if(imgs.stock){
         for(const item of TYPES.stock){
