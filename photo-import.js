@@ -228,11 +228,16 @@
     workerhome:"AAAAAAAAAAAAAAAAAAAAAAAAAAADIABAMAAAHp89H8AAAFoklBsAAAHr+9H8AAAD7+dGcAAAD5QPDMAAAD5A/D8AAAD58BD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     sailorhome:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAJ2BAMAAADJe9H8AAAD5+lBsAAAHp+9H8AAAHr+dGcAAACIuPDMAAACBg/D8AAAD5+BD8AAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAEAAAAAAAAAAAA"
   };
+  // These count templates are high-confidence visual anchors only.
+  // Unlisted numbers still use digit OCR below, never the closest template
+  // unless its shape score and separation pass confidence checks.
   const BADGE_PATTERNS={
     2:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgAAAfgAAATgAAADAAYgGAAbAcAA+AwAB4BgABwGAADgcAAHBwAAfDAAA2PgADMfwAAAfgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
     4:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAHgAAAPAAYg+AAbB8AA+GYAA4MwABwzgADh3AAHD/AAfB+AA2A4ADGAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
     5:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwAAAPgAAAYAAAAwAAYxgAAbDAAA+HwAA4BwABwBgADgDAAHAGAAfAMAA2H4ADGPgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-    19:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGAABweAAHhwAAfDEAYGGIFgMMQPAYZgcAw/g4Bg+BwDAEDgGAIHgMAwDAYHADAweAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    19:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGAABweAAHhwAAfDEAYGGIFgMMQPAYZgcAw/g4Bg+BwDAEDgGAIHgMAwDAYHADAweAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    21:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4AAAH4GAAJwcAABh8AYDCYFgGAwPAcBgcAwDA4DAGBwOAMDgYA4HhwAwDH8BADP4CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    7:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4AAAf4AAABgAAADAAYgGAAbAYAA+AwAA4BgABwGAADgMAAHAYAAfBwAA2DAADGGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
   };
   const LEVEL_PATTERNS={
     2:"AAAAAAAAAAPAfABgDgDADAGAMAMAfgfgAAAAAAAAAAAAAAAA",
@@ -467,7 +472,11 @@
         const badge=card.badge||badgeAt(pixels,card.x,card.y);
         const count=card.count!==undefined&&card.count!==null?card.count:(badge?await badgeQuantity(worker,img,badge):1);
         const lv=card.lv!==null&&card.lv!==undefined?card.lv:await detectedCardLevel(worker,img,card);
-        cardsWithCounts.push({...card,lv,count,extra:lv===null?"레벨 인식 실패 · 직접 확인":!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""});
+        cardsWithCounts.push({...card,lv,count,
+          extra:lv===null?"레벨 인식 실패 · 직접 확인":
+            !badge?"배지 없음 · 1개":
+            count===null?"배지 숫자 인식 실패 · 직접 확인":
+            card.fromBadge&&card.count===null?"수량 OCR 보조 인식 · 직접 확인":""});
       }
       if(item.home&&cardsWithCounts.length>1&&cardsWithCounts.some(c=>c.lv===null)){
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","복수 주택의 레벨을 확인해야 합니다"));
@@ -511,7 +520,7 @@
     for(const entry of findings){
       const tr=document.createElement("tr"),a=document.createElement("td"),b=document.createElement("td"),c=document.createElement("td");
       const check=document.createElement("input");
-      check.type="checkbox";check.className="photo-select";check.checked=entry.value!==null;check.setAttribute("aria-label",entry.label+" 적용");
+      check.type="checkbox";check.className="photo-select";check.checked=entry.value!==null&&!entry.extra.includes("직접 확인");check.setAttribute("aria-label",entry.label+" 적용");
       check.dataset.id=entry.id;
       a.append(check);
       b.textContent=entry.label;
