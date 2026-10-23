@@ -195,8 +195,8 @@
   }
   async function badgeQuantity(worker,img,badge){
     const source=crop(img,[badge.cx-20,badge.cy-20,badge.cx+20,badge.cy+20],6);
-    const cv=document.createElement("canvas");cv.width=210;cv.height=180;
-    cv.getContext("2d").drawImage(source,source.width*.25,source.height*.10,source.width*.65,source.height*.80,0,0,210,180);
+    const cv=document.createElement("canvas");cv.width=156;cv.height=192;
+    cv.getContext("2d").drawImage(source,source.width*.25,source.height*.10,source.width*.65,source.height*.80,0,0,156,192);
     await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:"13"});
     let value=numeric((await worker.recognize(cv)).data.text);
     if(value===null||value<1||value>10000){
