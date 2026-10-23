@@ -119,7 +119,7 @@
     const v=String(text||"").replace(/[\s.,·"'‘’“”()[\]{}~^\-]/g,"");
     if(/탐험.*부두|원정부두/.test(v))return "expedition";
     if(/일꾼/.test(v))return "workerhome";
-    if(/선원/.test(v))return "sailorhome";
+    if(/선원|서워의|서원의/.test(v))return "sailorhome";
     if(/선술집|술집/.test(v))return "tavern";
     if(/벌집|벌통/.test(v))return "bee";
     if(/시청/.test(v))return "ignore";
@@ -196,7 +196,7 @@
   async function badgeQuantity(worker,img,badge){
     const source=crop(img,[badge.cx-20,badge.cy-20,badge.cx+20,badge.cy+20],6);
     const cv=document.createElement("canvas");cv.width=210;cv.height=180;
-    cv.getContext("2d").drawImage(source,source.width*.35,source.height*.12,source.width*.53,source.height*.76,0,0,210,180);
+    cv.getContext("2d").drawImage(source,source.width*.25,source.height*.10,source.width*.65,source.height*.80,0,0,210,180);
     await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:"13"});
     let value=numeric((await worker.recognize(cv)).data.text);
     if(value===null||value<1||value>10000){
