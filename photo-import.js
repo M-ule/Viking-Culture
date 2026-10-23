@@ -163,10 +163,10 @@
     const cards=extractLevels(result.data.tsv),recognized=new Map();
     await ocr.setParameters({tessedit_pageseg_mode:"7"});
     for(const card of cards){
-      const region=[card.x-2,card.y-35,card.x+111,card.y-3];
-      let name=(await ocr.recognize(blackWhite(img,region))).data.text;
+      const region=[card.x-8,card.y-37,card.x+72,card.y-9];
+      let name=(await ocr.recognize(blackWhite(img,region,4))).data.text;
       let id=buildingId(name);
-      if(!id)id=buildingId((await ocr.recognize(crop(img,region,3))).data.text);
+      if(!id)id=buildingId((await ocr.recognize(crop(img,region,4))).data.text);
       if(!id||id==="ignore")continue;
       if(recognized.has(id)){recognized.set(id,null);continue;}
       recognized.set(id,card);
@@ -187,7 +187,7 @@
           if(isOrange(data[n],data[n+1],data[n+2]))ok++;
           all++;
         }
-        const rate=all?ok/all:0,score=rate-.002*(Math.abs(cx-x-108)+Math.abs(cy-y+49));
+        const rate=all?ok/all:0,score=rate-.008*(Math.abs(cx-x-108)+Math.abs(cy-y+49));
         if(rate>=.47&&(!best||score>best.score))best={cx,cy,score};
       }
     }
