@@ -337,20 +337,45 @@
     }
     return result;
   }
+  // Roofs can merge into the orange badge ring and shift the detected center.
+  // Refine it with the actual digit ink before looking up the building name
+  // and level; otherwise a 3px displacement can hide an entire housing card.
+  function refineBadgeCenter(pixels,badge){
+    const {data,width}=pixels;
+    let best=null;
+    for(let dy=-6;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){
+      const ink=pixelMask(data,width,badge.cx+dx-14,badge.cy+dy-14,29,29,"ink");
+      const scores=Object.entries(badgeBits)
+        .map(([value,pattern])=>({value,score:comparePattern(ink,pattern)}))
+        .sort((a,b)=>b.score-a.score);
+      const candidate={dx,dy,count:Number(scores[0].value),
+        score:scores[0].score,margin:scores[0].score-scores[1].score};
+      if(!best||candidate.score>best.score+1e-9||
+          (Math.abs(candidate.score-best.score)<=1e-9&&candidate.margin>best.margin)){
+        best=candidate;
+      }
+    }
+    if(!best||best.score<.77||best.margin<.17)return {badge,count:null};
+    return {badge:{...badge,cx:badge.cx+best.dx,cy:badge.cy+best.dy},
+      count:best.count};
+  }
   function badgeLocatedCards(img){
     const canvas=document.createElement("canvas");canvas.width=BASE_W;canvas.height=BASE_H;
     const ctx=canvas.getContext("2d",{willReadFrequently:true});
     ctx.drawImage(img,0,0,BASE_W,BASE_H);
     const pixels=ctx.getImageData(0,0,BASE_W,BASE_H),cards=new Map();
-    for(const badge of findOrangeBadges(pixels)){
+    for(const detected of findOrangeBadges(pixels)){
+      const refined=refineBadgeCenter(pixels,detected),badge=refined.badge;
       const m=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,labelBits,108,32,-113,18,"label");
       if(m.score<.70||m.margin<.12)continue;
       const lv=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,levelBits,12,24,-77,49,"level");
-      const qty=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,badgeBits,29,29,-14,-14,"ink");
       const card={x:badge.cx-113,y:badge.cy+50,lv:lv.score>=.79&&lv.margin>=.16?Number(lv.value):null,
-        count:qty.score>=.77&&qty.margin>=.17?Number(qty.value):null,badge,fromBadge:true};
+        count:refined.count,badge,fromBadge:true};
       if(!cards.has(m.value))cards.set(m.value,[]);
-      cards.get(m.value).push(card);
+      // Avoid duplicate ring candidates that belong to one physical badge.
+      if(!cards.get(m.value).some(c=>Math.hypot(c.badge.cx-badge.cx,c.badge.cy-badge.cy)<18)){
+        cards.get(m.value).push(card);
+      }
     }
     return cards;
   }
