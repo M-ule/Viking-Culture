@@ -217,6 +217,119 @@
     }
     return best>=.70;
   }
+
+  // Locate count badges without requiring the Korean '레벨' OCR pass to succeed.
+  // Template coordinates are RELATIVE to the badge, so card reordering is fine.
+  const LABEL_PATTERNS={
+    fishpier:"AAAAAAAAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGAAAAAAAAAAAAAAAAcGD/wAAAAAAAAAAAAAf+DgAAAAAAAAAAAAAAYGDAAAAAAAAAAAAAAAYGDAAAAAAAAAAAAAAAYGD/wAAAAAAAAAAAAAf+B/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//v/8AAAAAAAAAAAAA//H/8AAAAAAAAAAAAABgAMAAAAAAAAAAAAAABgAMAAAAAAAAAAAAAABgAMAAAAAAAAAAAAAABgAMAAAAAAAAAAAAAAAgAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    bee:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhjAAYAAAAAAAAAAAAAxjH+YAAAAAAAAAAAAA//B4YAAAAAAAAAAAAA//AwYAAAAAAAAAAAAAxjB4YAAAAAAAAAAAAAzjB8YAAAAAAAAAAAAA/jHOYAAAAAAAAAAAAAADGGYAAAAAAAAAAAAAP/AAYAAAAAAAAAAAAAP/BgYAAAAAAAAAAAAAAHBgYAAAAAAAAAAAAAP/B/4AAAAAAAAAAAAAOABw4AAAAAAAAAAAAAP/B/4AAAAAAAAAAAAAP/B/4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB+AAAAAAAAAAAAAAAMD4AAAAAAAAAAAAAAAAPgAAAAAAAAAAAAAAAA5AAAAAAAAAAAAAAAAA4AAAAAAA",
+    tavern:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAMAADAAAAAAAAAAAGDAeA/zAAAAAAAAAAAGDA7AHDAAAAAAAAAAAGfHx4GDAAAAAAAAAAAOfDAYPDAAAAAAAAAAAPDAAAPjAAAAAAAAAAAbjP/85zAAAAAAAAAAA5zAOAwTAAAAAAAAAAAwDD/wACAAAAAAAAAAAADD/wMDAAAAAAAAAAAMDAAwMDAAAAAAAAAAAMAAAwP/AAAAAAAAAAAMAD/wMDAAAAAAAAAAAP/DAAP/AAAAAAAAAAAP/D/4P/AAAAAAAAAAAAAD/4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    expedition:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgIAAAAAAAAAAAAAAGAwYBgMAAAAAAAAAA/mP+YBwcP/AAAAAAAA4GAAYB/8OAAAAAAAAA/Hh4YBgMMAAAAAAAAA/Hj94BgMOAAAAAAAAAwGGO4BwcP/gAAAAAAA72GMYB/8AAAAAAAAAA/2D8YAAAAAAAAAAAAAAGB4YAAAAAAAAAAAAAAAAAAD/+f/wAAAAAAAP+B/4B/+f/wAAAAAAAcOB74AGAA4AAAAAAAAYGBgYAGAAYAAAAAAAAf+B/4AGAAwAAAAAAAAP+B/4AGAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    workerhome:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPDAAAADAABgAAAAAAA/jD7wPjAf5gAAAAAAAxjA4wZzADhgAAAAAAAgjAwwwzADhgAAAAAAAxjAwwwzADhgAAAAAAA7jAwwwzAHxgAAAAAAAfDF74fzAcdgAAAAAAAAAP/8PjAYJgAAAAAAAP/AOAADAAAgAAAAAAAP/AMAADAGBgAAAAAAAADDMAD7AHBgAAAAAAAP/DAA/7AH/gAAAAAAAMADAAADAHBgAAAAAAAP/D/wADAH/gAAAAAAAP/D/wADAH/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    sailorhome:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYABAAAAAAAAAAAADB8YADAABgAAAAAAAGDDOYfjAf5gAAAAAAAGDDGYZzADhgAAAAAAAGfDGYwzADhgAAAAAAAOPB8YwzADhgAAAAAAAPDAQY4zAHxgAAAAAAAZjD/YfzAcdgAAAAAAA5zH/YPjAcJgAAAAAAAgDAwYADAAAgAAAAAAAADAz4ADAGBgAAAAAAAMDAw4D7AHBgAAAAAAAMADgA/7AH/gAAAAAAAMADAAADAHBgAAAAAAAP/D/4ADAH/gAAAAAAAP/B/4ADAH/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  };
+  const BADGE_PATTERNS={
+    2:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgAAAfgAAATgAAADAAYgGAAbAcAA+AwAB4BgABwGAADgcAAHBwAAfDAAA2PgADMfwAAAfgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    4:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAHgAAAPAAYg+AAbB8AA+GYAA4MwABwzgADh3AAHD/AAfB+AA2A4ADGAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    5:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwAAAPgAAAYAAAAwAAYxgAAbDAAA+HwAA4BwABwBgADgDAAHAGAAfAMAA2H4ADGPgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    19:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGAABweAAHhwAAfDEAYGGIFgMMQPAYZgcAw/g4Bg+BwDAEDgGAIHgMAwDAYHADAweAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+  };
+  const LEVEL_PATTERNS={
+    2:"AAAAAAAAAAPAfABgDgDADAGAMAMAfgfgAAAAAAAAAAAAAAAA",
+    3:"AAAAAAAAAAPAfABgBAHAOADABgBgfAeAAAAAAAAAAAAAAAAA"
+  };
+  function patternBits(str,n){
+    const bytes=atob(str),out=new Uint8Array(n);
+    if(bytes.length*8<n)throw new Error("사진 인식 기준 데이터가 손상되었습니다.");
+    for(let i=0;i<n;i++)out[i]=(bytes.charCodeAt(i>>3)>>(7-(i&7)))&1;
+    return out;
+  }
+  const labelBits=Object.fromEntries(Object.entries(LABEL_PATTERNS).map(([k,v])=>[k,patternBits(v,108*32)]));
+  const badgeBits=Object.fromEntries(Object.entries(BADGE_PATTERNS).map(([k,v])=>[k,patternBits(v,29*29)]));
+  const levelBits=Object.fromEntries(Object.entries(LEVEL_PATTERNS).map(([k,v])=>[k,patternBits(v,12*24)]));
+  function pixelMask(data,width,x0,y0,w,h,kind){
+    const bits=new Uint8Array(w*h);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const ix=x0+x,iy=y0+y;if(ix<0||iy<0||ix>=width||iy>=BASE_H)continue;
+      const p=(iy*width+ix)*4,r=data[p],g=data[p+1],b=data[p+2];
+      if(kind==="ink"){
+        const dx=x-14,dy=y-14;
+        bits[y*w+x]=(dx*dx+dy*dy<=144&&r<155&&g<145&&b<100)?1:0;
+      }else{
+        bits[y*w+x]=((r+g+b)/3>(kind==="level"?170:180)&&Math.max(r,g,b)-Math.min(r,g,b)<65)?1:0;
+      }
+    }
+    return bits;
+  }
+  function comparePattern(a,b){
+    let common=0,either=0;
+    for(let i=0;i<a.length;i++){if(a[i]&&b[i])common++;if(a[i]||b[i])either++;}
+    return either?common/either:0;
+  }
+  function matchPattern(data,w,cx,cy,patterns,pw,ph,ox,oy,kind){
+    const scores=[];
+    for(const [id,pattern] of Object.entries(patterns)){
+      let best=0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const actual=pixelMask(data,w,cx+ox+dx,cy+oy+dy,pw,ph,kind);
+        best=Math.max(best,comparePattern(actual,pattern));
+      }
+      scores.push([id,best]);
+    }
+    scores.sort((a,b)=>b[1]-a[1]);
+    return {value:scores[0]?.[0]??null,score:scores[0]?.[1]??0,margin:(scores[0]?.[1]??0)-(scores[1]?.[1]??0)};
+  }
+  function findOrangeBadges(pixels){
+    const {data,width:w}=pixels,mask=new Uint8Array(w*BASE_H),seen=new Uint8Array(w*BASE_H),result=[];
+    for(let y=25;y<BASE_H-24;y++)for(let x=55;x<430;x++){
+      const p=(y*w+x)*4;if(isOrange(data[p],data[p+1],data[p+2]))mask[y*w+x]=1;
+    }
+    const stack=[];
+    for(let y=25;y<BASE_H-24;y++)for(let x=55;x<430;x++){
+      const start=y*w+x;if(!mask[start]||seen[start])continue;
+      let area=0,left=x,right=x,top=y,bottom=y,sumx=0,sumy=0;
+      stack.push(start);seen[start]=1;
+      while(stack.length){
+        const p=stack.pop(),px=p%w,py=(p-px)/w;
+        area++;sumx+=px;sumy+=py;
+        left=Math.min(left,px);right=Math.max(right,px);
+        top=Math.min(top,py);bottom=Math.max(bottom,py);
+        for(let yy=Math.max(25,py-1);yy<=Math.min(BASE_H-25,py+1);yy++)
+          for(let xx=Math.max(55,px-1);xx<=Math.min(429,px+1);xx++){
+            const at=yy*w+xx;if(mask[at]&&!seen[at]){seen[at]=1;stack.push(at);}
+          }
+      }
+      const ww=right-left+1,hh=bottom-top+1;
+      if(area>=450&&area<=1000&&ww>=27&&ww<=39&&hh>=27&&hh<=39){
+        result.push({cx:Math.round(sumx/area),cy:Math.round(sumy/area)});
+      }
+    }
+    return result;
+  }
+  function badgeLocatedCards(img){
+    const canvas=document.createElement("canvas");canvas.width=BASE_W;canvas.height=BASE_H;
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    ctx.drawImage(img,0,0,BASE_W,BASE_H);
+    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H),cards=new Map();
+    for(const badge of findOrangeBadges(pixels)){
+      const m=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,labelBits,108,32,-113,18,"label");
+      if(m.score<.70||m.margin<.12)continue;
+      const lv=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,levelBits,12,24,-77,49,"level");
+      const qty=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,badgeBits,29,29,-14,-14,"ink");
+      const card={x:badge.cx-113,y:badge.cy+50,lv:lv.score>=.79&&lv.margin>=.16?Number(lv.value):null,
+        count:qty.score>=.77&&qty.margin>=.17?Number(qty.value):null,badge,fromBadge:true};
+      if(!cards.has(m.value))cards.set(m.value,[]);
+      cards.get(m.value).push(card);
+    }
+    return cards;
+  }
+  async function detectedCardLevel(worker,img,card){
+    if(card.lv!==null)return card.lv;
+    if(!card.badge)return null;
+    await worker.setParameters({tessedit_char_whitelist:"123456",tessedit_pageseg_mode:"10"});
+    const b=card.badge;
+    return readValue(worker,img,[b.cx-79,b.cy+47,b.cx-63,b.cy+74],true);
+  }
   async function locateCards(img){
     const ocr=await koreanOCR();
     await ocr.setParameters({tessedit_pageseg_mode:"11"});
@@ -270,7 +383,16 @@
     return value!==null&&value>=1&&value<=10000?value:null;
   }
   async function recognizeBuildings(img,worker){
-    const cards=await locateCards(img);
+    const cards=badgeLocatedCards(img);
+    // OCR remains a secondary route for single buildings without count badges.
+    if(TYPES.buildings.some(item=>!cards.has(item.id))){
+      try{
+        const ocrCards=await locateCards(img);
+        for(const [id,card] of ocrCards){
+          if(!cards.has(id)&&card)cards.set(id,[card]);
+        }
+      }catch(e){console.warn("보조 건물 OCR 실패",e);}
+    }
     const cv=document.createElement("canvas");cv.width=BASE_W;cv.height=BASE_H;
     const ctx=cv.getContext("2d",{willReadFrequently:true});
     ctx.drawImage(img,0,0,BASE_W,BASE_H);
@@ -286,11 +408,15 @@
       const cardsWithCounts=[];
       for(const card of found){
         setStatus(item.name+" 수량 인식 중…");
-        const badge=badgeAt(pixels,card.x,card.y);
-        const count=badge?await badgeQuantity(worker,img,badge):1;
-        cardsWithCounts.push({...card,count,extra:!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""});
+        const badge=card.badge||badgeAt(pixels,card.x,card.y);
+        const count=card.count!==undefined&&card.count!==null?card.count:(badge?await badgeQuantity(worker,img,badge):1);
+        const lv=card.lv!==null&&card.lv!==undefined?card.lv:await detectedCardLevel(worker,img,card);
+        cardsWithCounts.push({...card,lv,count,extra:lv===null?"레벨 인식 실패 · 직접 확인":!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""});
       }
-      if(item.home&&cardsWithCounts.length>1){
+      if(item.home&&cardsWithCounts.length>1&&cardsWithCounts.some(c=>c.lv===null)){
+        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","복수 주택의 레벨을 확인해야 합니다"));
+        rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","서로 다른 레벨의 수량을 직접 확인"));
+      }else if(item.home&&cardsWithCounts.length>1){
         // Multiple cards for one type of house may have different levels.
         // Preserve each level instead of discarding both duplicate names.
         const groups=new Map();
@@ -308,7 +434,7 @@
         rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","여러 건물 카드 발견 · 상세 설정에서 직접 확인"));
       }else{
         const card=cardsWithCounts[0];
-        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level"));
+        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level",card.lv===null?"레벨 인식 실패 · 직접 확인":""));
         rows.push(makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra));
       }
     }
