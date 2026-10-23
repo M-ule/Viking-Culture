@@ -5,9 +5,9 @@
   const BASE_W = 1536, BASE_H = 709;
   const TYPES = {
     buildings: [
-      {id:"bee",name:"벌통",prod:"벌통",level:[91,118,171,152],count:[181,51,232,102]},
-      {id:"fishpier",name:"어업 부두",prod:"어업 부두",level:[222,118,301,151],count:[310,51,362,102]},
-      {id:"expedition",name:"원정 부두",prod:"원정 부두",level:[220,250,307,285],count:[310,184,361,236]},
+      {id:"bee",name:"벌집",prod:"벌통",level:[91,118,171,152],count:[181,51,232,102]},
+      {id:"fishpier",name:"부두",prod:"어업 부두",level:[222,118,301,151],count:[310,51,362,102]},
+      {id:"expedition",name:"탐험 부두",prod:"원정 부두",level:[220,250,307,285],count:[310,184,361,236]},
       {id:"tavern",name:"선술집",prod:null,level:[91,380,171,417],count:[182,314,232,375]},
       {id:"workerhome",name:"일꾼의 집",home:"Home_Worker",level:[222,382,304,415],count:[304,312,360,368]},
       {id:"sailorhome",name:"선원의 집",home:"Home_Sailor",level:[91,513,176,548],count:[181,451,233,503]}
@@ -156,6 +156,40 @@
     }
     return arr.filter((c,i)=>arr.findIndex(p=>Math.abs(p.x-c.x)<18&&Math.abs(p.y-c.y)<18)===i);
   }
+
+  // Exact visual fallback for the very short in-game label "부두".
+  // Derived solely from the label glyphs, not a hardcoded card position.
+  // High threshold avoids treating other dark-backed building names as the pier.
+  const FISH_PIER_GLYPH="AAAAAAAABAAAAAAAAAAMEAAAAAAKAB7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAYHAAgAAAAAB/8P/AAAAAAH/w7IAAAAAAYHDAAAAAAABgcOAAAAAAAHlw/+AAAAAAf/D/wAAAAAAewAAAAAAAAAAAAAAAAAAB//v/8AAAAAH/+//wAAAAAAYADAAAAAAABgAMAAAAAAAGAAwAAAAAAAYADAAAAAA";
+  let fishPierGlyphBits=null;
+  function getFishPierBits(){
+    if(fishPierGlyphBits)return fishPierGlyphBits;
+    const bytes=atob(FISH_PIER_GLYPH),bits=new Uint8Array(64*24);
+    for(let i=0;i<bits.length;i++)bits[i]=((bytes.charCodeAt(i>>3)>>(7-(i&7)))&1);
+    return (fishPierGlyphBits=bits);
+  }
+  function looksLikeFishPier(img,card){
+    const target=getFishPierBits();
+    const canvas=crop(img,[card.x-11,card.y-41,card.x+65,card.y-7],1);
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    // The stored 64x24 glyph appears at +6,+6; compensate for OCR
+    // bounding-box offsets without assuming any absolute row or column.
+    let best=0;
+    for(let dx=2;dx<=10;dx++)for(let dy=2;dy<=10;dy++){
+      let both=0,either=0;
+      for(let y=0;y<24;y++)for(let x=0;x<64;x++){
+        const p=((dy+y)*canvas.width+(dx+x))*4;
+        const pixel=.299*data[p]+.587*data[p+1]+.114*data[p+2]>=155?1:0;
+        const stored=target[y*64+x];
+        if(pixel&&stored)both++;
+        if(pixel||stored)either++;
+      }
+      if(either)best=Math.max(best,both/either);
+    }
+    return best>=.70;
+  }
+
   async function locateCards(img){
     const ocr=await koreanOCR();
     await ocr.setParameters({tessedit_pageseg_mode:"11"});
@@ -167,6 +201,7 @@
       let name=(await ocr.recognize(blackWhite(img,region,4))).data.text;
       let id=buildingId(name);
       if(!id)id=buildingId((await ocr.recognize(crop(img,region,4))).data.text);
+      if(!id&&looksLikeFishPier(img,card))id="fishpier";
       if(!id||id==="ignore")continue;
       if(recognized.has(id)){recognized.set(id,null);continue;}
       recognized.set(id,card);
