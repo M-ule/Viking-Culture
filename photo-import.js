@@ -312,6 +312,29 @@
         result.push({cx:Math.round(sumx/area),cy:Math.round(sumy/area)});
       }
     }
+    // A count badge can touch an orange roof. In that case connected-
+    // component analysis merges the two areas and rejects the large blob.
+    // A circular color-ring check recovers the badge without a fixed position.
+    const offsets=r=>Array.from({length:32},(_,i)=>[Math.round(r*Math.cos(i*Math.PI/16)),Math.round(r*Math.sin(i*Math.PI/16))]);
+    const rings=[offsets(11),offsets(13)],outside=offsets(19);
+    const colorAt=(x,y)=>{
+      if(x<55||x>=430||y<25||y>=BASE_H-24)return 0;
+      return mask[y*w+x];
+    };
+    const candidates=[];
+    for(let y=44;y<BASE_H-24;y+=2)for(let x=65;x<410;x+=2){
+      let inner=0,outer=0;
+      for(const ring of rings)for(const [dx,dy] of ring)inner+=colorAt(x+dx,y+dy);
+      if(inner<46)continue; // at least 72% of the orange ring
+      for(const [dx,dy] of outside)outer+=colorAt(x+dx,y+dy);
+      const score=inner/64-.18*outer/32;
+      if(score>=.69)candidates.push({cx:x,cy:y,score});
+    }
+    candidates.sort((a,b)=>b.score-a.score);
+    for(const point of candidates){
+      if(result.every(b=>(b.cx-point.cx)**2+(b.cy-point.cy)**2>20**2))
+        result.push({cx:point.cx,cy:point.cy});
+    }
     return result;
   }
   function badgeLocatedCards(img){
