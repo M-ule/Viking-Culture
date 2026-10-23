@@ -121,7 +121,7 @@
     if(/일꾼/.test(v))return "workerhome";
     if(/선원|서워의|서원의/.test(v))return "sailorhome";
     if(/선술집|술집/.test(v))return "tavern";
-    if(/벌집|벌통/.test(v))return "bee";
+    if(/벌집|벌통|벌질|벌짐|벌진|별집|법집/.test(v))return "bee";
     if(/시청/.test(v))return "ignore";
     if(/어업|부두/.test(v))return "fishpier";
     return null;
@@ -160,6 +160,10 @@
   // Exact visual fallback for the very short in-game label "부두".
   // Derived solely from the label glyphs, not a hardcoded card position.
   // High threshold avoids treating other dark-backed building names as the pier.
+  // The in-game "벌집" card label may not decode reliably through Korean OCR.
+  // A position-relative text-glyph check covers that case without binding
+  // recognition to a fixed card row or column.
+  const BEE_GLYPH="AAAAAAAAAAAAAAA4AAAAAAAAADgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAGMYADAAAAAAYxj/MAAAAAB/+P4wAAAAAH/4HDAAAAAAZ7g8MAAAAAB/GH4wAAAAAH8Y57AAAAAAIhjDMAAAAAAf+AAwAAAAgB/4MDAAAADAADg4cAAAAOAf+D/wAAAAwB/wP/AAAACAH/g/8AAAAAAf+D/wAAAA";
   const FISH_PIER_GLYPH="AAAAAAAABAAAAAAAAAAMEAAAAAAKAB7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAYHAAgAAAAAB/8P/AAAAAAH/w7IAAAAAAYHDAAAAAAABgcOAAAAAAAHlw/+AAAAAAf/D/wAAAAAAewAAAAAAAAAAAAAAAAAAB//v/8AAAAAH/+//wAAAAAAYADAAAAAAABgAMAAAAAAAGAAwAAAAAAAYADAAAAAA";
   let fishPierGlyphBits=null;
   function getFishPierBits(){
@@ -190,6 +194,29 @@
     return best>=.70;
   }
 
+  let beeGlyphBits=null;
+  function looksLikeBee(img,card){
+    if(!beeGlyphBits){
+      const bytes=atob(BEE_GLYPH),bits=new Uint8Array(64*24);
+      for(let i=0;i<bits.length;i++)bits[i]=(bytes.charCodeAt(i>>3)>>(7-(i&7)))&1;
+      beeGlyphBits=bits;
+    }
+    const canvas=crop(img,[card.x-11,card.y-41,card.x+65,card.y-7],1);
+    const data=canvas.getContext("2d",{willReadFrequently:true}).getImageData(0,0,canvas.width,canvas.height).data;
+    let best=0;
+    for(let dx=2;dx<=10;dx++)for(let dy=2;dy<=10;dy++){
+      let both=0,either=0;
+      for(let y=0;y<24;y++)for(let x=0;x<64;x++){
+        const p=((dy+y)*canvas.width+(dx+x))*4;
+        const pixel=.299*data[p]+.587*data[p+1]+.114*data[p+2]>=155?1:0;
+        const stored=beeGlyphBits[y*64+x];
+        if(pixel&&stored)both++;
+        if(pixel||stored)either++;
+      }
+      if(either)best=Math.max(best,both/either);
+    }
+    return best>=.70;
+  }
   async function locateCards(img){
     const ocr=await koreanOCR();
     await ocr.setParameters({tessedit_pageseg_mode:"11"});
@@ -198,13 +225,15 @@
     await ocr.setParameters({tessedit_pageseg_mode:"7"});
     for(const card of cards){
       const region=[card.x-8,card.y-37,card.x+72,card.y-9];
-      let name=(await ocr.recognize(blackWhite(img,region,4))).data.text;
+      const name=(await ocr.recognize(blackWhite(img,region,4))).data.text;
       let id=buildingId(name);
       if(!id)id=buildingId((await ocr.recognize(crop(img,region,4))).data.text);
+      if(!id&&looksLikeBee(img,card))id="bee";
       if(!id&&looksLikeFishPier(img,card))id="fishpier";
       if(!id||id==="ignore")continue;
-      if(recognized.has(id)){recognized.set(id,null);continue;}
-      recognized.set(id,card);
+      if(!recognized.has(id))recognized.set(id,[]);
+      const entries=recognized.get(id);
+      if(!entries.some(x=>Math.abs(x.x-card.x)<18&&Math.abs(x.y-card.y)<18))entries.push(card);
     }
     return recognized;
   }
@@ -248,16 +277,40 @@
     const pixels=ctx.getImageData(0,0,BASE_W,BASE_H);
     const rows=[];
     for(const item of TYPES.buildings){
-      const card=cards.get(item.id);
-      if(!card){
+      const found=cards.get(item.id)||[];
+      if(!found.length){
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","건물명 미인식 · 직접 확인"));
         rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","건물명 미인식 · 직접 확인"));
         continue;
       }
-      setStatus(item.name+" 수량 인식 중…");
-      const badge=badgeAt(pixels,card.x,card.y),count=badge?await badgeQuantity(worker,img,badge):1;
-      rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level"));
-      rows.push(makeEntry(item.id+"_count",item.name+" 수량",count,"buildings","count",!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""));
+      const cardsWithCounts=[];
+      for(const card of found){
+        setStatus(item.name+" 수량 인식 중…");
+        const badge=badgeAt(pixels,card.x,card.y);
+        const count=badge?await badgeQuantity(worker,img,badge):1;
+        cardsWithCounts.push({...card,count,extra:!badge?"배지 없음 · 1개":count===null?"배지 숫자 인식 실패":""});
+      }
+      if(item.home&&cardsWithCounts.length>1){
+        // Multiple cards for one type of house may have different levels.
+        // Preserve each level instead of discarding both duplicate names.
+        const groups=new Map();
+        for(const card of cardsWithCounts){
+          if(!groups.has(card.lv))groups.set(card.lv,[]);
+          groups.get(card.lv).push(card);
+        }
+        for(const [lv,group]of [...groups].sort((a,b)=>a[0]-b[0])){
+          const count=group.some(c=>c.count===null)?null:group.reduce((sum,c)=>sum+c.count,0);
+          rows.push(makeEntry(item.id+"_mix_"+lv,item.name+" Lv."+lv+" 수량",count,"buildings","count",count===null?"배지 숫자 인식 실패 · 직접 확인":"서로 다른 레벨을 구분해 도시 관리에 반영"));
+        }
+      }else if(cardsWithCounts.length>1){
+        // Never silently choose one of multiple production configurations.
+        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","여러 레벨의 건물 발견 · 상세 설정에서 직접 확인"));
+        rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","여러 건물 카드 발견 · 상세 설정에서 직접 확인"));
+      }else{
+        const card=cardsWithCounts[0];
+        rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level"));
+        rows.push(makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra));
+      }
     }
     await worker.setParameters({tessedit_char_whitelist:"0123456789.,KkMmXx",tessedit_pageseg_mode:"7"});
     return rows;
@@ -356,8 +409,21 @@
     for(const item of TYPES.buildings){
       const lv=values[item.id+"_lv"],count=values[item.id+"_count"];
       if(item.home){
-        if(lv!==undefined)app.city.homes[item.home].lv=lv;
-        if(count!==undefined)app.city.homes[item.home].count=count;
+        const mixed=Object.entries(values)
+          .filter(([key])=>key.startsWith(item.id+"_mix_"))
+          .map(([key,value])=>({lv:Number(key.slice((item.id+"_mix_").length)),count:value}))
+          .filter(group=>group.lv>=1&&group.lv<=6);
+        if(mixed.length){
+          app.city.homeMix??={};
+          app.city.homeMix[item.home]=mixed;
+          const total=mixed.reduce((sum,g)=>sum+g.count,0);
+          const main=[...mixed].sort((a,b)=>b.count-a.count)[0];
+          app.city.homes[item.home]={lv:main.lv,count:total};
+        }else if(lv!==undefined||count!==undefined){
+          if(app.city.homeMix)delete app.city.homeMix[item.home];
+          if(lv!==undefined)app.city.homes[item.home].lv=lv;
+          if(count!==undefined)app.city.homes[item.home].count=count;
+        }
       } else if(item.prod){
         const s=app.buildings[item.prod];
         if(lv!==undefined){s.lv=closestAvailableLevel(item.prod,lv);s.mode=modeForLevel(item.prod,s.lv,s.mode);}
