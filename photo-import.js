@@ -13,15 +13,15 @@
       {id:"sailorhome",name:"선원의 집",home:"Home_Sailor",level:[91,513,176,548],count:[181,451,233,503]}
     ],
     stock: [
-      {id:"penny",name:"페니",box:[438,8,517,41],target:"penny"},
-      {id:"honey",name:"꿀",box:[538,9,625,42],target:"벌집"},
-      {id:"fish",name:"생선",box:[630,9,731,41],target:"부두"},
+      {id:"penny",name:"페니",box:[448,14,510,39],target:"penny"},
+      {id:"honey",name:"꿀",box:[556,14,617,39],target:"벌집"},
+      {id:"fish",name:"생선",box:[641,14,726,39],target:"부두"},
       {id:"mead",name:"벌꿀 술",box:[367,182,457,217],target:"벌꿀 술"},
       {id:"pottery",name:"도자기 보물",box:[684,182,764,219],target:"도자기 보물"},
       {id:"gold",name:"황금 보물",box:[1000,182,1080,220],target:"황금 보물"},
-      {id:"dried",name:"건어물",box:[367,260,449,299],target:"건어물"},
-      {id:"spice",name:"향신료 보물",box:[686,261,763,302],target:"향신료 보물"},
-      {id:"gem",name:"보석 보물",box:[1002,263,1087,300],target:"보석 보물"}
+      {id:"dried",name:"건어물",box:[376,269,449,302],target:"건어물"},
+      {id:"spice",name:"향신료 보물",box:[695,269,763,302],target:"향신료 보물"},
+      {id:"gem",name:"보석 보물",box:[1003,269,1087,302],target:"보석 보물"}
     ]
   };
   let ocrWorker = null, busy = false, findings = [];
@@ -111,6 +111,49 @@
       val=numeric(result,isLevel);
     }
     return val;
+  }
+
+  function stockVariant(img,box,mode){
+    const cv=crop(img,box,mode==='original'?5:6);
+    if(mode==='original')return cv;
+    const ctx=cv.getContext('2d',{willReadFrequently:true}),d=ctx.getImageData(0,0,cv.width,cv.height);
+    for(let i=0;i<d.data.length;i+=4){
+      const r=d.data[i],g=d.data[i+1],b=d.data[i+2],gray=.299*r+.587*g+.114*b;
+      // Header digits are light on dark; stock-panel digits are dark on light.
+      const header=box[1]<60;
+      const v=mode==='contrast'?(header?255-gray:gray):(header?(gray>145?0:255):(gray<135?0:255));
+      d.data[i]=d.data[i+1]=d.data[i+2]=v;
+    }
+    ctx.putImageData(d,0,0);
+    let left=0,top=0,right=cv.width,bottom=cv.height;
+    if(mode==='binary'){
+      left=cv.width;top=cv.height;right=0;bottom=0;
+      for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){
+        if(d.data[(y*cv.width+x)*4]<128){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);}
+      }
+      if(right<=left||bottom<=top){left=0;top=0;right=cv.width;bottom=cv.height;}
+    }
+    const padded=document.createElement('canvas');padded.width=right-left+20;padded.height=bottom-top+20;
+    const c=padded.getContext('2d');c.fillStyle='white';c.fillRect(0,0,padded.width,padded.height);c.drawImage(cv,left,top,right-left,bottom-top,10,10,right-left,bottom-top);
+    return padded;
+  }
+  function stockConsensus(readings){
+    const valid=readings.filter(r=>r.value!==null),values=[...new Set(valid.map(r=>r.value))];
+    const agreed=valid.length>=2&&values.length===1;
+    return {value:values.length===1?values[0]:null,needsReview:!agreed,
+      approximate:valid.some(r=>/[KM]/i.test(r.text)),
+      extra:values.length>1?'인식 결과 불일치: '+values.join(' / ')+' · 직접 확인':
+        !agreed?'교차 검증 부족 · 직접 확인':''};
+  }
+  async function readStock(worker,img,box){
+    // Modest padding retains the first digit while keeping nearby icons out.
+    const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[];
+    for(const [mode,psm] of [['original','7'],['contrast','13'],['binary','7']]){
+      await worker.setParameters({tessedit_char_whitelist:'0123456789.,KkMm',tessedit_pageseg_mode:psm});
+      const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
+      readings.push({text,value:numeric(text)});
+    }
+    return {...stockConsensus(readings),preview:crop(img,area,3).toDataURL('image/png')};
   }
 
   // Locate building cards by text, not their fixed row or column.
@@ -540,7 +583,7 @@
     for(const entry of findings){
       const tr=document.createElement("tr"),a=document.createElement("td"),b=document.createElement("td"),c=document.createElement("td");
       const check=document.createElement("input");
-      check.type="checkbox";check.className="photo-select";check.checked=entry.value!==null&&!entry.extra.includes("직접 확인");check.setAttribute("aria-label",entry.label+" 적용");
+      check.type="checkbox";check.className="photo-select";check.checked=entry.value!==null&&!entry.needsReview&&!entry.extra.includes("직접 확인");check.setAttribute("aria-label",entry.label+" 적용");
       check.dataset.id=entry.id;
       a.append(check);
       b.textContent=entry.label;
@@ -552,7 +595,13 @@
       number.setAttribute("aria-label",entry.label+" 인식값");
       number.placeholder="인식 실패 · 직접 입력";
       number.addEventListener("input",()=>{if(number.value.trim()!=="")check.checked=true;});
-      c.append(number);tr.append(a,b,c);body.append(tr);
+      c.append(number);
+      if(entry.preview){
+        const preview=document.createElement('img');preview.src=entry.preview;
+        preview.alt=entry.label+' 원본 숫자 확대';preview.style.cssText='display:block;width:100%;max-width:240px;height:auto;margin:8px auto 0;border:1px solid #9fb0ba;border-radius:4px';
+        c.append(preview);
+      }
+      tr.append(a,b,c);body.append(tr);
     }
     table.append(body);root.append(table);
     $p("photoApply").disabled=false;
@@ -587,14 +636,15 @@
       if(imgs.stock){
         for(const item of TYPES.stock){
           setStatus("생산물 사진 분석 중… "+(done+1)+"/"+total);
-          const value=await readValue(worker,imgs.stock,item.box);done++;
-          results.push(makeEntry(item.id,item.name,value,"stock","stock",item.id==="penny"?"K 단위 표시는 반올림된 근삿값":""));
+          const result=await readStock(worker,imgs.stock,item.box);done++;
+          const extra=[result.extra,result.approximate?'K/M 단위 표시는 반올림된 근삿값':''].filter(Boolean).join(' · ');
+          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview});
         }
       }
       findings=results;
       review();
       const recognized=results.filter(item=>item.value!==null).length;
-      setStatus("분석 완료: "+recognized+"/"+results.length+"개 인식. 숫자를 확인·수정한 뒤 적용하세요.");
+      setStatus("분석 완료: "+recognized+"/"+results.length+"개 값 추출 · 정확성 확인 필요. 숫자를 확인·수정한 뒤 적용하세요.");
     }catch(err){setStatus(err?.message||"사진 인식에 실패했습니다.",true);}
     finally{busy=false;$p("photoScan").disabled=false;}
   }
