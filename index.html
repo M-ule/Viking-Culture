@@ -467,12 +467,12 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .pair-line:has(.amount-error){flex-wrap:wrap}.pair-line .amount-error{margin-left:62px}
 .amount-value{font-variant-numeric:tabular-nums;white-space:nowrap}
 </style><style>
-#photoImportDialog{width:min(810px,96vw);max-height:88vh;padding:20px}
+#photoImportDialog{width:min(810px,96vw);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;padding:20px}
 .photo-description{font-size:14px;color:#50636e;line-height:1.65;margin:12px 0}
 .photo-files{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
 .photo-files label{font-size:15px;font-weight:700;display:flex;flex-direction:column;gap:8px}
 .photo-files input[type=file]{background:#f4f8fa;border:1px solid #9fb0ba;padding:10px;text-align:left;height:auto;font-size:14px}
-.photo-review{max-height:48vh;overflow:auto}
+.photo-review{max-height:none;overflow:visible}
 .photo-table{min-width:0;table-layout:fixed;width:100%}
 .photo-table th,.photo-table td{height:auto;min-width:0;font-size:14px;padding:10px 7px}
 .photo-table th:first-child,.photo-table td:first-child{width:58px;text-align:center}
@@ -1377,4 +1377,5 @@ document.addEventListener('focusout',e=>{
 });
 document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el.classList?.contains('amount-input')){e.preventDefault();el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('aria-invalid')!=='true')el.blur();}});
 loadState();renderAll();saveState();initTermTooltips();initializeNavigation();
-</script><script src="photo-import.js?v=20261023i" defer></script></body></html>
+</script><script src="photo-import.js?v=20261024a" defer></script></body></html>
+
