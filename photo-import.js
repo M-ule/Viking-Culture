@@ -8,6 +8,7 @@
       {id:"bee",name:"벌집",prod:"벌집",level:[91,118,171,152],count:[181,51,232,102]},
       {id:"fishpier",name:"부두",prod:"부두",level:[222,118,301,151],count:[310,51,362,102]},
       {id:"expedition",name:"탐험 부두",prod:"탐험 부두",level:[220,250,307,285],count:[310,184,361,236]},
+      {id:"harbor",name:"선원 항구",prod:"선원 항구"},
       {id:"tavern",name:"선술집",prod:null,level:[91,380,171,417],count:[182,314,232,375]},
       {id:"workerhome",name:"일꾼의 집",home:"Home_Worker",level:[222,382,304,415],count:[304,312,360,368]},
       {id:"sailorhome",name:"선원의 집",home:"Home_Sailor",level:[91,513,176,548],count:[181,451,233,503]}
@@ -166,7 +167,8 @@
     const v=String(text||"").replace(/[\s.,·"'‘’“”()[\]{}~^\-]/g,"");
     if(/탐험.*부두|원정부두/.test(v))return "expedition";
     if(/일꾼/.test(v))return "workerhome";
-    if(/선원항구|호화/.test(v))return "ignore";
+    if(/호화/.test(v))return "ignore";
+    if(/선원항구|^항구$/.test(v))return "harbor";
     if(/선원의집|선원주택|서워의|서원의/.test(v))return "sailorhome";
     if(/선술집|술집/.test(v))return "tavern";
     if(/벌집|벌통|벌질|벌짐|벌진|별집|법집/.test(v))return "bee";
@@ -269,6 +271,7 @@
   // Locate count badges without requiring the Korean '레벨' OCR pass to succeed.
   // Template coordinates are RELATIVE to the badge, so card reordering is fine.
   const LABEL_PATTERNS={
+    harbor:"AAAAAAAAAAAAAAAAAAAAAAAAAAADYAAAAAAAP5+AAAAAAH8EAAAAAAF4EAAAAAAH7+AAAAAAD4QAAAAAAHYQAAAAAAH4QAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     fishpier:"AAAAcAAAAAAAAAAAAAAAAAAAAAAGYAAAAAAAH58AAAAAAGZAAAAAAAH58AAAAAAAAAAAAAAAP/+AAAAAABgQAAAAAABgQAAAAAAAgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     bee:"AAAAAAAAAAAAAAAAAAAAAAAAAAAFoGAAAAAAH7+AAAAAAH52AAAAAAHr+AAAAAAD7eAAAAAAD5mAAAAAAD5+AAAAAAD5+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAAAAAAACeAAAAAAAA4AAA",
     tavern:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAIQBAAAAADI49AAAAAD7uZAAAAAHr+9AAAAAHp8lAAAAACJ8RAAAAACB8fAAAAAD5+fAAAAAAB+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -438,11 +441,50 @@
     }
     return cards;
   }
+  // A single harbor has no orange count badge. Search for its label glyphs
+  // across the panel rather than assuming a particular card row or column.
+  function unbadgedHarborCards(img){
+    const cv=document.createElement("canvas");cv.width=BASE_W;cv.height=BASE_H;
+    const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,BASE_W,BASE_H);
+    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H),target=labelBits.harbor;
+    const white=new Uint8Array(BASE_W*BASE_H);
+    for(let y=0;y<BASE_H;y++)for(let x=50;x<430;x++){
+      const p=(y*BASE_W+x)*4,r=pixels.data[p],g=pixels.data[p+1],b=pixels.data[p+2];
+      white[y*BASE_W+x]=(r+g+b)/3>180&&Math.max(r,g,b)-Math.min(r,g,b)<65?1:0;
+    }
+    let best=null;
+    for(let y=35;y<BASE_H-80;y+=2)for(let x=65;x<330;x+=2){
+      let common=0,either=0;
+      for(let yy=0;yy<16;yy++)for(let xx=0;xx<54;xx++){
+        const p=(y+yy*2)*BASE_W+x+xx*2;
+        const actual=white[p]|white[p+1]|white[p+BASE_W]|white[p+BASE_W+1],stored=target[yy*54+xx];
+        if(actual&&stored)common++;if(actual||stored)either++;
+      }
+      const score=either?common/either:0;
+      if(score>=.50&&(!best||score>best.score))best={x,y,score};
+    }
+    if(!best)return [];
+    const m=matchPattern(pixels.data,BASE_W,best.x+113,best.y-18,labelBits,108,32,-113,18,"label");
+    if(m.value!=="harbor"||m.score<.80||m.margin<.15)return [];
+    // Refine the two-pixel search before locating the adjacent level numeral.
+    let anchor=best;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const full=pixelMask(pixels.data,BASE_W,best.x+dx,best.y+dy,108,32,"label"),actual=new Uint8Array(864);
+      for(let y=0;y<16;y++)for(let x=0;x<54;x++){
+        const i=y*216+x*2;actual[y*54+x]=full[i]|full[i+1]|full[i+108]|full[i+109];
+      }
+      const score=comparePattern(actual,target);if(score>anchor.score)anchor={x:best.x+dx,y:best.y+dy,score};
+    }
+    const virtual={cx:anchor.x+113,cy:anchor.y-18};
+    const lv=matchPattern(pixels.data,BASE_W,virtual.cx,virtual.cy,levelBits,12,24,-77,49,"level");
+    return [{x:anchor.x,y:anchor.y+32,lv:lv.score>=.79&&lv.margin>=.16?Number(lv.value):null,
+      levelAnchor:virtual,preview:crop(img,[anchor.x,anchor.y-65,anchor.x+130,anchor.y+60],2).toDataURL("image/png")}];
+  }
   async function detectedCardLevel(worker,img,card){
     if(card.lv!==null)return card.lv;
-    if(!card.badge)return null;
+    if(!card.badge&&!card.levelAnchor)return null;
     await worker.setParameters({tessedit_char_whitelist:"123456",tessedit_pageseg_mode:"10"});
-    const b=card.badge;
+    const b=card.badge||card.levelAnchor;
     return readValue(worker,img,[b.cx-79,b.cy+47,b.cx-63,b.cy+74],true);
   }
   async function locateCards(img){
@@ -514,6 +556,7 @@
   }
   async function recognizeBuildings(img,worker){
     const cards=badgeLocatedCards(img);
+    if(!cards.has("harbor")){const harbor=unbadgedHarborCards(img);if(harbor.length)cards.set("harbor",harbor);}
     // OCR remains a secondary route for single buildings without count badges.
     if(TYPES.buildings.some(item=>!cards.has(item.id))){
       try{
@@ -573,7 +616,7 @@
       }else{
         const card=cardsWithCounts[0];
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level",card.lv===null?"레벨 인식 실패 · 직접 확인":""));
-        rows.push({...makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra),preview:card.badge?crop(img,[card.badge.cx-19,card.badge.cy-19,card.badge.cx+19,card.badge.cy+19],3).toDataURL("image/png"):null});
+        rows.push({...makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra),preview:card.badge?crop(img,[card.badge.cx-19,card.badge.cy-19,card.badge.cx+19,card.badge.cy+19],3).toDataURL("image/png"):card.preview||null});
       }
     }
     await worker.setParameters({tessedit_char_whitelist:"0123456789.,KkMmXx",tessedit_pageseg_mode:"7"});
@@ -700,7 +743,7 @@
         const s=app.buildings[item.prod];
         if(lv!==undefined){s.lv=closestAvailableLevel(item.prod,lv);s.mode=modeForLevel(item.prod,s.lv,s.mode);}
         if(count!==undefined)s.bldgs=count;
-        const map={bee:"Beehive_Average",fishpier:"FishingPier_Average",expedition:"ExpeditionPier_Average"};
+        const map={bee:"Beehive_Average",fishpier:"FishingPier_Average",expedition:"ExpeditionPier_Average",harbor:"SailorPort_Average"};
         if(map[item.id])delete app.city.manual[map[item.id]];
       }
     }
