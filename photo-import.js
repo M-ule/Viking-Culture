@@ -16,7 +16,9 @@
     stock: [
       {id:"penny",name:"페니",box:[448,14,510,39],target:"penny"},
       {id:"honey",name:"꿀",box:[556,14,617,39],target:"벌집"},
-      {id:"fish",name:"생선",box:[641,14,726,39],target:"부두"},
+      // The fish icon extends through x=658. Start after it so OCR cannot
+      // mistake the icon for a leading digit (320.4K -> 8320.4K).
+      {id:"fish",name:"생선",box:[662,14,726,39],target:"부두"},
       {id:"mead",name:"벌꿀 술",box:[367,182,457,217],target:"벌꿀 술"},
       {id:"pottery",name:"도자기 보물",box:[684,182,764,219],target:"도자기 보물"},
       {id:"gold",name:"황금 보물",box:[1000,182,1080,220],target:"황금 보물"},
@@ -118,11 +120,19 @@
     const cv=crop(img,box,mode==='original'?5:6);
     if(mode==='original')return cv;
     const ctx=cv.getContext('2d',{willReadFrequently:true}),d=ctx.getImageData(0,0,cv.width,cv.height);
+    // Stock dialogs dim the game header. A fixed 145 threshold can erase
+    // every fish digit; adapt to the brightness of this icon-free number crop.
+    let fishThreshold=145;
+    if(box[1]<60&&box[0]>=660&&box[0]<670){
+      let brightest=0;
+      for(let i=0;i<d.data.length;i+=4)brightest=Math.max(brightest,.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2]);
+      fishThreshold=Math.max(45,brightest*.65);
+    }
     for(let i=0;i<d.data.length;i+=4){
       const r=d.data[i],g=d.data[i+1],b=d.data[i+2],gray=.299*r+.587*g+.114*b;
       // Header digits are light on dark; stock-panel digits are dark on light.
       const header=box[1]<60;
-      const v=mode==='contrast'?(header?255-gray:gray):(header?(gray>145?0:255):(gray<135?0:255));
+      const v=mode==='contrast'?(header?255-gray:gray):(header?(gray>fishThreshold?0:255):(gray<135?0:255));
       d.data[i]=d.data[i+1]=d.data[i+2]=v;
     }
     ctx.putImageData(d,0,0);
