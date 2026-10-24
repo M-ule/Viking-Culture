@@ -20,8 +20,8 @@
       {id:"pottery",name:"도자기 보물",box:[684,182,764,219],target:"도자기 보물"},
       {id:"gold",name:"황금 보물",box:[1000,182,1080,220],target:"황금 보물"},
       {id:"dried",name:"건어물",box:[376,269,449,302],target:"건어물"},
-      {id:"spice",name:"향신료 보물",box:[695,269,763,302],target:"향신료 보물"},
-      {id:"gem",name:"보석 보물",box:[1003,269,1087,302],target:"보석 보물"}
+      {id:"spice",name:"향신료 보물",box:[686,269,770,302],target:"향신료 보물"},
+      {id:"gem",name:"보석 보물",box:[997,269,1090,302],target:"보석 보물"}
     ]
   };
   let ocrWorker = null, busy = false, findings = [];
@@ -138,17 +138,21 @@
     return padded;
   }
   function stockConsensus(readings){
-    const valid=readings.filter(r=>r.value!==null),values=[...new Set(valid.map(r=>r.value))];
-    const agreed=valid.length>=2&&values.length===1;
-    return {value:values.length===1?values[0]:null,needsReview:!agreed,
-      approximate:valid.some(r=>/[KM]/i.test(r.text)),
-      extra:values.length>1?'인식 결과 불일치: '+values.join(' / ')+' · 직접 확인':
+    const valid=readings.filter(r=>r.value!==null), votes=new Map();
+    for(const r of valid)votes.set(r.value,(votes.get(r.value)||0)+1);
+    const ranked=[...votes].sort((a,b)=>b[1]-a[1]);
+    const agreed=ranked.length>0&&ranked[0][1]>=2;
+    const conflict=ranked.length>1;
+    return {value:ranked.length?(agreed||ranked.length===1?ranked[0][0]:null):null,
+      needsReview:!agreed||conflict, approximate:valid.some(r=>/[KM]/i.test(r.text)),
+      extra:conflict?'인식 결과 불일치: '+ranked.map(r=>r[0]).join(' / ')+' · 직접 확인':
         !agreed?'교차 검증 부족 · 직접 확인':''};
   }
+
   async function readStock(worker,img,box){
     // Modest padding retains the first digit while keeping nearby icons out.
     const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[];
-    for(const [mode,psm] of [['original','7'],['contrast','13'],['binary','7']]){
+    for(const [mode,psm] of [['original','7'],['contrast','7'],['binary','7']]){
       await worker.setParameters({tessedit_char_whitelist:'0123456789.,KkMm',tessedit_pageseg_mode:psm});
       const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
       readings.push({text,value:numeric(text)});
@@ -276,6 +280,11 @@
   // Unlisted numbers still use digit OCR below, never the closest template
   // unless its shape score and separation pass confidence checks.
   const BADGE_PATTERNS={
+    3:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHgAAAfwAAADgAAADAAYwGAA7AYAA+DgAB4HgABwDgADgDAAPAGAAfAMAB2P4ADOfgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    9:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgAAAPgAAA5gAABjAAYjGAA7GMAA+MYAB4f4ABwdgADgDAAPAGAAfAcAB2BwADMPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    12:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMGAAA4eAADwCAAPgAAMDAMCwGAYHgMAwOAYDgcAwGA4BgcBwDBwDwGDAFgMPwBgYfAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    23:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8GAAD8eAAEYCAAAwAAMBgMCwDAYHgODgOAYHgcBwDg4HACBwMAEDw4AIFj8PwBn+fAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+
     2:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgAAAfgAAATgAAADAAYgGAAbAcAA+AwAB4BgABwGAADgcAAHBwAAfDAAA2PgADMfwAAAfgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
     4:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAHgAAAPAAYg+AAbB8AA+GYAA4MwABwzgADh3AAHD/AAfB+AA2A4ADGAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
     5:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwAAAPgAAAYAAAAwAAYxgAAbDAAA+HwAA4BwABwBgADgDAAHAGAAfAMAA2H4ADGPgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
@@ -284,6 +293,7 @@
     7:"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4AAAf4AAABgAAADAAYgGAAbAYAA+AwAA4BgABwGAADgMAAHAYAAfBwAA2DAADGGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
   };
   const LEVEL_PATTERNS={
+    4:"AAAAAAAAAADADAHAHAPAJAZAfgfgBABAAAAAAAAAAAAAAAAA",
     2:"AAAAAAAAAAPAfABgDgDADAGAMAMAfgfgAAAAAAAAAAAAAAAA",
     3:"AAAAAAAAAAPAfABgBAHAOADABgBgfAeAAAAAAAAAAAAAAAAA"
   };
@@ -494,7 +504,7 @@
   async function badgeQuantity(worker,img,badge){
     const votes=new Map();
     for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
-      await worker.setParameters({tessedit_char_whitelist:"0123456789",tessedit_pageseg_mode:mode});
+      await worker.setParameters({tessedit_char_whitelist:"0123456789xX×",tessedit_pageseg_mode:mode});
       const value=numeric((await worker.recognize(badgeDigitImage(img,badge,threshold))).data.text);
       if(value===null||value<1||value>10000)continue;
       votes.set(value,(votes.get(value)||0)+1);
@@ -539,7 +549,7 @@
           extra:lv===null?"레벨 인식 실패 · 직접 확인":
             !badge?"배지 없음 · 1개":
             count===null?"배지 숫자 인식 실패 · 직접 확인":
-            card.fromBadge&&card.count===null?"수량 OCR 보조 인식 · 직접 확인":""});
+            ""});
       }
       if(item.home&&cardsWithCounts.length>1&&cardsWithCounts.some(c=>c.lv===null)){
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","복수 주택의 레벨을 확인해야 합니다"));
@@ -563,7 +573,7 @@
       }else{
         const card=cardsWithCounts[0];
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level",card.lv===null?"레벨 인식 실패 · 직접 확인":""));
-        rows.push(makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra));
+        rows.push({...makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra),preview:card.badge?crop(img,[card.badge.cx-19,card.badge.cy-19,card.badge.cx+19,card.badge.cy+19],3).toDataURL("image/png"):null});
       }
     }
     await worker.setParameters({tessedit_char_whitelist:"0123456789.,KkMmXx",tessedit_pageseg_mode:"7"});
@@ -726,4 +736,5 @@
   $p("photoScan").addEventListener("click",scan);
   $p("photoApply").addEventListener("click",apply);
 })();
+
 
