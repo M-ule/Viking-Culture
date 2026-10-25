@@ -123,7 +123,7 @@
     // Stock dialogs dim the game header. A fixed 145 threshold can erase
     // every fish digit; adapt to the brightness of this icon-free number crop.
     let fishThreshold=145;
-    if(box[1]<60&&box[0]>=660&&box[0]<670){
+    if(box[1]<60){
       let brightest=0;
       for(let i=0;i<d.data.length;i+=4)brightest=Math.max(brightest,.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2]);
       fishThreshold=Math.max(45,brightest*.65);
@@ -163,8 +163,8 @@
 
   // Independently count full-height glyphs in the stock panel. OCR agreement
   // alone is insufficient: several variants can all drop the same digits.
-  function panelNumberImage(img,box,threshold=135){
-    const cv=crop(img,box,4),ctx=cv.getContext('2d',{willReadFrequently:true});
+  function panelNumberImage(img,box,threshold=135,direct=false){
+    const cv=direct?img:crop(img,box,4),ctx=cv.getContext('2d',{willReadFrequently:true});
     const {data}=ctx.getImageData(0,0,cv.width,cv.height),w=cv.width,h=cv.height;
     const mask=new Uint8Array(w*h),seen=new Uint8Array(w*h),parts=[];
     for(let i=0;i<mask.length;i++)mask[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2]<threshold?1:0;
@@ -230,9 +230,10 @@
       readings.push({text,value:numeric(text),mode});
     }
     let rejected=false,unverifiedDigits=false,glyphs=null;
-    if(box[1]>=60){
-      glyphs=panelNumberImage(img,area);
-      const alternate=panelNumberImage(img,area,110);
+    if(box[1]>=60||box[0]<520){
+      const header=box[1]<60, source=header?stockVariant(img,area,'binary'):img;
+      glyphs=panelNumberImage(source,area,135,header);
+      const alternate=panelNumberImage(source,area,110,header);
       if(!alternate||alternate.count!==glyphs?.count)glyphs=null;
       if(glyphs){
         const visual=readStockGlyphs(glyphs);
@@ -246,6 +247,10 @@
       }else unverifiedDigits=true;
     }
     let result=stockConsensus(readings);
+    const visualReading=readings.find(r=>r.mode==='게임 글꼴 비교');
+    if(visualReading&&readings.some(r=>r!==visualReading&&r.value===visualReading.value)){
+      result={...result,value:visualReading.value,needsReview:false,extra:''};
+    }
     if(result.needsReview&&glyphs){
       // Retry each glyph independently when whole-line OCR disagrees or drops
       // digits. Never reconstruct missing digits by multiplying or appending 0.
@@ -652,11 +657,36 @@
     const c=padded.getContext("2d");c.fillStyle="white";c.fillRect(0,0,padded.width,padded.height);c.drawImage(cv,12,12);
     return padded;
   }
+  function badgeNumberOnly(canvas){
+    const ctx=canvas.getContext('2d'),{data}=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const runs=[];let start=null;
+    for(let x=0;x<=canvas.width;x++){
+      let ink=0;
+      if(x<canvas.width)for(let y=0;y<canvas.height;y++)if(data[(y*canvas.width+x)*4]<128)ink++;
+      if(ink>1&&start===null)start=x;
+      if(ink<=1&&start!==null){runs.push([start,x]);start=null;}
+    }
+    // The multiplication sign is a separate leftmost glyph. Keep every digit,
+    // including repeated narrow 1s, and preserve the full vertical extent.
+    if(runs.length<2||runs.length>5)return null;
+    const left=runs[1][0],right=runs.at(-1)[1];
+    const out=document.createElement('canvas');out.width=right-left+32;out.height=canvas.height;
+    const c=out.getContext('2d');c.fillStyle='white';c.fillRect(0,0,out.width,out.height);
+    c.drawImage(canvas,left,0,right-left,canvas.height,16,0,right-left,canvas.height);
+    return out;
+  }
   async function badgeQuantity(worker,img,badge){
-    const votes=new Map();
+    const votes=new Map(), separatedVotes=new Map();
     for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
       await worker.setParameters({tessedit_char_whitelist:"0123456789xX×",tessedit_pageseg_mode:mode});
-      const value=numeric((await worker.recognize(badgeDigitImage(img,badge,threshold))).data.text);
+      const image=badgeDigitImage(img,badge,threshold),digits=badgeNumberOnly(image);
+      if(digits){
+        await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'});
+        const value=numeric((await worker.recognize(digits)).data.text);
+        if(value!==null&&value>=1&&value<=10000)separatedVotes.set(value,(separatedVotes.get(value)||0)+1);
+        await worker.setParameters({tessedit_char_whitelist:'0123456789xX×',tessedit_pageseg_mode:mode});
+      }
+      const value=numeric((await worker.recognize(image)).data.text);
       if(value===null||value<1||value>10000)continue;
       votes.set(value,(votes.get(value)||0)+1);
 
@@ -667,6 +697,9 @@
     const shape=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,badgeBits,29,29,-14,-14,"ink");
     const visual=shape.score>=.82&&shape.margin>=.12?Number(shape.value):null;
     const ranked=[...votes].sort((a,b)=>b[1]-a[1]);
+    const separated=[...separatedVotes].sort((a,b)=>b[1]-a[1]);
+    if(separated.length===1&&separated[0][1]>=2&&votes.has(separated[0][0])&&
+      (visual===null||visual===separated[0][0]))return separated[0][0];
     if(visual!==null){
       // A conflicting visual check must never be overridden by repeated OCR.
       if(ranked.length&&ranked[0][0]!==visual)return null;
@@ -728,6 +761,12 @@
         for(const [lv,group]of [...groups].sort((a,b)=>a[0]-b[0])){
           const count=group.some(c=>c.count===null)?null:group.reduce((sum,c)=>sum+c.count,0);
           rows.push({...makeEntry(item.id+"_mix_"+lv,item.name+" Lv."+lv+" 수량",count,"buildings","count",count===null?"배지 숫자 인식 실패 · 직접 확인":"서로 다른 레벨을 구분해 도시 관리에 반영"),preview:group.length===1&&group[0].badge?crop(img,[group[0].badge.cx-19,group[0].badge.cy-19,group[0].badge.cx+19,group[0].badge.cy+19],3).toDataURL("image/png"):null});
+        }
+      }else if(item.id==='tavern'&&cardsWithCounts.length>1&&cardsWithCounts.every(c=>c.lv!==null)){
+        for(const lv of [...new Set(cardsWithCounts.map(c=>c.lv))].sort()){
+          const group=cardsWithCounts.filter(c=>c.lv===lv);
+          const count=group.some(c=>c.count===null)?null:group.reduce((sum,c)=>sum+c.count,0);
+          rows.push(makeEntry('tavern_mix_'+lv,'선술집 Lv.'+lv+' 수량',count,'buildings','count','도시 관리 수량 반영 · 생산별 배분은 상세 설정에서 확인'));
         }
       }else if(cardsWithCounts.length>1){
         // Never silently choose one of multiple production configurations.
@@ -893,6 +932,10 @@
       values[check.dataset.id]=value;selected++;
     }
     if(!selected){setStatus("적용할 항목을 체크하세요.",true);return;}
+    const mixedTaverns=findings.filter(f=>f.id.startsWith('tavern_mix_'));
+    if(mixedTaverns.some(f=>values[f.id]!==undefined)&&mixedTaverns.some(f=>values[f.id]===undefined)){
+      setStatus('선술집 전체 수량을 반영하려면 각 레벨의 수량을 모두 확인·선택해주세요.',true);return;
+    }
     const affected=TYPES.buildings.filter(item=>item.prod&&(values[item.id+"_lv"]!==undefined||values[item.id+"_count"]!==undefined)).map(item=>item.prod);
     if(values.tavern_lv!==undefined||values.tavern_count!==undefined)affected.push("벌꿀 술","건어물");
     const active=[...new Set(affected)].filter(b=>app.details?.[b]?.enabled);
@@ -924,6 +967,8 @@
         if(map[item.id])delete app.city.manual[map[item.id]];
       }
     }
+    const tavernMix=Object.entries(values).filter(([key])=>key.startsWith('tavern_mix_'));
+    if(tavernMix.length)app.city.manual.Workshop_Tavern=tavernMix.reduce((sum,[,count])=>sum+count,0);
     const tavernLv=values.tavern_lv,tavernCount=values.tavern_count;
     if(tavernCount!==undefined){
       app.city.manual.Workshop_Tavern=tavernCount;
