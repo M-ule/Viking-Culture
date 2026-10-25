@@ -479,6 +479,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .photo-table th:first-child,.photo-table td:first-child{width:58px;text-align:center}
 .photo-table th:nth-child(2),.photo-table td:nth-child(2){width:37%}
 .photo-table input[type=text]{height:40px;min-height:40px}
+.photo-candidates{display:flex;flex-direction:column;gap:6px;margin:8px 0}.photo-candidates small{font-size:12px;line-height:1.4}.photo-candidates button{min-height:44px;height:auto;white-space:normal;font-size:14px;padding:8px}.photo-candidates button[aria-pressed="true"]{background:#19334c;color:white;border-color:#19334c}
 .photo-caution{display:block;font-weight:400;color:#886119;font-size:12px;line-height:1.45;margin-top:4px}
 #photoStatus{font-size:14px;flex:1;line-height:1.5}
 #photoImportDialog button:disabled{opacity:.45;cursor:default}
@@ -1378,5 +1379,5 @@ document.addEventListener('focusout',e=>{
 });
 document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el.classList?.contains('amount-input')){e.preventDefault();el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('aria-invalid')!=='true')el.blur();}});
 loadState();renderAll();saveState();initTermTooltips();initializeNavigation();
-</script><script src="photo-import.js?v=20261025d" defer></script></body></html>
+</script><script src="photo-import.js?v=20261025e" defer></script></body></html>
 
