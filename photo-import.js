@@ -536,7 +536,7 @@
     ctx.drawImage(img,0,0,BASE_W,BASE_H);
     const pixels=ctx.getImageData(0,0,BASE_W,BASE_H),cards=new Map();
     for(const detected of findOrangeBadges(pixels)){
-      const badge=detected;
+      const refined=refineBadgeCenter(pixels,detected),badge=refined.badge;
       const m=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,labelBits,108,32,-113,18,"label");
       if(m.score<.70||m.margin<.12)continue;
       const lv=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,levelBits,12,24,-77,49,"level");
