@@ -769,12 +769,33 @@
     table.append(body);root.append(table);
     $p("photoApply").disabled=false;
   }
+  function syncPhotoControls(){
+    for(const id of ['photoBuildings','photoStocks']){
+      $p(id).disabled=busy;
+      $p(id+'Clear').disabled=busy||!$p(id).files.length;
+    }
+    $p('photoReset').disabled=busy||(!findings.length&&!$p('photoBuildings').files.length&&!$p('photoStocks').files.length);
+  }
+  function clearPhotoResults(message){
+    findings=[];$p('photoReview').replaceChildren();$p('photoApply').disabled=true;
+    setStatus(message);syncPhotoControls();
+  }
+  function clearPhoto(id){
+    if(busy)return;
+    $p(id).value='';
+    clearPhotoResults('사진을 삭제했습니다. 남은 사진은 다시 분석해주세요.');
+  }
+  function resetPhotos(){
+    if(busy)return;
+    $p('photoBuildings').value='';$p('photoStocks').value='';
+    clearPhotoResults('사진과 분석 결과를 초기화했습니다. 사진을 선택해주세요.');
+  }
   async function scan(){
     if(busy)return;
     const building=$p("photoBuildings").files[0], goods=$p("photoStocks").files[0];
     if(!building&&!goods){setStatus("건물 사진 또는 생산물 사진을 선택하세요.",true);return;}
     findings=[];$p("photoReview").replaceChildren();
-    busy=true;$p("photoScan").disabled=true;$p("photoApply").disabled=true;
+    busy=true;$p("photoScan").disabled=true;$p("photoApply").disabled=true;syncPhotoControls();
     try{
       setStatus("인식 엔진 준비 중… 처음 이용할 때 다운로드가 필요합니다.");
       const imgs={};
@@ -809,7 +830,7 @@
       const recognized=results.filter(item=>item.value!==null).length;
       setStatus("분석 완료: "+recognized+"/"+results.length+"개 값 추출 · 정확성 확인 필요. 숫자를 확인·수정한 뒤 적용하세요.");
     }catch(err){setStatus(err?.message||"사진 인식에 실패했습니다.",true);}
-    finally{busy=false;$p("photoScan").disabled=false;}
+    finally{busy=false;$p("photoScan").disabled=false;syncPhotoControls();}
   }
   function apply(){
     if(busy)return;
@@ -886,6 +907,12 @@
   }
   $p("photoImportBtn").addEventListener("click",()=>{$p("photoImportDialog").showModal();});
   $p("photoImportClose").addEventListener("click",()=>$p("photoImportDialog").close());
+  for(const id of ['photoBuildings','photoStocks']){
+    $p(id+'Clear').addEventListener('click',()=>clearPhoto(id));
+    $p(id).addEventListener('change',()=>clearPhotoResults('사진이 변경되었습니다. 사진 분석을 눌러주세요.'));
+  }
+  $p('photoReset').addEventListener('click',resetPhotos);
+  syncPhotoControls();
   $p("photoScan").addEventListener("click",scan);
   $p("photoApply").addEventListener("click",apply);
 })();
