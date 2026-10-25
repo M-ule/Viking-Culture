@@ -207,13 +207,26 @@
     })};
   }
 
+  const STOCK_DIGIT_PATTERNS={"0":["AAAAH4AH/AB/4A//APnwHw+B8PgfB4HgeB4Hg+B8PgfD4Hw+B8PgfD4Hw+B8PgfD4HweB8HgeB4HgfD4Hw+B8PgPnwD/8Af+AH/gA/gAAAA=","AAAADwAD/AB/4A//AP/wHw8B4PgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4Hg+B8PgPnwD/8A/+AH/AA/gAAAA=","AAAAP4AH/AB/4A/+APvwHx8B4PgeD4PgeD4Hg+B4PgfD4Hw+B8PgfD4Hw+B8PgfD4Hw+B4PgeD4HgeD4Hg+B8fAPvwD/4A/+AH/AA/gAAAA="],"1":["AAAAAeAAPgAH8AD/AB/wA/8Af/AP3wBx8AIfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAAeAAPgAH4AD+AB/gA/4Af+AH3gBx4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAAA="],"2":["AAAAP4AH/gD/8B//Af/wDB+AAfgAD4AA+AAPgAD4AB8AAfAAHwAD8AB+AAfAAPwAD4AB8AA+AAPgAHwAD4AB+AAfyAH//D//w//8H//AAAA=","AAAAP4AH/gD/8B//Af/wHB+AAPgAD4AA+AAPgAD4AA8AAfAAHwAD4AA+AAfAAPwAD4AB8AA+AAfgAHwAD4AB+AAfwQH//D//wf/8H/+AAAA=","AAAAP4AH/AD/8B//Af/4DB+AAPgAD4AA+AAPgAD4AB8AAfAAHwAD8AB+AAfAAPwAD4AB8AA+AAPgAHwAD4AB+AAfzAH/+D//w//8H/+AAAA="],"3":["AAAAP4AH/gH/8B//AP/4AA+AAPgAD4AA+AAPgADwAB8AB+AD/AA/wAP+AAfwAB+AAPgAB8AAfAAHwAB8AA/AAPgcP4H/8B/+Af/AB/AAAAA=","AAAAPwAP/AH/8B//Af/wAB+AAPgAD4AA+AAPgAHwAB8AB+AD/AB/gAf8AB/gAB8AAfgAD4AAeAAHwAB8AA+AAPgQP4P/8D//A//AH/gAAAA=","AAAAf8AP/gH/8B//AOP4AA+AAPgAD4AA+AAPgADwAB8AB+AD/AA/wAP+AAfwAB+AAPgAD8AAfAAHwAB8AA/AAPgwP4P/8D//A//gH/gAAAA="],"4":["AAAAA+AAfwAH8AB/AA/wAP8AH/AD/wA/8AP/ADnwB58A8fAPHwHh8B4fAeHwPB8DwfB//8f//n//5//+H//AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAAeAAPgAH8AB/AA/wAP8AH/AB/wA/8APfAH3wB58AcfAPHwHx8B4fAeHwPB8DwfB+/4f//H//5//+H//AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAA+AAfgAH4AD+AA/gAf4AH+AD/gA/4AP+AHvgB74A8eAfHgHh4B4eA8HgPB8Hw/B//8f//n//5//+P//AA/AAHwAB8AAeAAHgAB4AAAA="],"5":["AAAAf+AP/wH/8B//Af9AHwAB8AAfAAHwAB8AAfAAH/AB/8Af/gH/8A//gAH4AB+AAPgAD4AA+AAPgAD4AB+AAfgcf4H/4B/+Af/AD+AAAAA=","AAAA/+AP/wD/8A/+APgAHwAB8AAeAAHgAB4AAfAAH/AD/+A//wH/8AA/AAH4AA+AAPwAD8AA/AAPwAD4AA+AAfA8fwP/8D/+Af+AD+AAAAA=","AAAAf+AP/wD/8A//AP/gDwAA8AAPAADgAB8AAfAAH/AB/8Af/gH/8AR/AAH4AA+AAPgAB4AAeAAPgAD4AA+AAfg//wP/8D/+Af+AD/AAAAA="],"6":["AAAAB/AA/wA/8AP/AH4AB8AA+AAPAADwAB4AAeAAHjwD//A//wP/+D+fg/D4PgfD4Hw+B8PgfB4HweB8HgfA8PgP34D/8Af/AD/gAfwAAAA=","AAAAB+AB/wA/8Af+AH4AD4AA8AAPAAHgAB4AAeAAHjwB7+Af/wP/+D+fg/D4PweD4Hw+B8HgfB4HweB8HweB8PgPn4D/8Af+AH/gAfgAAAA=","AAAAB/AA/wAf8AP/AH4AD8AA+AAPAAHwAB4AAeAAHzwB9+Af/wP/+D+fg/D4Pw+D8Hw+B8HgfB4HwfB4Hw+A8PgPn4D/8Af/AD/gAfgAAAA="],"7":["AAAB//gf/4P//B//gf/4AA+AAPgADwAB8AAfAAHwAB4AA+AAPgAHwAB8AAfAAHwAD4AA+AAPAAHwAB8AA+AAPgAD4AA+AAfAAHwAB4AAAAA=","AAAB//g//8P//B//wAH4AA+AAPgAD4AA8AAfAAHwAD8AA+AAPgADwAB8AAfAAHgAD4AA+AAfgAHwAB8AAfAAPgAD4AA8AAfAAHwAB4AAAAA=","AAAA//Af/8P//B//wf/8AA+AAPgAD4AB8AAfAAHwAB4AA+AAPgADwAB8AAfAAHwAD4AA+AAPgAHwAB8AA+AAPgAD4AA+AAfAAHwAB8AAAAA="],"8":["AAAAH4AH/gD/8A//Afn4Hw+B4HgeB4HgeB8PgPnwD/8Af+AD/AA/wAf8AH/gD58B8PgeB4HgeB4HgeB4HgeB8Pgfn4D/8A//AH/gAfgAAAA=","AAAAP4AH/gD/8B//AfHwHg+B4HgeB4Hg8B8PAPnwD/4Af8AH/AA/wAf8AP/gH58B8PAeD4HgeB4HgeB4HgeB8Pgfn4H/8A/+AH/AAfAAAAA="],"9":["AAAAH4AH/AD/4A//Af34Hw+B4HgeB4HgeD4Hg+B8HgfB4HwfD8Hx/B//wP/4B+eAHHgAB4AAeAAHgAD4AB8AA/AA/gB/4A/8AP8AD8AAAAA=","AAAAP4AH/AD/4B//Af/wHw+B4Pg+B4PgeD4Hg+B4PgeD4HwfD4Hx+B//gP/4D+eAGHgAB4AAeAAPgAHwAB8AA/AB/gD/wB/4Af4AD8AAAAA="]};
+  function stockGlyphSignature(cv){const {data}=cv.getContext('2d').getImageData(0,0,cv.width,cv.height);let l=cv.width,t=cv.height,r=0,b=0;for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++)if(data[(y*cv.width+x)*4]<128){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);}const out=document.createElement('canvas');out.width=20;out.height=32;const c=out.getContext('2d');c.fillStyle='white';c.fillRect(0,0,20,32);const scale=Math.min(18/(r-l+1),30/(b-t+1));c.drawImage(cv,l,t,r-l+1,b-t+1,(20-(r-l+1)*scale)/2,(32-(b-t+1)*scale)/2,(r-l+1)*scale,(b-t+1)*scale);const d=c.getImageData(0,0,20,32).data;return Array.from({length:640},(_,i)=>d[i*4]<128?1:0);}
+  function readStockGlyphs(glyphs){
+    let text='',lowest=1;
+    for(const cv of glyphs.digits){
+      const actual=stockGlyphSignature(cv);
+      const scores=Object.entries(STOCK_DIGIT_PATTERNS).map(([digit,patterns])=>({digit,score:Math.max(...patterns.map(p=>comparePattern(actual,patternBits(p,640))))})).sort((a,b)=>b.score-a.score);
+      if(scores[0].score<.80||scores[0].score-scores[1].score<.10)return null;
+      lowest=Math.min(lowest,scores[0].score);text+=scores[0].digit;
+    }
+    return {text,value:numeric(text),score:lowest};
+  }
+
   async function readStock(worker,img,box){
     // Modest padding retains the first digit while keeping nearby icons out.
     const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[];
     for(const [mode,psm] of [['original','7'],['contrast','7'],['binary','7']]){
       await worker.setParameters({tessedit_char_whitelist:'0123456789.,KkMm',tessedit_pageseg_mode:psm});
       const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
-      readings.push({text,value:numeric(text)});
+      readings.push({text,value:numeric(text),mode});
     }
     let rejected=false,unverifiedDigits=false,glyphs=null;
     if(box[1]>=60){
@@ -221,11 +234,13 @@
       const alternate=panelNumberImage(img,area,110);
       if(!alternate||alternate.count!==glyphs?.count)glyphs=null;
       if(glyphs){
+        const visual=readStockGlyphs(glyphs);
+        if(visual&&String(visual.value).length===glyphs.count)readings.push({...visual,mode:'게임 글꼴 비교'});
         await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'8'});
         const text=(await worker.recognize(glyphs.canvas)).data.text;
-        readings.push({text,value:numeric(text)});
+        readings.push({text,value:numeric(text),mode:"숫자 분리"});
         for(const reading of readings){
-          if(reading.value!==null&&String(reading.value).length!==glyphs.count){reading.value=null;rejected=true;}
+          if(reading.value!==null&&String(reading.value).length!==glyphs.count){reading.rejectedValue=reading.value;reading.value=null;rejected=true;}
         }
       }else unverifiedDigits=true;
     }
@@ -241,13 +256,13 @@
         text+=part;
       }
       if(text&&String(numeric(text)).length===glyphs.count){
-        readings.push({text,value:numeric(text)});
+        readings.push({text,value:numeric(text),mode:"한 글자씩"});
         result=stockConsensus(readings);
       }
     }
     if(unverifiedDigits){result.needsReview=true;result.extra=[result.extra,'숫자 자릿수 확인 실패 · 직접 확인'].filter(Boolean).join(' · ');}
     if(rejected&&result.needsReview)result.extra=[result.extra,'숫자 자릿수 불일치 감지 · 직접 확인'].filter(Boolean).join(' · ');
-    return {...result,preview:crop(img,area,3).toDataURL('image/png')};
+    return {...result,diagnostics:readings.map(r=>({mode:r.mode,text:r.text.trim(),accepted:r.value!==null})),preview:crop(img,area,3).toDataURL('image/png')};
   }
 
   // Locate building cards by text, not their fixed row or column.
@@ -743,6 +758,12 @@
         preview.alt=entry.label+' 원본 숫자 확대';preview.style.cssText='display:block;width:100%;max-width:240px;height:auto;margin:8px auto 0;border:1px solid #9fb0ba;border-radius:4px';
         c.append(preview);
       }
+      if(entry.needsReview&&entry.diagnostics){
+        const details=document.createElement('details'),summary=document.createElement('summary');
+        summary.textContent='판독 내역';details.append(summary);
+        const list=document.createElement('small');list.style.cssText='display:block;white-space:pre-wrap;overflow-wrap:anywhere';
+        list.textContent=entry.diagnostics.map(r=>r.mode+': '+(r.text||'미인식')+(r.accepted?'':' (검증 제외)')).join('\n');details.append(list);b.append(details);
+      }
       tr.append(a,b,c);body.append(tr);
     }
     table.append(body);root.append(table);
@@ -780,7 +801,7 @@
           setStatus("생산물 사진 분석 중… "+(done+1)+"/"+total);
           const result=await readStock(worker,imgs.stock,item.box);done++;
           const extra=[result.extra,result.approximate?'K/M 단위 표시는 반올림된 근삿값':''].filter(Boolean).join(' · ');
-          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview});
+          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview,diagnostics:result.diagnostics});
         }
       }
       findings=results;
