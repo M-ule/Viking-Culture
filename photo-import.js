@@ -160,6 +160,43 @@
         !agreed?'교차 검증 부족 · 직접 확인':''};
   }
 
+  // Independently count full-height glyphs in the stock panel. OCR agreement
+  // alone is insufficient: several variants can all drop the same digits.
+  function panelNumberImage(img,box){
+    const cv=crop(img,box,4),ctx=cv.getContext('2d',{willReadFrequently:true});
+    const {data}=ctx.getImageData(0,0,cv.width,cv.height),w=cv.width,h=cv.height;
+    const mask=new Uint8Array(w*h),seen=new Uint8Array(w*h),parts=[];
+    for(let i=0;i<mask.length;i++)mask[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2]<135?1:0;
+    for(let i=0;i<mask.length;i++){
+      if(!mask[i]||seen[i])continue;
+      const stack=[i],points=[];seen[i]=1;
+      let left=w,right=0,top=h,bottom=0;
+      while(stack.length){
+        const p=stack.pop(),x=p%w,y=Math.floor(p/w);points.push(p);
+        left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+        for(let yy=Math.max(0,y-1);yy<=Math.min(h-1,y+1);yy++)for(let xx=Math.max(0,x-1);xx<=Math.min(w-1,x+1);xx++){
+          const q=yy*w+xx;if(mask[q]&&!seen[q]){seen[q]=1;stack.push(q);}
+        }
+      }
+      parts.push({left,right,top,bottom,points});
+    }
+    const tallest=Math.max(0,...parts.map(p=>p.bottom-p.top+1));
+    const digits=parts.filter(p=>p.bottom-p.top+1>=Math.max(20,tallest*.65)&&p.points.length>=30);
+    if(!digits.length)return null;
+    const top=Math.min(...digits.map(p=>p.top)),bottom=Math.max(...digits.map(p=>p.bottom));
+    // Reject non-aligned shapes instead of claiming a reliable digit count.
+    if(digits.some(p=>Math.abs(p.top-top)>(bottom-top+1)*.25))return null;
+    const left=Math.min(...digits.map(p=>p.left)),right=Math.max(...digits.map(p=>p.right));
+    const result=document.createElement('canvas');result.width=right-left+33;result.height=bottom-top+33;
+    const c=result.getContext('2d'),d=c.createImageData(result.width,result.height);d.data.fill(255);
+    for(const part of digits)for(const p of part.points){
+      const i=((Math.floor(p/w)-top+16)*result.width+(p%w)-left+16)*4;
+      d.data[i]=d.data[i+1]=d.data[i+2]=0;
+    }
+    c.putImageData(d,0,0);
+    return {canvas:result,count:digits.length};
+  }
+
   async function readStock(worker,img,box){
     // Modest padding retains the first digit while keeping nearby icons out.
     const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[];
@@ -168,7 +205,22 @@
       const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
       readings.push({text,value:numeric(text)});
     }
-    return {...stockConsensus(readings),preview:crop(img,area,3).toDataURL('image/png')};
+    let rejected=false,unverifiedDigits=false;
+    if(box[1]>=60){
+      const glyphs=panelNumberImage(img,area);
+      if(glyphs){
+        await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'8'});
+        const text=(await worker.recognize(glyphs.canvas)).data.text;
+        readings.push({text,value:numeric(text)});
+        for(const reading of readings){
+          if(reading.value!==null&&String(reading.value).length!==glyphs.count){reading.value=null;rejected=true;}
+        }
+      }else unverifiedDigits=true;
+    }
+    const result=stockConsensus(readings);
+    if(unverifiedDigits){result.needsReview=true;result.extra=[result.extra,'숫자 자릿수 확인 실패 · 직접 확인'].filter(Boolean).join(' · ');}
+    if(rejected&&result.needsReview)result.extra=[result.extra,'숫자 자릿수 불일치 감지 · 직접 확인'].filter(Boolean).join(' · ');
+    return {...result,preview:crop(img,area,3).toDataURL('image/png')};
   }
 
   // Locate building cards by text, not their fixed row or column.
