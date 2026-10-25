@@ -155,6 +155,7 @@
     const agreed=ranked.length>0&&ranked[0][1]>=2;
     const conflict=ranked.length>1;
     return {value:ranked.length?(agreed||ranked.length===1?ranked[0][0]:null):null,
+      candidates:ranked.map(([value])=>value),
       needsReview:!agreed||conflict, approximate:valid.some(r=>/[KM]/i.test(r.text)),
       extra:conflict?'인식 결과 불일치: '+ranked.map(r=>r[0]).join(' / ')+' · 직접 확인':
         !agreed?'교차 검증 부족 · 직접 확인':''};
@@ -262,7 +263,7 @@
     }
     if(unverifiedDigits){result.needsReview=true;result.extra=[result.extra,'숫자 자릿수 확인 실패 · 직접 확인'].filter(Boolean).join(' · ');}
     if(rejected&&result.needsReview)result.extra=[result.extra,'숫자 자릿수 불일치 감지 · 직접 확인'].filter(Boolean).join(' · ');
-    return {...result,diagnostics:readings.map(r=>({mode:r.mode,text:r.text.trim(),accepted:r.value!==null})),preview:crop(img,area,3).toDataURL('image/png')};
+    return {...result,candidates:[...new Set([...(result.candidates||[]),...readings.map(r=>r.value??r.rejectedValue).filter(v=>v!==undefined&&v!==null)])],rejectedCandidates:[...new Set(readings.filter(r=>r.rejectedValue!==undefined).map(r=>r.rejectedValue))],diagnostics:readings.map(r=>({mode:r.mode,text:r.text.trim(),accepted:r.value!==null})),preview:crop(img,area,3).toDataURL('image/png')};
   }
 
   // Locate building cards by text, not their fixed row or column.
@@ -753,6 +754,25 @@
       number.placeholder="인식 실패 · 직접 입력";
       number.addEventListener("input",()=>{if(number.value.trim()!=="")check.checked=true;});
       c.append(number);
+      const candidates=[...new Set(entry.candidates||[])];
+      if(candidates.length>1||(entry.needsReview&&candidates.length)){
+        const options=document.createElement('div');options.className='photo-candidates';
+        const hint=document.createElement('small');hint.textContent='원본과 비교해 후보 선택';options.append(hint);
+        const buttons=[];
+        const update=()=>buttons.forEach(({button,value})=>button.setAttribute('aria-pressed',String(numeric(number.value)===value)));
+        for(const value of candidates){
+          const button=document.createElement('button');button.type='button';
+          const rejected=entry.rejectedCandidates?.includes(value)&&!entry.diagnostics?.some(r=>r.accepted&&numeric(r.text)===value);
+          button.textContent=value.toLocaleString('ko-KR')+(rejected?' (자릿수 불일치)':'');
+          button.setAttribute('aria-label',entry.label+' '+value.toLocaleString('ko-KR')+' 선택');
+          button.setAttribute('aria-pressed','false');
+          button.addEventListener('click',()=>{
+            number.value=String(value);check.checked=true;update();
+          });
+          buttons.push({button,value});options.append(button);
+        }
+        number.addEventListener('input',update);c.append(options);
+      }
       if(entry.preview){
         const preview=document.createElement('img');preview.src=entry.preview;
         preview.alt=entry.label+' 원본 숫자 확대';preview.style.cssText='display:block;width:100%;max-width:240px;height:auto;margin:8px auto 0;border:1px solid #9fb0ba;border-radius:4px';
@@ -822,7 +842,7 @@
           setStatus("생산물 사진 분석 중… "+(done+1)+"/"+total);
           const result=await readStock(worker,imgs.stock,item.box);done++;
           const extra=[result.extra,result.approximate?'K/M 단위 표시는 반올림된 근삿값':''].filter(Boolean).join(' · ');
-          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview,diagnostics:result.diagnostics});
+          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview,diagnostics:result.diagnostics,candidates:result.candidates,rejectedCandidates:result.rejectedCandidates});
         }
       }
       findings=results;
