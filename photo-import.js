@@ -2,6 +2,7 @@
 (() => {
   "use strict";
   const $p = id => document.getElementById(id);
+  const IMPORT_VERSION = "20261025i";
   const BASE_W = 1536, BASE_H = 709;
   const TYPES = {
     buildings: [
@@ -679,13 +680,14 @@
     return out;
   }
   const BADGE_DIGIT_PATTERNS={"1":["AAAAAcAAfAAH4AH+AD/gA/4Ae+ACPgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgABwAAAA=","AAAAAcAAfAAPwAH8AD/AB/wAc8AAPAADwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAAB4AAeAAHAABwAAcAAHAABwAAAA=","AAAAB8AAfgAf4AH+AD/gB/4AeeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAcAAHAABwAAcAAHAAAwAAMAADAAAwAAAA="],"2":["AAAAH4AH/gD/8A4fAED4AA+AAHgAB4AAeAAHgAD4AA8AAPAAHgAB4AAeAAPAAHgABwAA4AAeAAHAADwAB4AAeAAPgAH/4B//Af/4D/AAAAA=","AAAAHwAH/AD/4A8/AADwAA+AAHgAB4AAeAAHgAB4AA8AAPAADgAA4AAcAAOAAHgAB4AA8AAeAAPAADwAB4AAeAAPgAH/wB//gf/4D/8AAAA="],"3":["AAAAf4AP/AH/4AA/AADwAA+AAHgAB4AAcAAHAADgAB4AA8AB+AAfgAH4AAPAAB4AAPAAB4AAeAAHgAB4AAeAAHgADwAD8A/+Af/AD/AAAAA=","AAAAf8AH/gD/8AR/AAD4AAeAAHgAB4AAeAAHAABwAB4AAcAB+AAfgAD8AAPgAA8AAHgAB4AAOAADgAB4AAeAAHgAD4AH+B//Af/AB/gAAAA="],"4":["AAAAAEAADAABwAA+AAPwAD8AB/AAfwAP+AD/gAz4AYeAOHgDh4AweAYHgGB4DgeA4HgeB4Hg+B8fgf/wD/8AB/AADwAAYAAGAABAAAQAAAA="],"6":["AAAAA+AA/gAf4APgAHgABwAAcAAOAADgAA4AAOAAHgAB48Af/wH5+B8PgfB4HgeB4HgeB4HgeB4HgeB4DgeA4HgPB4B58Af+AD/AAPAAAAA="],"7":["AAAAAPAP/4H/+AB/gAH4AA8AAPAADwAA8AAOAADgABwAAcAAHAADwAA8AAeAAHgADwAA8AAPAADwAA4AAeAAHAADwAA4AAOAADgAA4AAAAA="]};
-  async function badgeQuantity(worker,img,badge){
-    const votes=new Map(), separatedVotes=new Map(), glyphVotes=new Map();
+  async function badgeQuantity(worker,img,badge,report=false){
+    const votes=new Map(), separatedVotes=new Map(), glyphVotes=new Map(),digitCounts=new Map();
     for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
       await worker.setParameters({tessedit_char_whitelist:"0123456789xX×",tessedit_pageseg_mode:mode});
       const image=badgeDigitImage(img,badge,threshold),digits=badgeNumberOnly(image);
       if(digits){
         const glyphs=panelNumberImage(digits,null,135,true);
+        if(glyphs)digitCounts.set(glyphs.count,(digitCounts.get(glyphs.count)||0)+1);
         const visualDigits=glyphs&&readStockGlyphs(glyphs,BADGE_DIGIT_PATTERNS,.88,.14);
         if(visualDigits&&visualDigits.value>=1&&visualDigits.value<=10000)
           glyphVotes.set(visualDigits.value,(glyphVotes.get(visualDigits.value)||0)+1);
@@ -704,24 +706,40 @@
     const pixels=ctx.getImageData(0,0,BASE_W,BASE_H);
     const shape=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,badgeBits,29,29,-14,-14,"ink");
     const visual=shape.score>=.82&&shape.margin>=.12?Number(shape.value):null;
-    const ranked=[...votes].sort((a,b)=>b[1]-a[1]);
-    const separated=[...separatedVotes].sort((a,b)=>b[1]-a[1]);
-    // Independent per-digit shape checks work even when OCR drops narrow 1s.
-    // Require agreement across thresholds; conflicting OCR stays reviewable.
-    const glyphs=[...glyphVotes];
+    // Count visible digit components before comparing numeric OCR results.
+    // A dropped 1 must not veto two independently verified digit shapes.
+    const sizes=[...digitCounts].sort((a,b)=>b[1]-a[1]);
+    const stableShapes=[...glyphVotes].filter(([,n])=>n>=2);
+    const expectedDigits=stableShapes.length===1&&sizes.length&&sizes[0][1]>=2&&
+      String(stableShapes[0][0]).length===sizes[0][0]&&
+      (sizes.length===1||sizes[0][1]>sizes[1][1])?sizes[0][0]:null;
+    const validLength=value=>expectedDigits===null||String(value).length===expectedDigits;
+    const ranked=[...votes].filter(([v])=>validLength(v)).sort((a,b)=>b[1]-a[1]);
+    const separated=[...separatedVotes].filter(([v])=>validLength(v)).sort((a,b)=>b[1]-a[1]);
+    const glyphs=[...glyphVotes].filter(([v])=>validLength(v));
+    const diagnostics=[
+      ...[...votes].map(([v,n])=>({mode:'배지 전체 OCR ('+n+'회)',text:String(v),accepted:validLength(v)})),
+      ...[...separatedVotes].map(([v,n])=>({mode:'숫자 분리 OCR ('+n+'회)',text:String(v),accepted:validLength(v)})),
+      ...glyphs.map(([v,n])=>({mode:'숫자 모양 대조 ('+n+'회)',text:String(v),accepted:true}))
+    ];
+    const finish=value=>report?{value,candidates:[...new Set([
+      ...ranked.map(([v])=>v),...separated.map(([v])=>v),...glyphs.map(([v])=>v)
+    ])],diagnostics,needsReview:value===null}:value;
     if(glyphs.length===1&&glyphs[0][1]>=2&&
-      (visual===null||visual===glyphs[0][0])&&
-      (!ranked.length||ranked[0][0]===glyphs[0][0])&&
-      (!separated.length||separated[0][0]===glyphs[0][0]))return glyphs[0][0];
-    if(separated.length===1&&separated[0][1]>=2&&votes.has(separated[0][0])&&
-      (visual===null||visual===separated[0][0]))return separated[0][0];
-    if(visual!==null){
-      // A conflicting visual check must never be overridden by repeated OCR.
-      if(ranked.length&&ranked[0][0]!==visual)return null;
-      if(votes.has(visual))return visual;
+      (visual===null||!validLength(visual)||visual===glyphs[0][0])&&
+      ranked.every(([v])=>v===glyphs[0][0])&&
+      separated.every(([v])=>v===glyphs[0][0]))return finish(glyphs[0][0]);
+    if(glyphs.length===1&&glyphs[0][1]>=2&&
+      (ranked.some(([v])=>v!==glyphs[0][0])||separated.some(([v])=>v!==glyphs[0][0])))return finish(null);
+    if(separated.length===1&&separated[0][1]>=2&&ranked.some(([v])=>v===separated[0][0])&&
+      (visual===null||!validLength(visual)||visual===separated[0][0]))return finish(separated[0][0]);
+    if(visual!==null&&validLength(visual)){
+      if(ranked.length&&ranked[0][0]!==visual)return finish(null);
+      if(ranked.some(([v])=>v===visual))return finish(visual);
     }
-    return ranked.length===1&&ranked[0][1]>=2?ranked[0][0]:null;
+    return finish(ranked.length===1&&ranked[0][1]>=2?ranked[0][0]:null);
   }
+
   async function recognizeBuildings(img,worker){
     const cards=badgeLocatedCards(img);
     if(!cards.has("harbor")){const harbor=unbadgedHarborCards(img);if(harbor.length)cards.set("harbor",harbor);}
@@ -754,9 +772,10 @@
       for(const card of found){
         setStatus(item.name+" 수량 인식 중…");
         const badge=card.badge||badgeAt(pixels,card.x,card.y);
-        const count=card.count!==undefined&&card.count!==null?card.count:(badge?await badgeQuantity(worker,img,badge):1);
+        const reading=badge?await badgeQuantity(worker,img,badge,true):null;
+        const count=card.count!==undefined&&card.count!==null?card.count:(reading?reading.value:1);
         const lv=card.lv!==null&&card.lv!==undefined?card.lv:await detectedCardLevel(worker,img,card);
-        cardsWithCounts.push({...card,lv,count,
+        cardsWithCounts.push({...card,lv,count,candidates:reading?.candidates,diagnostics:reading?.diagnostics,needsReview:reading?.needsReview,
           extra:lv===null?"레벨 인식 실패 · 직접 확인":
             !badge?"배지 없음 · 1개":
             count===null?"배지 숫자 인식 실패 · 직접 확인":
@@ -790,7 +809,7 @@
       }else{
         const card=cardsWithCounts[0];
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",card.lv,"buildings","level",card.lv===null?"레벨 인식 실패 · 직접 확인":""));
-        rows.push({...makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra),preview:card.badge?crop(img,[card.badge.cx-19,card.badge.cy-19,card.badge.cx+19,card.badge.cy+19],3).toDataURL("image/png"):card.preview||null});
+        rows.push({...makeEntry(item.id+"_count",item.name+" 수량",card.count,"buildings","count",card.extra),candidates:card.candidates,diagnostics:card.diagnostics,needsReview:card.needsReview,preview:card.badge?crop(img,[card.badge.cx-19,card.badge.cy-19,card.badge.cx+19,card.badge.cy+19],3).toDataURL("image/png"):card.preview||null});
       }
     }
     await worker.setParameters({tessedit_char_whitelist:"0123456789.,KkMmXx",tessedit_pageseg_mode:"7"});
@@ -928,7 +947,7 @@
       findings=results;
       review();
       const recognized=results.filter(item=>item.value!==null).length;
-      setStatus("분석 완료: "+recognized+"/"+results.length+"개 값 추출 · 정확성 확인 필요. 숫자를 확인·수정한 뒤 적용하세요.");
+      setStatus("분석 완료 ["+IMPORT_VERSION+"]: "+recognized+"/"+results.length+"개 값 추출 · 정확성 확인 필요. 숫자를 확인·수정한 뒤 적용하세요.");
     }catch(err){setStatus(err?.message||"사진 인식에 실패했습니다.",true);}
     finally{busy=false;$p("photoScan").disabled=false;syncPhotoControls();}
   }
