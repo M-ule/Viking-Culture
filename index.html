@@ -466,6 +466,11 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .amount-error{display:block;flex-basis:100%;font-size:12px;line-height:1.4;color:var(--red);margin-top:5px;white-space:normal}
 .pair-line:has(.amount-error){flex-wrap:wrap}.pair-line .amount-error{margin-left:62px}
 .amount-value{font-variant-numeric:tabular-nums;white-space:nowrap}
+/* Keep detail steppers independent of the row delete-button sizing. */
+#detailRows .number-arrows{width:44px;flex:0 0 44px}
+#detailRows .number-arrows button{grid-column:auto;justify-self:stretch;width:100%;min-width:0;min-height:0;height:50%;padding:0;font-size:15px;color:#17324f;background:#e0d28d;touch-action:manipulation}
+#detailRows .number-arrows button:disabled{color:#a39684;background:#f1ece5}
+@media(max-width:720px){#detailRows .number-step{height:64px;min-height:64px}#detailRows .number-step input{height:100%;min-height:0}#detailRows .number-arrows button{min-height:32px}}
 </style><style>
 #photoImportDialog{width:min(810px,96vw);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;padding:20px}
 .photo-description{font-size:14px;color:#50636e;line-height:1.65;margin:12px 0}
@@ -1379,5 +1384,5 @@ document.addEventListener('focusout',e=>{
 });
 document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el.classList?.contains('amount-input')){e.preventDefault();el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('aria-invalid')!=='true')el.blur();}});
 loadState();renderAll();saveState();initTermTooltips();initializeNavigation();
-</script><script src="photo-import.js?v=20261025f" defer></script></body></html>
+</script><script src="photo-import.js?v=20261025g" defer></script></body></html>
 
