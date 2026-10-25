@@ -162,11 +162,11 @@
 
   // Independently count full-height glyphs in the stock panel. OCR agreement
   // alone is insufficient: several variants can all drop the same digits.
-  function panelNumberImage(img,box){
+  function panelNumberImage(img,box,threshold=135){
     const cv=crop(img,box,4),ctx=cv.getContext('2d',{willReadFrequently:true});
     const {data}=ctx.getImageData(0,0,cv.width,cv.height),w=cv.width,h=cv.height;
     const mask=new Uint8Array(w*h),seen=new Uint8Array(w*h),parts=[];
-    for(let i=0;i<mask.length;i++)mask[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2]<135?1:0;
+    for(let i=0;i<mask.length;i++)mask[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2]<threshold?1:0;
     for(let i=0;i<mask.length;i++){
       if(!mask[i]||seen[i])continue;
       const stack=[i],points=[];seen[i]=1;
@@ -186,6 +186,11 @@
     const top=Math.min(...digits.map(p=>p.top)),bottom=Math.max(...digits.map(p=>p.bottom));
     // Reject non-aligned shapes instead of claiming a reliable digit count.
     if(digits.some(p=>Math.abs(p.top-top)>(bottom-top+1)*.25))return null;
+    // Touching the crop edge or implausibly wide components can indicate a
+    // clipped digit, adjacent icon, or merged digits. Do not trust that count.
+    const height=bottom-top+1;
+    if(digits.some(p=>p.left===0||p.right===w-1||p.top===0||p.bottom===h-1||p.right-p.left+1>height*.95))return null;
+    digits.sort((a,b)=>a.left-b.left);
     const left=Math.min(...digits.map(p=>p.left)),right=Math.max(...digits.map(p=>p.right));
     const result=document.createElement('canvas');result.width=right-left+33;result.height=bottom-top+33;
     const c=result.getContext('2d'),d=c.createImageData(result.width,result.height);d.data.fill(255);
@@ -194,7 +199,12 @@
       d.data[i]=d.data[i+1]=d.data[i+2]=0;
     }
     c.putImageData(d,0,0);
-    return {canvas:result,count:digits.length};
+    return {canvas:result,count:digits.length,digits:digits.map(part=>{
+      const digit=document.createElement('canvas');digit.width=part.right-part.left+33;digit.height=height+32;
+      const c=digit.getContext('2d');c.fillStyle='white';c.fillRect(0,0,digit.width,digit.height);
+      c.drawImage(result,part.left-left+16,16,part.right-part.left+1,height,16,16,part.right-part.left+1,height);
+      return digit;
+    })};
   }
 
   async function readStock(worker,img,box){
@@ -205,9 +215,11 @@
       const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
       readings.push({text,value:numeric(text)});
     }
-    let rejected=false,unverifiedDigits=false;
+    let rejected=false,unverifiedDigits=false,glyphs=null;
     if(box[1]>=60){
-      const glyphs=panelNumberImage(img,area);
+      glyphs=panelNumberImage(img,area);
+      const alternate=panelNumberImage(img,area,110);
+      if(!alternate||alternate.count!==glyphs?.count)glyphs=null;
       if(glyphs){
         await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'8'});
         const text=(await worker.recognize(glyphs.canvas)).data.text;
@@ -217,7 +229,22 @@
         }
       }else unverifiedDigits=true;
     }
-    const result=stockConsensus(readings);
+    let result=stockConsensus(readings);
+    if(result.needsReview&&glyphs){
+      // Retry each glyph independently when whole-line OCR disagrees or drops
+      // digits. Never reconstruct missing digits by multiplying or appending 0.
+      await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'10'});
+      let text='';
+      for(const digit of glyphs.digits){
+        const part=(await worker.recognize(digit)).data.text.trim();
+        if(!/^[0-9]$/.test(part)){text='';break;}
+        text+=part;
+      }
+      if(text&&String(numeric(text)).length===glyphs.count){
+        readings.push({text,value:numeric(text)});
+        result=stockConsensus(readings);
+      }
+    }
     if(unverifiedDigits){result.needsReview=true;result.extra=[result.extra,'숫자 자릿수 확인 실패 · 직접 확인'].filter(Boolean).join(' · ');}
     if(rejected&&result.needsReview)result.extra=[result.extra,'숫자 자릿수 불일치 감지 · 직접 확인'].filter(Boolean).join(' · ');
     return {...result,preview:crop(img,area,3).toDataURL('image/png')};
