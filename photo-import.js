@@ -210,12 +210,12 @@
 
   const STOCK_DIGIT_PATTERNS={"0":["AAAAH4AH/AB/4A//APnwHw+B8PgfB4HgeB4Hg+B8PgfD4Hw+B8PgfD4Hw+B8PgfD4HweB8HgeB4HgfD4Hw+B8PgPnwD/8Af+AH/gA/gAAAA=","AAAADwAD/AB/4A//AP/wHw8B4PgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4HgeB4Hg+B8PgPnwD/8A/+AH/AA/gAAAA=","AAAAP4AH/AB/4A/+APvwHx8B4PgeD4PgeD4Hg+B4PgfD4Hw+B8PgfD4Hw+B8PgfD4Hw+B4PgeD4HgeD4Hg+B8fAPvwD/4A/+AH/AA/gAAAA="],"1":["AAAAAeAAPgAH8AD/AB/wA/8Af/AP3wBx8AIfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAAeAAPgAH4AD+AB/gA/4Af+AH3gBx4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAAA="],"2":["AAAAP4AH/gD/8B//Af/wDB+AAfgAD4AA+AAPgAD4AB8AAfAAHwAD8AB+AAfAAPwAD4AB8AA+AAPgAHwAD4AB+AAfyAH//D//w//8H//AAAA=","AAAAP4AH/gD/8B//Af/wHB+AAPgAD4AA+AAPgAD4AA8AAfAAHwAD4AA+AAfAAPwAD4AB8AA+AAfgAHwAD4AB+AAfwQH//D//wf/8H/+AAAA=","AAAAP4AH/AD/8B//Af/4DB+AAPgAD4AA+AAPgAD4AB8AAfAAHwAD8AB+AAfAAPwAD4AB8AA+AAPgAHwAD4AB+AAfzAH/+D//w//8H/+AAAA="],"3":["AAAAP4AH/gH/8B//AP/4AA+AAPgAD4AA+AAPgADwAB8AB+AD/AA/wAP+AAfwAB+AAPgAB8AAfAAHwAB8AA/AAPgcP4H/8B/+Af/AB/AAAAA=","AAAAPwAP/AH/8B//Af/wAB+AAPgAD4AA+AAPgAHwAB8AB+AD/AB/gAf8AB/gAB8AAfgAD4AAeAAHwAB8AA+AAPgQP4P/8D//A//AH/gAAAA=","AAAAf8AP/gH/8B//AOP4AA+AAPgAD4AA+AAPgADwAB8AB+AD/AA/wAP+AAfwAB+AAPgAD8AAfAAHwAB8AA/AAPgwP4P/8D//A//gH/gAAAA="],"4":["AAAAA+AAfwAH8AB/AA/wAP8AH/AD/wA/8AP/ADnwB58A8fAPHwHh8B4fAeHwPB8DwfB//8f//n//5//+H//AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAAeAAPgAH8AB/AA/wAP8AH/AB/wA/8APfAH3wB58AcfAPHwHx8B4fAeHwPB8DwfB+/4f//H//5//+H//AAfAAHwAB8AAfAAHwAB4AAAA=","AAAAA+AAfgAH4AD+AA/gAf4AH+AD/gA/4AP+AHvgB74A8eAfHgHh4B4eA8HgPB8Hw/B//8f//n//5//+P//AA/AAHwAB8AAeAAHgAB4AAAA="],"5":["AAAAf+AP/wH/8B//Af9AHwAB8AAfAAHwAB8AAfAAH/AB/8Af/gH/8A//gAH4AB+AAPgAD4AA+AAPgAD4AB+AAfgcf4H/4B/+Af/AD+AAAAA=","AAAA/+AP/wD/8A/+APgAHwAB8AAeAAHgAB4AAfAAH/AD/+A//wH/8AA/AAH4AA+AAPwAD8AA/AAPwAD4AA+AAfA8fwP/8D/+Af+AD+AAAAA=","AAAAf+AP/wD/8A//AP/gDwAA8AAPAADgAB8AAfAAH/AB/8Af/gH/8AR/AAH4AA+AAPgAB4AAeAAPgAD4AA+AAfg//wP/8D/+Af+AD/AAAAA="],"6":["AAAAB/AA/wA/8AP/AH4AB8AA+AAPAADwAB4AAeAAHjwD//A//wP/+D+fg/D4PgfD4Hw+B8PgfB4HweB8HgfA8PgP34D/8Af/AD/gAfwAAAA=","AAAAB+AB/wA/8Af+AH4AD4AA8AAPAAHgAB4AAeAAHjwB7+Af/wP/+D+fg/D4PweD4Hw+B8HgfB4HweB8HweB8PgPn4D/8Af+AH/gAfgAAAA=","AAAAB/AA/wAf8AP/AH4AD8AA+AAPAAHwAB4AAeAAHzwB9+Af/wP/+D+fg/D4Pw+D8Hw+B8HgfB4HwfB4Hw+A8PgPn4D/8Af/AD/gAfgAAAA="],"7":["AAAB//gf/4P//B//gf/4AA+AAPgADwAB8AAfAAHwAB4AA+AAPgAHwAB8AAfAAHwAD4AA+AAPAAHwAB8AA+AAPgAD4AA+AAfAAHwAB4AAAAA=","AAAB//g//8P//B//wAH4AA+AAPgAD4AA8AAfAAHwAD8AA+AAPgADwAB8AAfAAHgAD4AA+AAfgAHwAB8AAfAAPgAD4AA8AAfAAHwAB4AAAAA=","AAAA//Af/8P//B//wf/8AA+AAPgAD4AB8AAfAAHwAB4AA+AAPgADwAB8AAfAAHwAD4AA+AAPgAHwAB8AA+AAPgAD4AA+AAfAAHwAB8AAAAA="],"8":["AAAAH4AH/gD/8A//Afn4Hw+B4HgeB4HgeB8PgPnwD/8Af+AD/AA/wAf8AH/gD58B8PgeB4HgeB4HgeB4HgeB8Pgfn4D/8A//AH/gAfgAAAA=","AAAAP4AH/gD/8B//AfHwHg+B4HgeB4Hg8B8PAPnwD/4Af8AH/AA/wAf8AP/gH58B8PAeD4HgeB4HgeB4HgeB8Pgfn4H/8A/+AH/AAfAAAAA="],"9":["AAAAH4AH/AD/4A//Af34Hw+B4HgeB4HgeD4Hg+B8HgfB4HwfD8Hx/B//wP/4B+eAHHgAB4AAeAAHgAD4AB8AA/AA/gB/4A/8AP8AD8AAAAA=","AAAAP4AH/AD/4B//Af/wHw+B4Pg+B4PgeD4Hg+B4PgeD4HwfD4Hx+B//gP/4D+eAGHgAB4AAeAAPgAHwAB8AA/AB/gD/wB/4Af4AD8AAAAA="]};
   function stockGlyphSignature(cv){const {data}=cv.getContext('2d').getImageData(0,0,cv.width,cv.height);let l=cv.width,t=cv.height,r=0,b=0;for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++)if(data[(y*cv.width+x)*4]<128){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);}const out=document.createElement('canvas');out.width=20;out.height=32;const c=out.getContext('2d');c.fillStyle='white';c.fillRect(0,0,20,32);const scale=Math.min(18/(r-l+1),30/(b-t+1));c.drawImage(cv,l,t,r-l+1,b-t+1,(20-(r-l+1)*scale)/2,(32-(b-t+1)*scale)/2,(r-l+1)*scale,(b-t+1)*scale);const d=c.getImageData(0,0,20,32).data;return Array.from({length:640},(_,i)=>d[i*4]<128?1:0);}
-  function readStockGlyphs(glyphs){
+  function readStockGlyphs(glyphs,patterns=STOCK_DIGIT_PATTERNS,minScore=.80,minMargin=.10){
     let text='',lowest=1;
     for(const cv of glyphs.digits){
       const actual=stockGlyphSignature(cv);
-      const scores=Object.entries(STOCK_DIGIT_PATTERNS).map(([digit,patterns])=>({digit,score:Math.max(...patterns.map(p=>comparePattern(actual,patternBits(p,640))))})).sort((a,b)=>b.score-a.score);
-      if(scores[0].score<.80||scores[0].score-scores[1].score<.10)return null;
+      const scores=Object.entries(patterns).map(([digit,patterns])=>({digit,score:Math.max(...patterns.map(p=>comparePattern(actual,patternBits(p,640))))})).sort((a,b)=>b.score-a.score);
+      if(scores[0].score<minScore||scores[0].score-scores[1].score<minMargin)return null;
       lowest=Math.min(lowest,scores[0].score);text+=scores[0].digit;
     }
     return {text,value:numeric(text),score:lowest};
@@ -230,7 +230,10 @@
       readings.push({text,value:numeric(text),mode});
     }
     let rejected=false,unverifiedDigits=false,glyphs=null;
-    if(box[1]>=60||box[0]<520){
+    // K/M describes the mantissa, so its visible glyph count must never be
+    // compared with the expanded integer (446.0K -> 446000).
+    const compactHeader=box[1]<60&&readings.some(r=>r.value!==null&&/[KM]/i.test(r.text));
+    if(box[1]>=60||(box[0]<520&&!compactHeader)){
       const header=box[1]<60, source=header?stockVariant(img,area,'binary'):img;
       glyphs=panelNumberImage(source,area,135,header);
       const alternate=panelNumberImage(source,area,110,header);
@@ -675,12 +678,17 @@
     c.drawImage(canvas,left,0,right-left,canvas.height,16,0,right-left,canvas.height);
     return out;
   }
+  const BADGE_DIGIT_PATTERNS={"1":["AAAAAcAAfAAH4AH+AD/gA/4Ae+ACPgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgABwAAAA=","AAAAAcAAfAAPwAH8AD/AB/wAc8AAPAADwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAAB4AAeAAHAABwAAcAAHAABwAAAA=","AAAAB8AAfgAf4AH+AD/gB/4AeeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAcAAHAABwAAcAAHAAAwAAMAADAAAwAAAA="],"2":["AAAAH4AH/gD/8A4fAED4AA+AAHgAB4AAeAAHgAD4AA8AAPAAHgAB4AAeAAPAAHgABwAA4AAeAAHAADwAB4AAeAAPgAH/4B//Af/4D/AAAAA=","AAAAHwAH/AD/4A8/AADwAA+AAHgAB4AAeAAHgAB4AA8AAPAADgAA4AAcAAOAAHgAB4AA8AAeAAPAADwAB4AAeAAPgAH/wB//gf/4D/8AAAA="],"3":["AAAAf4AP/AH/4AA/AADwAA+AAHgAB4AAcAAHAADgAB4AA8AB+AAfgAH4AAPAAB4AAPAAB4AAeAAHgAB4AAeAAHgADwAD8A/+Af/AD/AAAAA=","AAAAf8AH/gD/8AR/AAD4AAeAAHgAB4AAeAAHAABwAB4AAcAB+AAfgAD8AAPgAA8AAHgAB4AAOAADgAB4AAeAAHgAD4AH+B//Af/AB/gAAAA="],"4":["AAAAAEAADAABwAA+AAPwAD8AB/AAfwAP+AD/gAz4AYeAOHgDh4AweAYHgGB4DgeA4HgeB4Hg+B8fgf/wD/8AB/AADwAAYAAGAABAAAQAAAA="],"6":["AAAAA+AA/gAf4APgAHgABwAAcAAOAADgAA4AAOAAHgAB48Af/wH5+B8PgfB4HgeB4HgeB4HgeB4HgeB4DgeA4HgPB4B58Af+AD/AAPAAAAA="],"7":["AAAAAPAP/4H/+AB/gAH4AA8AAPAADwAA8AAOAADgABwAAcAAHAADwAA8AAeAAHgADwAA8AAPAADwAA4AAeAAHAADwAA4AAOAADgAA4AAAAA="]};
   async function badgeQuantity(worker,img,badge){
-    const votes=new Map(), separatedVotes=new Map();
+    const votes=new Map(), separatedVotes=new Map(), glyphVotes=new Map();
     for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
       await worker.setParameters({tessedit_char_whitelist:"0123456789xX×",tessedit_pageseg_mode:mode});
       const image=badgeDigitImage(img,badge,threshold),digits=badgeNumberOnly(image);
       if(digits){
+        const glyphs=panelNumberImage(digits,null,135,true);
+        const visualDigits=glyphs&&readStockGlyphs(glyphs,BADGE_DIGIT_PATTERNS,.88,.14);
+        if(visualDigits&&visualDigits.value>=1&&visualDigits.value<=10000)
+          glyphVotes.set(visualDigits.value,(glyphVotes.get(visualDigits.value)||0)+1);
         await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'});
         const value=numeric((await worker.recognize(digits)).data.text);
         if(value!==null&&value>=1&&value<=10000)separatedVotes.set(value,(separatedVotes.get(value)||0)+1);
@@ -698,6 +706,13 @@
     const visual=shape.score>=.82&&shape.margin>=.12?Number(shape.value):null;
     const ranked=[...votes].sort((a,b)=>b[1]-a[1]);
     const separated=[...separatedVotes].sort((a,b)=>b[1]-a[1]);
+    // Independent per-digit shape checks work even when OCR drops narrow 1s.
+    // Require agreement across thresholds; conflicting OCR stays reviewable.
+    const glyphs=[...glyphVotes];
+    if(glyphs.length===1&&glyphs[0][1]>=2&&
+      (visual===null||visual===glyphs[0][0])&&
+      (!ranked.length||ranked[0][0]===glyphs[0][0])&&
+      (!separated.length||separated[0][0]===glyphs[0][0]))return glyphs[0][0];
     if(separated.length===1&&separated[0][1]>=2&&votes.has(separated[0][0])&&
       (visual===null||visual===separated[0][0]))return separated[0][0];
     if(visual!==null){
