@@ -1025,8 +1025,8 @@
     renderAll();saveState();
     $p("photoImportDialog").close();
     $p("resetStatus").textContent="사진 입력 "+selected+"개 항목 적용 완료";
-    if(tavernCount!==undefined&&(tavernLv===undefined||tavernLv>=4)){
-      $p("resetStatus").textContent+=" · 선술집 생산별 배분은 직접 확인";
+    if(tavernMix.length||(tavernCount!==undefined&&(tavernLv===undefined||tavernLv>=4))){
+      $p("resetStatus").textContent+=" · 선술집 총수는 도시 관리에 반영했습니다. 벌꿀 술·건어물의 생산별 건물 수와 레벨은 생산 계산기에서 직접 확인하세요.";
     }
     $p("resetStatus").scrollIntoView({block:"nearest",behavior:"smooth"});
   }
