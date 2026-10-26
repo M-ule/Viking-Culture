@@ -966,6 +966,14 @@
       values[check.dataset.id]=value;selected++;
     }
     if(!selected){setStatus("적용할 항목을 체크하세요.",true);return;}
+    // A partial mixed-level house would replace its total and silently lose
+    // unchecked levels. Validate all groups before mutating any application state.
+    for(const item of TYPES.buildings.filter(item=>item.home)){
+      const groups=findings.filter(f=>f.id.startsWith(item.id+'_mix_'));
+      if(groups.some(f=>values[f.id]!==undefined)&&groups.some(f=>values[f.id]===undefined)){
+        setStatus(item.name+' 전체 수량을 반영하려면 각 레벨의 수량을 모두 확인·선택해주세요.',true);return;
+      }
+    }
     const mixedTaverns=findings.filter(f=>f.id.startsWith('tavern_mix_'));
     if(mixedTaverns.some(f=>values[f.id]!==undefined)&&mixedTaverns.some(f=>values[f.id]===undefined)){
       setStatus('선술집 전체 수량을 반영하려면 각 레벨의 수량을 모두 확인·선택해주세요.',true);return;
