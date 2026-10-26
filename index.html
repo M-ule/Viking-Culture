@@ -897,19 +897,61 @@ function sleepUse(building,material){
 }
 function sleepPrepH(){return app.settings.sleepPrepH===''?Math.max(0,num(app.settings.baseH,0)):Math.max(0,num(app.settings.sleepPrepH,0));}
 function sleepRequirements(){
-  const h=sleepPrepH();
-  const demand={
-    '꿀':use('벌꿀 술','꿀',h)+use('건어물','꿀',h)+sleepUse('벌꿀 술','꿀')+sleepUse('건어물','꿀'),
-    '생선':use('건어물','생선',h)+use('탐험 부두','생선',h)+sleepUse('건어물','생선')+sleepUse('탐험 부두','생선'),
-    '벌꿀 술':use('탐험 부두','벌꿀 술',h)+use('선원 항구','벌꿀 술',h)+sleepUse('탐험 부두','벌꿀 술')+sleepUse('선원 항구','벌꿀 술'),
-    '건어물':use('선원 항구','건어물',h)+sleepUse('선원 항구','건어물')
-  };
-  const needEq={};
-  for(const building of BASE.concat(MID)){
-    const resource=STOCK_KEY[building],required=demand[resource],ref=powerRefMetrics(building,h);
-    needEq[building]=ref&&ref.out1>0?Math.max(0,required-stockOf(resource))/ref.out1:(required<=stockOf(resource)?0:null);
+  const h=sleepPrepH(),empty=()=>({out1:0,out2:0,uses:{}}),pre={},night={};
+  // Stop each plan at the target; only the final indivisible cycle may exceed it.
+  function plan(building,needs,sleep=false){
+    const total=empty(),left=[...needs];
+    for(const row of configRows(building)){
+      const count=Math.max(0,num(row.count));
+      const recipe=sleep?sleepRecipe(building,row.lv):null;
+      const p=sleep?recipe?.p:info(building,row.lv,row.mode);
+      if(!p||!count)continue;
+      const hours=Math.min(h,rowHours(building,row));
+      const capacity=sleep?recipe.cycles*count:cyclesFor(hours,p.min)*count;
+      let runs=0;
+      for(let i=0;i<2;i++){
+        const qty=i===0?p.out1qty:p.out2qty;
+        if(qty>0&&left[i]>1e-9)runs=Math.max(runs,Math.ceil(left[i]/qty-1e-10));
+      }
+      runs=Math.min(capacity,runs);
+      if(!(runs>0))continue;
+      total.out1+=p.out1qty*runs;total.out2+=p.out2qty*runs;
+      left[0]=Math.max(0,left[0]-p.out1qty*runs);
+      left[1]=Math.max(0,left[1]-p.out2qty*runs);
+      for(const material of [p.mat1,p.mat2].filter(Boolean))
+        total.uses[material]=(total.uses[material]||0)+rowMaterialUse(p,material)*runs;
+    }
+    return total;
   }
-  return {h,needEq,needAmount:{'벌집':demand['꿀'],'부두':demand['생선'],'벌꿀 술':demand['벌꿀 술'],'건어물':demand['건어물']}};
+  for(const [building,items]of [['탐험 부두',['도자기 보물','황금 보물']],['선원 항구',['향신료 보물','보석 보물']]]){
+    const shortage=items.map(t=>Math.max(0,wonderNeed(t)-stockOf(t)));
+    pre[building]=plan(building,shortage);
+    night[building]=plan(building,[Math.max(0,shortage[0]-pre[building].out1),Math.max(0,shortage[1]-pre[building].out2)],true);
+  }
+  const useFrom=(plans,material)=>Object.values(plans).reduce((sum,m)=>sum+num(m.uses[material]),0);
+  for(const building of MID){
+    const material=STOCK_KEY[building];
+    const shortage=Math.max(0,useFrom(pre,material)+useFrom(night,material)-stockOf(material));
+    pre[building]=plan(building,[shortage,0]);
+    night[building]=plan(building,[Math.max(0,shortage-pre[building].out1),0],true);
+  }
+  for(const building of BASE){
+    // Continuous resources can be collected before bed, respecting row time limits.
+    const total=empty();
+    for(const row of configRows(building)){
+      const m=productionForInfo(info(building,row.lv,row.mode),Math.min(h,rowHours(building,row)),Math.max(0,num(row.count)));
+      total.out1+=m.out1;total.out2+=m.out2;
+    }
+    pre[building]=total;
+  }
+  const needEq={},needAmount={},projected={},remain={};
+  for(const building of BASE.concat(MID)){
+    const material=STOCK_KEY[building],required=useFrom(pre,material)+useFrom(night,material);
+    const available=stockOf(material)+pre[building].out1,ref=benchmarkRate(building)*h;
+    needAmount[building]=required;projected[building]=available;remain[building]=available-required;
+    needEq[building]=required<=stockOf(material)?0:ref>0?(required-stockOf(material))/ref:null;
+  }
+  return {h,needEq,needAmount,projected,remain,pre,night};
 }
 function sleepCurrentEq(building,h){if(!(h>0))return 0;const ref=powerRefMetrics(building,h);if(!ref||!(ref.out1>0))return null;return metrics(building,h).out1/ref.out1;}
 function sleepRow(building,req){
@@ -1172,9 +1214,9 @@ Object.assign(TOOLTIPS,{
  '소비·필요량':'소비는 다른 생산에 사용되는 자원량, 필요는 해당 건물의 생산에 필요한 원료량입니다. 상품의 목표 필요량은 불가사의 목표 레벨까지 요구되는 수량입니다.',
  '상세 설정':'같은 생산 항목의 건물별 레벨·생산 방식·건물 수·운영 시간을 개별 설정합니다.',
  '최대 도달(생선 기준)':'보유 상품·건어물과 보유·예상 생산 생선을 기준으로 최대 도달 레벨을 계산합니다. 부족한 상품은 Lv6 일반 생산(선택한 환산 주기)과 2시간 단일 생산을 조합해 생선 소비를 최소화합니다. 꿀·벌꿀 술는 충분하다고 가정하며, 상품 생산에 걸리는 시간은 고려하지 않습니다.',
- '수면 대비 자원 확보':'취침 전까지 수면 중 예약 생산에 필요한 자원을 확보할 수 있는지 확인합니다. 현재 보유량과 취침 전 생산·소비를 반영합니다.',
+ '수면 대비 자원 확보':'목표까지 부족한 상품만 생산하는 계획으로 수면 중 예약 생산의 원료를 확인합니다. 중간 자원도 필요한 양까지만 생산하며, 마지막 생산 1회분은 목표를 넘을 수 있습니다. 수면 전 생산은 건물별 운영 시간과 남은 시간 중 짧은 시간을 적용합니다. 수면 중 생산될 원료는 취침 전 확보량에 포함하지 않습니다.',
  '총 필요량':'수면 전 소비와 수면 중 생산에 필요한 자원의 합계입니다.',
- '취침 전 확보량':'현재 보유량에 수면 전까지의 예상 생산량을 더한 수량입니다.',
+ '취침 전 확보량':'현재 보유량에 목표에 필요한 수면 전 생산량을 더한 수량입니다. 수면 전 소비는 총 필요량에 포함하여 잔여/부족에서 차감합니다.',
  '생산력 환산표':'Lv6·30분 생산 주기·건물 1채를 생산력 100으로 환산하여 비교합니다.',
  '현재 생산력':'현재 건물 구성과 운영 시간을 반영한 생산력입니다. 상세 설정을 사용하면 건물별 운영 시간도 반영합니다.',
  '필요 생산력':'목표 달성에 부족한 수량을 운영 시간 내 생산하기 위해 필요한 생산력입니다.',
@@ -1260,7 +1302,7 @@ renderGoal=function(){
  const {short,unknown}=powerShortfalls();summaryMetrics('goalSummary',[['최대 도달(생선 기준)','Lv.'+maxReachFishLevel()],['생산력 부족 항목',unknown.length?['운영 시간 확인']:short.length?short:['없음'],'metric-wide3']]);$('wonderContext').textContent=app.settings.wonderName+'  ·  보너스 Lv.'+app.settings.bonusLv;labelInputs('goalTable');
 };
 renderSleep=function(){
- const req=sleepRequirements();$('ts').innerHTML=head(['자원','생산력 차이','현재 생산력','필요 생산력','총 필요량','취침 전 확보량','잔여/부족'])+'<tbody>'+BASE.concat(MID).map(b=>{const resource=STOCK_KEY[b],cur=sleepCurrentEq(b,req.h)*100,need=req.needEq[b]===null?null:req.needEq[b]*100,diff=need===null?null:cur-need,required=req.needAmount[b],projected=stockOf(resource)+metrics(b,req.h).out1,remain=projected-required;return '<tr>'+td(resource)+td(diff===null?'운영 시간 확인':fmtSignedPower(diff),'calc '+(diff<0?'bad':'ok'))+td(fmtPower(cur),'calc detailcol')+td(fmtPower(need),'calc detailcol')+td(amountHtml(required),'calc detailcol')+td(amountHtml(projected),'calc detailcol')+td(amountHtml(remain),'calc detailcol '+(remain<0?'bad':'ok'))+'</tr>';}).join('')+'</tbody>';labelInputs('sleepTable');
+ const req=sleepRequirements();$('ts').innerHTML=head(['자원','생산력 차이','현재 생산력','필요 생산력','총 필요량','취침 전 확보량','잔여/부족'])+'<tbody>'+BASE.concat(MID).map(b=>{const resource=STOCK_KEY[b],cur=req.h>0?req.pre[b].out1/(benchmarkRate(b)*req.h)*100:0,need=req.needEq[b]===null?null:req.needEq[b]*100,diff=need===null?null:cur-need,required=req.needAmount[b],projected=req.projected[b],remain=req.remain[b];return '<tr>'+td(resource)+td(diff===null?'준비 시간 없음 · '+(remain<0?'부족':'충족'):fmtSignedPower(diff),'calc '+(remain<0?'bad':'ok'))+td(fmtPower(cur),'calc detailcol')+td(fmtPower(need),'calc detailcol')+td(amountHtml(required),'calc detailcol')+td(amountHtml(projected),'calc detailcol')+td(amountHtml(remain),'calc detailcol '+(remain<0?'bad':'ok'))+'</tr>';}).join('')+'</tbody>';labelInputs('sleepTable');
 };
 renderPower=function(){const req=targetRequirements();$('ta').innerHTML=head(['생산 항목','생산력 차이','현재 생산력','필요 생산력'])+'<tbody>'+BASE.concat(MID,TREASURE_NAMES).map(n=>{const cur=(TREASURE_NAMES.includes(n)?currentTreasureEquivalent(n):currentEquivalent(n))*100,need=req.needEq[n]===null?null:req.needEq[n]*100,diff=need===null?null:cur-need;return '<tr>'+td(shortName(OUTPUT_LABEL[n]||n))+td(diff===null?'운영 시간 확인':fmtSignedPower(diff),'calc '+(diff<0?'bad':'ok'))+td(fmtPower(cur),'calc detailcol')+td(fmtPower(need),'calc detailcol')+'</tr>';}).join('')+'</tbody>';labelInputs('powerTable');};
 renderConvert=function(){
