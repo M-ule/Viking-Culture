@@ -628,10 +628,15 @@ function boundedProduction(building,h){
 }
 function timeToOutput(building,need,key='out1'){
  if(!(need>0))return 0;
- const limit=Math.max(0,...configRows(building).map(r=>rowHours(building,r)));
- if(!(limit>0)||boundedProduction(building,limit)[key]+1e-8<need)return null;
- let lo=0,hi=limit;
- for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(boundedProduction(building,mid)[key]+1e-8>=need)hi=mid;else lo=mid;}
+ // Operating hours bound planned output, not the time required to reach a goal.
+ // Rows explicitly stopped (zero hours) do not contribute to continued production.
+ const rows=configRows(building).map(row=>({p:info(building,row.lv,row.mode),count:Math.max(0,num(row.count)),hours:rowHours(building,row)}))
+  .filter(row=>row.p&&row.count>0&&row.hours>0&&row.p.min>0&&num(row.p[key==='out2'?'out2qty':'out1qty'])>0);
+ if(!rows.length)return null;
+ const output=h=>rows.reduce((sum,row)=>sum+productionForInfo(row.p,h,row.count)[key],0);
+ let lo=0,hi=Math.max(...rows.map(row=>row.p.min/60));
+ while(output(hi)+1e-8<need){hi*=2;if(!Number.isFinite(hi))return null;}
+ for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(output(mid)+1e-8>=need)hi=mid;else lo=mid;}
  return hi;
 }
 function resourceTime(resource){
@@ -1228,7 +1233,7 @@ Object.assign(TOOLTIPS,{
  '도시 현황':'현재 구성의 일꾼·선원과 육지·해안 면적, 건설·연구 계획 후 페니를 확인합니다.',
  '건물 건설 비용':'현재 레벨에서 목표 레벨까지의 페니·보석 비용입니다. 현재 레벨 0은 새 건물 건설을 뜻합니다.',
  '연구':'완료한 연구와 목표 연구를 선택합니다. 필요한 선행 연구와 연구 비용은 자동으로 계산합니다.',
- '소요 시간':'건물별 운영 시간 안에서 부족량을 확보하는 데 걸리는 시간입니다. 시간 내 확보할 수 없으면 생산 설정 확인으로 표시합니다. 원료 부족 대기 시간은 고려하지 않습니다.'
+ '소요 시간':'현재 건물 구성과 생산 방식으로 부족량을 확보하는 데 필요한 가동 시간입니다. 입력한 운영 시간을 넘어도 계산하며, 운영 시간이 0인 건물은 제외합니다. 원료 부족 대기 시간은 고려하지 않습니다.'
 });
 // Reuse the same wording and tooltip behavior for all headings and inputs.
 for(const key of Object.keys(TOOLTIPS))if(key.includes('디르함'))TOOLTIPS[key.replaceAll('디르함','페니')]=TOOLTIPS[key].replaceAll('디르함','페니');
