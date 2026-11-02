@@ -3,7 +3,7 @@
   'use strict';
   const COOLDOWN_MS = 5 * 60 * 1000;
   const target = new URL('index.html', window.location.href);
-  let loadedRevision = null;
+  const loadedRevisions = new Map();
   let lastCheckAt = 0;
   let checking = false;
   let wasAway = false;
@@ -16,8 +16,7 @@
     if (etag) return 'etag:' + etag;
     const modified = response.headers.get('Last-Modified');
     if (modified) return 'modified:' + modified;
-    const length = response.headers.get('Content-Length');
-    return length ? 'length:' + length : null;
+    return null;
   }
 
   function showNotice() {
@@ -67,19 +66,27 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      const url = new URL(target.href);
-      url.searchParams.set('__version_check', String(Date.now()));
-      const response = await fetch(url.href, {
-        method: 'HEAD', cache: 'no-store', credentials: 'same-origin', signal: controller.signal
-      });
-      if (!response.ok) return;
-      const revision = responseRevision(response);
-      if (!revision) return; // Unknown hosting environments: do not display false warnings.
-      if (loadedRevision === null) loadedRevision = revision;
-      else if (revision !== loadedRevision) {
-        updateAvailable = true;
-        showNotice();
-      }
+      // Track the HTML and its same-origin external scripts (including photo importers).
+      const resources = [target, ...Array.from(document.querySelectorAll('script[src]'), script => new URL(script.src, window.location.href))]
+        .filter(url => url.origin === target.origin);
+      const unique = [...new Map(resources.map(url => [url.pathname + url.search, url])).values()];
+      await Promise.all(unique.map(async resource => {
+        try {
+          const url = new URL(resource.href);
+          url.searchParams.set('__version_check', String(Date.now()));
+          const response = await fetch(url.href, {
+            method: 'HEAD', cache: 'no-store', credentials: 'same-origin', signal: controller.signal
+          });
+          if (!response.ok) return;
+          const revision = responseRevision(response);
+          if (!revision) return; // Do not compare unreliable data.
+          const key = resource.pathname + resource.search;
+          const prior = loadedRevisions.get(key);
+          if (prior == null) loadedRevisions.set(key, revision);
+          else if (revision !== prior) updateAvailable = true;
+        } catch (_) { /* One unavailable resource should not block other checks. */ }
+      }));
+      if (updateAvailable) showNotice();
     } catch (_) {
       // Offline or temporary server errors must never interrupt calculator use.
     } finally {
