@@ -1,22 +1,47 @@
-/* Shared simulator update notice: check only after tab/app return, at most once per 5 minutes. */
+/* Compare deployed file contents on startup and when returning to the simulator. */
 (() => {
   'use strict';
   const COOLDOWN_MS = 5 * 60 * 1000;
   const target = new URL('index.html', window.location.href);
-  const loadedRevisions = new Map();
+  const dismissedRevisions = new Set();
+  let loadedRevision = null;
+  let availableRevision = null;
   let lastCheckAt = 0;
   let checking = false;
   let wasAway = false;
-  let updateAvailable = false;
   let notice = null;
-  let dismissedAt = 0;
 
-  function responseRevision(response) {
-    const etag = response.headers.get('ETag');
-    if (etag) return 'etag:' + etag;
-    const modified = response.headers.get('Last-Modified');
-    if (modified) return 'modified:' + modified;
-    return null;
+  async function fetchContent(resource, checkedAt, signal) {
+    const url = new URL(resource);
+    url.searchParams.set('__version_check', String(checkedAt));
+    const response = await fetch(url.href, {
+      cache: 'no-store', credentials: 'same-origin', signal
+    });
+    if (!response.ok) throw new Error('Could not check ' + url.pathname);
+    return response.arrayBuffer();
+  }
+
+  async function contentDigest(content) {
+    const digest = await crypto.subtle.digest('SHA-256', content);
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function deployedRevision(checkedAt, signal) {
+    const html = await fetchContent(target, checkedAt, signal);
+    const template = document.createElement('template');
+    template.innerHTML = new TextDecoder().decode(html);
+    const scripts = new Set();
+    for (const script of template.content.querySelectorAll('script[src]')) {
+      const url = new URL(script.getAttribute('src'), target);
+      if (url.origin !== target.origin) continue;
+      url.hash = '';
+      scripts.add(url.href);
+    }
+    const digests = await Promise.all([
+      contentDigest(html),
+      ...Array.from(scripts, async url => contentDigest(await fetchContent(url, checkedAt, signal)))
+    ]);
+    return digests.join(':');
   }
 
   function showNotice() {
@@ -51,7 +76,7 @@
         window.location.replace(next.href);
       });
       notice.querySelector('.sim-update-later').addEventListener('click', () => {
-        dismissedAt = Date.now();
+        dismissedRevisions.add(availableRevision);
         notice.style.display = 'none';
       });
       document.body.appendChild(notice);
@@ -60,37 +85,22 @@
   }
 
   async function checkForUpdate() {
-    if (checking || updateAvailable || Date.now() - lastCheckAt < COOLDOWN_MS) return;
+    if (checking || Date.now() - lastCheckAt < COOLDOWN_MS) return;
     checking = true;
     lastCheckAt = Date.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      // Track the HTML and its same-origin external scripts (including photo importers).
-      const resources = [target, ...Array.from(document.querySelectorAll('script[src]'), script => new URL(script.src, window.location.href))]
-        .filter(url => url.origin === target.origin);
-      const unique = [...new Map(resources.map(url => [url.pathname + url.search, url])).values()];
-      await Promise.all(unique.map(async resource => {
-        try {
-          const url = new URL(resource.href);
-          url.searchParams.set('__version_check', String(Date.now()));
-          const response = await fetch(url.href, {
-            method: 'HEAD', cache: 'no-store', credentials: 'same-origin', signal: controller.signal
-          });
-          if (!response.ok) return;
-          const revision = responseRevision(response);
-          if (!revision) return; // Do not compare unreliable data.
-          const key = resource.pathname + resource.search;
-          const prior = loadedRevisions.get(key);
-          if (prior == null) loadedRevisions.set(key, revision);
-          else if (revision !== prior) updateAvailable = true;
-        } catch (_) { /* One unavailable resource should not block other checks. */ }
-      }));
-      if (updateAvailable) showNotice();
+      const revision = await deployedRevision(lastCheckAt, controller.signal);
+      if (loadedRevision === null) loadedRevision = revision;
+      availableRevision = revision === loadedRevision ? null : revision;
+      if (availableRevision && !dismissedRevisions.has(availableRevision)) showNotice();
+      else if (notice) notice.style.display = 'none';
     } catch (_) {
       // Offline or temporary server errors must never interrupt calculator use.
     } finally {
       clearTimeout(timeout);
+      controller.abort();
       checking = false;
     }
   }
@@ -98,15 +108,11 @@
   function resume() {
     if (!wasAway || document.visibilityState === 'hidden') return;
     wasAway = false;
-    if (updateAvailable) {
-      if (Date.now() - dismissedAt >= COOLDOWN_MS) showNotice();
-      return;
-    }
     void checkForUpdate();
   }
 
   function init() {
-    // One lightweight baseline HEAD request on initial load; no background polling.
+    // Establish a baseline on initial load. There is no background polling.
     void checkForUpdate();
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') wasAway = true;
