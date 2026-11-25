@@ -788,7 +788,7 @@
       if(item.home&&cardsWithCounts.length>1&&cardsWithCounts.some(c=>c.lv===null)){
         rows.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","복수 주택의 레벨을 확인해야 합니다"));
         rows.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","서로 다른 레벨의 수량을 직접 확인"));
-      }else if(item.home&&cardsWithCounts.length>1){
+      }else if((item.home||item.prod)&&cardsWithCounts.length>1&&cardsWithCounts.every(card=>card.lv!==null)){
         // Multiple cards for one type of house may have different levels.
         // Preserve each level instead of discarding both duplicate names.
         const groups=new Map();
@@ -798,7 +798,7 @@
         }
         for(const [lv,group]of [...groups].sort((a,b)=>a[0]-b[0])){
           const count=group.some(c=>c.count===null)?null:group.reduce((sum,c)=>sum+c.count,0);
-          rows.push({...makeEntry(item.id+"_mix_"+lv,item.name+" Lv."+lv+" 수량",count,"buildings","count",count===null?"배지 숫자 인식 실패 · 직접 확인":"서로 다른 레벨을 구분해 도시 관리에 반영"),preview:group.length===1&&group[0].badge?crop(img,[group[0].badge.cx-19,group[0].badge.cy-19,group[0].badge.cx+19,group[0].badge.cy+19],3).toDataURL("image/png"):null});
+          rows.push({...makeEntry(item.id+"_mix_"+lv,item.name+" Lv."+lv+" 수량",count,"buildings","count",count===null?"배지 숫자 인식 실패 · 직접 확인":"서로 다른 레벨을 구분해 반영"),preview:group.length===1&&group[0].badge?crop(img,[group[0].badge.cx-19,group[0].badge.cy-19,group[0].badge.cx+19,group[0].badge.cy+19],3).toDataURL("image/png"):null});
         }
       }else if(item.id==='tavern'&&cardsWithCounts.length>1&&cardsWithCounts.every(c=>c.lv!==null)){
         for(const lv of [...new Set(cardsWithCounts.map(c=>c.lv))].sort()){
@@ -924,8 +924,26 @@
     clearPhotoResults('사진과 분석 결과를 초기화했습니다. 사진을 선택해주세요.');
   }
   function mergePhotoRows(results){
+    const groups=[];
+    for(const item of TYPES.buildings.filter(item=>item.prod||item.home)){
+      const pages=new Map();
+      for(const row of results){
+        if(row.source!=="buildings"||row.page===undefined||!row.id.startsWith(item.id+"_"))continue;
+        if(!pages.has(row.page))pages.set(row.page,[]);
+        pages.get(row.page).push(row);
+      }
+      const batches=[...pages.values()].flatMap(rows=>{
+        const level=rows.find(row=>row.id===item.id+"_lv"&&row.value!==null);
+        const count=rows.find(row=>row.id===item.id+"_count");
+        return level&&count?[{...count,level:level.value}]:[];
+      });
+      const hasMixed=results.some(row=>row.id.startsWith(item.id+"_mix_"));
+      if(hasMixed||new Set(batches.filter(row=>row.value!==null&&!row.needsReview).map(row=>row.level)).size>1){
+        groups.push(...batches.map(row=>({...row,id:item.id+"_mix_"+row.level,label:item.name+" Lv."+row.level+" 수량"})));
+      }
+    }
     const byId=new Map();
-    for(const entry of results){
+    for(const entry of [...results,...groups]){
       if(!byId.has(entry.id))byId.set(entry.id,[]);
       byId.get(entry.id).push(entry);
     }
@@ -965,7 +983,8 @@
           const img=await readImage(file);
           setStatus(progress+" · "+(isBuilding?"건물":"보유량")+" 분석 중…");
           if(isBuilding){
-            results.push(...await recognizeBuildings(img,worker));
+            const rows=await recognizeBuildings(img,worker);
+            results.push(...rows.map(row=>({...row,page:index})));
             continue;
           }
           for(const item of TYPES.stock){
@@ -1039,11 +1058,27 @@
       if(count!==undefined)basic.bldgs=detail.enabled?actualBuildings(building):count;
       return true;
     }
+    const mixedProductions=new Map();
     for(const {id,prod,name} of TYPES.buildings){
-      if(!prod||!app.details[prod]?.enabled)continue;
+      if(!prod)continue;
+      const detail=app.details[prod];
+      const prefix=id+"_mix_";
+      const entries=Object.keys(values).filter(key=>key.startsWith(prefix));
+      if(entries.length){
+        const levels=entries.map(key=>({lv:closestAvailableLevel(prod,Number(key.slice(prefix.length))),count:values[key]}));
+        const added=levels.filter(({lv})=>!detail.rows.some(row=>row.lv===lv)).length;
+        if(detail.enabled&&detail.rows.length+added>20){
+          detailWarnings.push(name+" 상세 구성 한도(20개)에 도달했습니다.");
+          for(const key of entries)delete values[key];
+          selected-=entries.length;
+        }else{
+          mixedProductions.set(prod,{levels,partial:findings.some(f=>f.id.startsWith(prefix)&&values[f.id]===undefined)});
+        }
+        continue;
+      }
+      if(!detail.enabled)continue;
       const levelKey=id+"_lv",countKey=id+"_count",lv=values[levelKey],count=values[countKey];
       if(lv===undefined&&count===undefined)continue;
-      const detail=app.details[prod];
       if(lv!==undefined&&count!==undefined){
         if(detail.rows.length<20||detail.rows.some(row=>row.lv===lv))continue;
         detailWarnings.push(name+" 상세 구성 한도(20개)에 도달했습니다.");
@@ -1079,9 +1114,19 @@
           if(count!==undefined)app.city.homes[item.home].count=count;
         }
       } else if(item.prod){
-        if(lv===undefined&&count===undefined)continue;
-        const level=lv===undefined?undefined:closestAvailableLevel(item.prod,lv);
-        updateProduction(item.prod,level,count);
+        const mix=mixedProductions.get(item.prod);
+        if(mix){
+          const detail=app.details[item.prod],basic=app.buildings[item.prod];
+          if(!detail.enabled){
+            detail.enabled=true;
+            detail.rows=mix.partial&&basic.bldgs>0?[{lv:basic.lv,mode:basic.mode,count:basic.bldgs,hours:''}]:[];
+          }
+          for(const {lv,count} of mix.levels)updateProduction(item.prod,lv,count);
+        }else{
+          if(lv===undefined&&count===undefined)continue;
+          const level=lv===undefined?undefined:closestAvailableLevel(item.prod,lv);
+          updateProduction(item.prod,level,count);
+        }
         const map={bee:"Beehive_Average",fishpier:"FishingPier_Average",expedition:"ExpeditionPier_Average",harbor:"SailorPort_Average"};
         if(map[item.id])delete app.city.manual[map[item.id]];
       }

@@ -491,7 +491,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 @media(max-width:720px){.photo-files{grid-template-columns:1fr}#photoImportDialog{padding:13px}.photo-table th,.photo-table td{font-size:13px;padding:8px 4px}.photo-table th:nth-child(2),.photo-table td:nth-child(2){width:42%}.photo-table input[type=text]{font-size:16px}}
 .home-mix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.home-mix label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.home-mix-total{white-space:nowrap;color:var(--blue);font-size:.95em}.home-mix input{width:66px;min-width:55px;height:35px}
 </style>
-<link rel="stylesheet" href="simulator-layout.css?v=20261125d">
+<link rel="stylesheet" href="simulator-layout.css?v=20261126">
 </head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><section class="card" id="productionSettings">
 <div class="sectionbar"><h2 data-tip-key="생산 설정">생산 설정</h2><div class="title-actions">
 <button id="photoImportBtn" type="button">사진으로 입력</button>
@@ -532,7 +532,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 <label>단계 필터 <select id="researchStage"><option value="">전체 단계</option></select></label>
 <label>연구 검색 <input type="search" id="researchSearch" placeholder="연구 이름"></label>
 </div><p class="note research-guide">연구를 눌러 완료 상태나 목표를 지정하세요. 선행 연구 비용도 함께 계산합니다.</p><div class="research-filter" role="group" aria-label="연구 표시 필터"><button type="button" class="active" data-research-filter="all" aria-pressed="true">전체</button><button type="button" data-research-filter="done" aria-pressed="false">완료</button><button type="button" data-research-filter="needed" aria-pressed="false">목표까지 필요</button></div><div class="research-legend" aria-label="연구 상태 표시"><span class="done">완료</span><span class="needed">추가 필요</span><span class="target">목표 연구</span></div>
-<div class="research-wrap"><div class="research-tree" id="researchTree"></div></div><div class="research-mobile" id="researchMobile"></div></div></section><footer>제작자 Mule · 수정일 2026. 11. 25.</footer></main><dialog id="termHelpDialog" aria-labelledby="termHelpTitle">
+<div class="research-wrap"><div class="research-tree" id="researchTree"></div></div><div class="research-mobile" id="researchMobile"></div></div></section><footer>제작자 Mule · 수정일 2026. 11. 26.</footer></main><dialog id="termHelpDialog" aria-labelledby="termHelpTitle">
 <div class="modalhead"><h2 id="termHelpTitle"></h2><button type="button" data-close="termHelpDialog">닫기</button></div>
 <p id="termHelpText"></p>
 </dialog>
@@ -697,8 +697,8 @@ function timeToOutput(building,need,key='out1'){
  if(!(need>0))return 0;
  // Operating hours bound planned output, not the time required to reach a goal.
  // Rows explicitly stopped (zero hours) do not contribute to continued production.
- const rows=configRows(building).map(row=>({p:info(building,row.lv,row.mode),count:Math.max(0,num(row.count)),hours:rowHours(building,row)}))
-  .filter(row=>row.p&&row.count>0&&row.hours>0&&row.p.min>0&&num(row.p[key==='out2'?'out2qty':'out1qty'])>0);
+ const rows=configRows(building).map(row=>({p:info(building,row.lv,row.mode),count:Math.max(0,num(row.count)),stopped:row.hours===0||(row.hours===''&&app.buildings[building].hours===0)}))
+  .filter(row=>row.p&&row.count>0&&!row.stopped&&row.p.min>0&&num(row.p[key==='out2'?'out2qty':'out1qty'])>0);
  if(!rows.length)return null;
  const output=h=>rows.reduce((sum,row)=>sum+productionForInfo(row.p,h,row.count)[key],0);
  let lo=0,hi=Math.max(...rows.map(row=>row.p.min/60));
@@ -1166,17 +1166,15 @@ normalizeLoaded=function(obj){const d=legacyNormalize(obj);if(!obj?.settings?.sl
 function configRows(building){return detailEnabled(building)?app.details[building].rows:[{...app.buildings[building],count:app.buildings[building].bldgs}];}
 function rowHours(building,row){return row.hours===''||row.hours===null||row.hours===undefined?effectiveHours(building):Math.max(0,num(row.hours));}
 function benchmarkRate(building,key='out1'){const p=powerBenchmarkInfo(building);return infoHourlyRate(p,key);}
-function productionWindow(building,key='out1'){
- if(!detailEnabled(building))return effectiveHours(building);
- let output=0,rate=0,weight=0,time=0;
- for(const row of configRows(building)){const h=rowHours(building,row),p=info(building,row.lv,row.mode),count=Math.max(0,num(row.count));if(!p||!count||!h)continue;const n=productionForInfo(p,h,count)[key],nominal=infoHourlyRate(p,key)*count;output+=n;rate+=n/h;weight+=nominal;time+=nominal*h;}
- return rate>0?output/rate:weight>0?time/weight:0;
+function productionWindow(building){
+ const active=configRows(building).filter(row=>row.count>0);
+ return active.length?Math.max(...active.map(row=>rowHours(building,row))):effectiveHours(building);
 }
 referenceHours=function(building){return productionWindow(building);};
 // A shared comparison window makes actual output and required output comparable
 // even when detailed rows use different hours. Zero-hour rows contribute nothing.
 currentEquivalent=function(building,hOverride=null){const h=hOverride===null?productionWindow(building):Math.max(0,num(hOverride)),ref=benchmarkRate(building)*h;return ref>0?metrics(building,hOverride).out1/ref:0;};
-currentTreasureEquivalent=function(t){const b=treasurePair(t),key=treasureOutputKey(t),h=productionWindow(b,key),ref=benchmarkRate(b,key)*h;return ref>0?producedOf(t)/ref:0;};
+currentTreasureEquivalent=function(t){const b=treasurePair(t),key=treasureOutputKey(t),h=productionWindow(b),ref=benchmarkRate(b,key)*h;return ref>0?producedOf(t)/ref:0;};
 powerRefMetrics=function(building,h=null){const p=powerBenchmarkInfo(building),hh=h===null?referenceHours(building):Math.max(0,num(h));if(!p||hh<=0)return null;const f=hh*60/p.min,uses={};if(p.mat1)uses[p.mat1]=p.use1*f;if(p.mat2)uses[p.mat2]=(uses[p.mat2]||0)+p.use2*f;return {out1:p.out1qty*f,out2:p.out2qty*f,uses};};
 function referenceRecipe(building){return powerBenchmarkInfo(building);}
 function targetPairPlan(building,a,b){
@@ -1210,16 +1208,57 @@ function targetPairPlan(building,a,b){
  }
  return best;
 }
+function goalReferenceRates(building){
+ const basic=app.buildings[building],active=configRows(building).filter(row=>row.count>0);
+ const rows=active.length?active:[{...basic,count:1}];
+ const hasTime=rows.some(row=>rowHours(building,row)>0);
+ const rates=[{out1:0,out2:0,uses:{}},{out1:0,out2:0,uses:{}},{out1:0,out2:0,uses:{}}];
+ const selected=rows.map(row=>{
+  const p=info(building,6,row.mode)||referenceRecipe(building);
+  return {p,weight:row.count*(hasTime?rowHours(building,row):1)/p.min};
+ }).filter(({weight})=>weight>0);
+ for(const {p,weight} of selected){
+  const group=rates[p.out2qty===0&&isSingleMode(p.mode)?1:p.out1qty===0?2:0];
+  group.out1+=p.out1qty*weight;group.out2+=p.out2qty*weight;
+  for(const material of new Set([p.mat1,p.mat2].filter(Boolean))){
+   group.uses[material]=(group.uses[material]||0)+rowMaterialUse(p,material)*weight;
+  }
+ }
+ return rates;
+}
+function singleTargetInputs(recipe,quantity,key='out1'){
+ if(!(quantity>0)||!(recipe[key]>0))return {};
+ return Object.fromEntries(Object.entries(recipe.uses).map(([name,use])=>[name,requiredQty(use*quantity/recipe[key])]));
+}
+function requiredQty(amount){return Math.ceil(amount-1e-8);}
+function pairedTargetInputs(building,a,b){
+ let [paired,first,second]=goalReferenceRates(building);
+ if((a>0&&paired.out1+first.out1===0)||(b>0&&paired.out2+second.out2===0)){
+  const fallback=referenceRecipe(building);
+  paired={out1:fallback.out1qty,out2:fallback.out2qty,
+   uses:Object.fromEntries([fallback.mat1,fallback.mat2].filter(Boolean).map(material=>[material,rowMaterialUse(fallback,material)]))};
+ }
+ // Shared output covers both requirements once. When a configured single
+ // can supply the rest, allocate only the needed share to shared production.
+ const pairedCount=paired.out1>0&&paired.out2>0?
+  Math.max(first.out1>0?0:a/paired.out1,second.out2>0?0:b/paired.out2,Math.min(a/paired.out1,b/paired.out2)):0;
+ const shared=Object.fromEntries(Object.entries(paired.uses).map(([name,use])=>[name,requiredQty(use*pairedCount)]));
+ return sumCosts([shared,singleTargetInputs(first,a-pairedCount*paired.out1),singleTargetInputs(second,b-pairedCount*paired.out2,'out2')]);
+}
 targetRequirements=function(){
  const short=Object.fromEntries(TREASURE_NAMES.map(t=>[t,targetShortage(t)]));
- const exp=targetPairPlan('탐험 부두',short['도자기 보물'],short['황금 보물']),sail=targetPairPlan('선원 항구',short['향신료 보물'],short['보석 보물']);
- const mead=referenceRecipe('벌꿀 술'),dried=referenceRecipe('건어물');
- const meadDemand=num(exp.uses['벌꿀 술'])+num(sail.uses['벌꿀 술']),driedDemand=num(sail.uses['건어물']);
+ const exp=pairedTargetInputs('탐험 부두',short['도자기 보물'],short['황금 보물']);
+ const sail=pairedTargetInputs('선원 항구',short['향신료 보물'],short['보석 보물']);
+ const meadDemand=num(exp['벌꿀 술'])+num(sail['벌꿀 술']),driedDemand=num(sail['건어물']);
  const netNeed=(gross,stock)=>gross>0?Math.max(0,gross-stock):0;
- const m=Math.ceil(netNeed(meadDemand,stockOf('벌꿀 술'))/mead.out1qty-1e-10),d=Math.ceil(netNeed(driedDemand,stockOf('건어물'))/dried.out1qty-1e-10);
- const needAmount={'벌집':m*rowMaterialUse(mead,'꿀')+d*rowMaterialUse(dried,'꿀'),'부두':num(exp.uses['생선'])+d*rowMaterialUse(dried,'생선'),'벌꿀 술':meadDemand,'건어물':driedDemand,...short},needEq={};
+ const mead=singleTargetInputs(goalReferenceRates('벌꿀 술')[0],netNeed(meadDemand,stockOf('벌꿀 술')));
+ const dried=singleTargetInputs(goalReferenceRates('건어물')[0],netNeed(driedDemand,stockOf('건어물')));
+ const needAmount={'벌집':num(mead['꿀'])+num(dried['꿀']),'부두':num(exp['생선'])+num(dried['생선']),
+  '벌꿀 술':meadDemand,'건어물':driedDemand,...short},needEq={};
  for(const item of BASE.concat(MID,TREASURE_NAMES)){
-  const treasure=TREASURE_NAMES.includes(item),b=treasure?treasurePair(item):item,key=treasure?treasureOutputKey(item):'out1',amount=treasure?short[item]:netNeed(needAmount[item],stockOf(STOCK_KEY[item])),h=productionWindow(b,key),ref=benchmarkRate(b,key)*h;
+  const treasure=TREASURE_NAMES.includes(item),b=treasure?treasurePair(item):item,key=treasure?treasureOutputKey(item):'out1';
+  const amount=treasure?short[item]:netNeed(needAmount[item],stockOf(STOCK_KEY[item]));
+  const ref=benchmarkRate(b,key)*productionWindow(b);
   needEq[item]=amount<=1e-10?0:ref>0?amount/ref:null;
  }
  return {needAmount,needEq};
@@ -1270,6 +1309,11 @@ function cityStats(){
 function tableHtml(headers,rows){return '<table class="city-table"><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';}
 const tc=(value,cls='')=>'<td class="'+cls+'">'+value+'</td>';
 function cityNumber(value,attrs=''){return '<input type="number" step="1" value="'+value+'" '+attrs+'>';}
+function constructionLevelOptions(building,selected,minimum){
+ const max=Math.max(...Object.keys(CITY_DATA.buildings.find(b=>b.id===building).levels).map(Number));
+ return Array.from({length:max-minimum+1},(_,i)=>i+minimum).map(level=>
+  '<option value="'+level+'"'+(level===selected?' selected':'')+'>'+(level===0?'미건설(0)':'Lv.'+level)+'</option>').join('');
+}
 function cityBuildingOptions(value){return CITY_DATA.buildings.filter(b=>b.id!=='City_CityHall').map(b=>'<option value="'+b.id+'"'+(b.id===value?' selected':'')+'>'+b.name+'</option>').join('');}
 function budgetLine(label,value){return '<div><span>'+label+'</span><strong>'+value+'</strong></div>';}
 
@@ -1336,6 +1380,7 @@ Object.assign(TOOLTIPS,{
 // Reuse the same wording and tooltip behavior for all headings and inputs.
 for(const key of Object.keys(TOOLTIPS))if(key.includes('디르함'))TOOLTIPS[key.replaceAll('디르함','페니')]=TOOLTIPS[key].replaceAll('디르함','페니');
 TOOLTIPS['자원']='바이킹의 기초·중간 자원인 꿀·생선·벌꿀 술·건어물입니다.';
+TOOLTIPS['목표 레벨 생산력 비교']='보유 보물과 선택한 퀘스트 보상을 뺀 목표량을 비교합니다. 원료는 설정한 생산 방식을 Lv6 기준으로 환산하며, 두 보물을 함께 생산하는 주기의 소비는 한 번만 계산합니다.';
 TOOLTIPS['페니 현황']='현재 보유량과 예상 생산량을 합하고 건설·목표 연구 비용을 차감한 잔여/부족을 표시합니다.';
 function shortName(t){return t.replace(' 보물','');}
 function fmtPenny(value){if(!Number.isFinite(value))return '—';const abs=Math.abs(value),unit=abs>=1e6?1e6:abs>=100000?1000:1;return unit===1?fmtQty(value):(value/unit).toLocaleString('en-US',{maximumFractionDigits:2})+(unit===1e6?'M':'K');}
@@ -1346,7 +1391,7 @@ function parseAmountInput(value){
  const text=String(value).trim();if(text==='')return 0;
  if(text.includes(',')&&!/^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*[km]?$/i.test(text))return null;
  const match=text.replaceAll(',','').match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*([km]?)$/i);if(!match)return null;
- const result=Number(match[1])*({k:1000,m:1000000}[match[2].toLowerCase()]||1);
+ const result=Number(match[1].replace(/\.$/,'')+'e'+({k:3,m:6}[match[2].toLowerCase()]||0));
  return Number.isFinite(result)&&Math.abs(result)<=Number.MAX_SAFE_INTEGER?result:null;
 }
 function prepareAmountInputs(){
@@ -1535,7 +1580,7 @@ renderCity=function(){
     td(h?(mix?'혼합 (레벨별 입력)':cityNumber(h.lv,'min="1" max="6" data-home="'+id+'" data-field="lv"')):mapped?'생산 연동':'Lv.1','city-level-cell')+
     td(fmtQty(count*b.w*b.l)+(b.sea?' (해안)':' (육지)'))+td(staffLabels.map(text=>'<span class="city-staff-line">'+text+'</span>').join('')||'—')+'</tr>';
  }).join('')+'</tbody></table>';
- $('construction').innerHTML=c.construction.length?'<table class="result-table">'+head(['건물 종류','현재 레벨','목표 레벨','건설 수','누적 비용','삭제'])+'<tbody>'+c.construction.map((r,j)=>'<tr>'+td('<select data-con="'+j+'" data-field="id">'+cityBuildingOptions(r.id)+'</select>')+['cur','tgt','count'].map(k=>td(cityNumber(r[k],'min="'+(k==='tgt'?1:0)+'" '+(k==='count'?'':'max="6" ')+'data-con="'+j+'" data-field="'+k+'"'))).join('')+td(money(constructionRowCost(r)))+td('<button type="button" data-remove-con="'+j+'" aria-label="건설 항목 삭제">×</button>')+'</tr>').join('')+'</tbody></table>':'<p class="construction-empty">항목 추가를 눌러 건설·업그레이드 비용을 계산하세요.</p>';
+ $('construction').innerHTML=c.construction.length?'<table class="result-table">'+head(['건물 종류','현재 레벨','목표 레벨','건설 수','누적 비용','삭제'])+'<tbody>'+c.construction.map((r,j)=>'<tr>'+td('<select data-con="'+j+'" data-field="id">'+cityBuildingOptions(r.id)+'</select>')+['cur','tgt'].map(k=>td('<select data-con="'+j+'" data-field="'+k+'">'+constructionLevelOptions(r.id,r[k],k==='cur'?0:Math.max(1,r.cur))+'</select>')).join('')+td(cityNumber(r.count,'min="0" data-con="'+j+'" data-field="count"'))+td(money(constructionRowCost(r)))+td('<button type="button" data-remove-con="'+j+'" aria-label="건설 항목 삭제">삭제</button>')+'</tr>').join('')+'</tbody></table>':'<p class="construction-empty">항목 추가를 눌러 건설·업그레이드 비용을 계산하세요.</p>';
  $('buildCost').textContent=money(st.build);renderResearch();for(const id of ['cityBuildings','construction'])labelInputs(id);
 };
 renderResearch=function(){
@@ -1598,13 +1643,18 @@ function selectWonder(name){
 function applyProductionInputs(source){selectWonder(source.settings.wonderName);app.views.prod=source.views?.prod===true;for(const k of ['baseH','bonusLv','questRewards'])app.settings[k]=clone(source.settings[k]);for(const k of ['buildings','treasureStocks','details'])app[k]=clone(source[k]);normalizeDetails();}
 resetState=function(){applyProductionInputs({...DEFAULTS,settings:{...DEFAULTS.settings,wonderName:app.settings.wonderName}});renderAll();saveState();$('resetStatus').textContent='생산 계산기 초기화 완료';clearTimeout(resetStatusTimer);resetStatusTimer=setTimeout(()=>$('resetStatus').textContent='',1800);};
 // Same native detail dialog and reset/save flows as Arabia.
-function showDetail(building=null){if(building)detailBuilding=building;const group=DETAIL_GROUPS[detailGroup],d=app.details[detailBuilding];
- $('detailTitle').textContent=group.title;
- const current=metrics(detailBuilding);
+function renderDetailResult(){
+ const d=app.details[detailBuilding],current=metrics(detailBuilding);
  const names=detailBuilding==='탐험 부두'?TREASURE_NAMES.slice(0,2):detailBuilding==='선원 항구'?TREASURE_NAMES.slice(2):[OUTPUT_LABEL[detailBuilding]];
  const output=names.map((name,index)=>shortName(name)+' '+fmtAmount(index?current.out2:current.out1)).join(' · ');
- $('detailResult').textContent=(d.enabled?'상세 설정':'기본 설정')+' · 건물 '+fmtQty(actualBuildings(detailBuilding))+'채 · 예상 생산량 '+output;
-$('detailTabs').innerHTML=group.buildings.map(b=>'<button type="button" data-native-building="'+b+'" class="'+(b===detailBuilding?'active':'')+'" aria-pressed="'+String(b===detailBuilding)+'">'+(OUTPUT_LABEL[b]||b)+'</button>').join('');$('detailEnabled').checked=d.enabled;$('detailAdd').disabled=!d.enabled||d.rows.length>=20;
+ $('detailResult').textContent=(d.enabled?'상세 설정':'기본 설정')+' · 건물 '+fmtBldg(actualBuildings(detailBuilding))+'채 · 예상 생산량 '+output;
+}
+function showDetail(building=null){
+ if(building)detailBuilding=building;
+ const group=DETAIL_GROUPS[detailGroup],d=app.details[detailBuilding];
+ $('detailTitle').textContent=group.title;
+ renderDetailResult();
+ $('detailTabs').innerHTML=group.buildings.map(b=>'<button type="button" data-native-building="'+b+'" class="'+(b===detailBuilding?'active':'')+'" aria-pressed="'+String(b===detailBuilding)+'">'+(OUTPUT_LABEL[b]||b)+'</button>').join('');$('detailEnabled').checked=d.enabled;$('detailAdd').disabled=!d.enabled||d.rows.length>=20;
  $('detailRows').innerHTML=d.rows.map((r,j)=>'<div class="detailrow" data-native-row="'+j+'"><label data-tip-key="레벨">레벨'+cityNumber(r.lv,'data-native-field="lv" min="'+availableLevels(detailBuilding)[0]+'" max="6"')+'</label><label data-tip-key="생산 방식">생산 방식<select data-native-field="mode">'+modesFor(detailBuilding,r.lv).map(m=>'<option value="'+m+'"'+(r.mode===m?' selected':'')+'>'+modeLabel(m)+'</option>').join('')+'</select></label><label data-tip-key="건물 수">건물 수'+cityNumber(r.count,'data-native-field="count" min="0"')+'</label><label data-tip-key="운영 시간(h)">운영 시간(h)<input type="number" data-native-field="hours" value="'+r.hours+'" step="any" min="0" placeholder="기본"></label><button type="button" data-native-remove="'+j+'" aria-label="구성 삭제">×</button></div>').join('');
 
  $('detailRows').querySelectorAll('input,select,button').forEach(el=>el.disabled=!d.enabled||(isContinuous(detailBuilding)&&el.dataset.nativeField==='mode')||(el.hasAttribute('data-native-remove')&&d.rows.length<=1));
@@ -1639,7 +1689,14 @@ $('resetBtn').onclick=()=>$('resetDialog').showModal();$('restore').onclick=()=>
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
 $('detailEnabled').onchange=e=>{const detail=app.details[detailBuilding];detail.enabled=e.target.checked;if(detail.enabled&&!detail.rows.length)seedDetail(detailBuilding);normalizeDetail(detailBuilding);renderAll();showDetail();saveState();};
 $('detailAdd').onclick=()=>{const d=app.details[detailBuilding],s=app.buildings[detailBuilding];if(!d.enabled||d.rows.length>=20)return;d.rows.push({lv:s.lv,mode:s.mode,count:1,hours:''});normalizeDetail(detailBuilding);renderAll();showDetail();saveState();};
-$('detailRows').onchange=e=>{const el=e.target,r=app.details[detailBuilding].rows[Number(el.closest('[data-native-row]')?.dataset.nativeRow)],k=el.dataset.nativeField;if(!r||!k)return;r[k]=k==='mode'?el.value:k==='hours'&&el.value===''?'':num(el.value);if(k==='lv'){r.lv=closestAvailableLevel(detailBuilding,r.lv);r.mode=modeForLevel(detailBuilding,r.lv,r.mode);}normalizeDetail(detailBuilding);renderAll();showDetail();saveState();};
+$('detailRows').onchange=e=>{const el=e.target,r=app.details[detailBuilding].rows[Number(el.closest('[data-native-row]')?.dataset.nativeRow)],k=el.dataset.nativeField;if(!r||!k)return;r[k]=k==='mode'?el.value:k==='hours'&&el.value===''?'':num(el.value);if(k==='lv'){r.lv=closestAvailableLevel(detailBuilding,r.lv);r.mode=modeForLevel(detailBuilding,r.lv,r.mode);}normalizeDetail(detailBuilding);renderAll();
+ if(k==='lv')showDetail();
+ else{
+  el.value=app.details[detailBuilding].rows[Number(el.closest('[data-native-row]').dataset.nativeRow)][k];
+  renderDetailResult();
+ }
+ saveState();
+};
 $('researchStage').insertAdjacentHTML('beforeend',[...new Set(CITY_DATA.research.map(t=>t.row))].sort((a,b)=>a-b).map(row=>'<option value="'+row+'">'+row+'단계</option>').join(''));
 $('researchSearch').addEventListener('input',renderResearch);
 $('researchStage').addEventListener('change',renderResearch);
@@ -1681,7 +1738,11 @@ document.addEventListener('change',e=>{
  const el=e.target;if(!el.classList?.contains('amount-input'))return;
  const empty=el.dataset.allowEmpty==='true'&&el.value.trim()==='',value=empty?'':parseAmountInput(el.value);
  if(value===null||(el.id==='dirhamRate'&&value!==''&&value<0)){showAmountError(el,el.id==='dirhamRate'&&value<0?'0 이상의 생산량을 입력하세요.':'숫자 또는 12K, 1.25M 형식으로 입력하세요.');e.stopImmediatePropagation();return;}
- const exact=el.matches('#dirhamRate')?value:Math.round(value);
+ if(!el.matches('#dirhamRate')&&!Number.isInteger(value)){
+  showAmountError(el,'보유량은 정수로 입력하세요. 예: -12000 또는 -12K');
+  e.stopImmediatePropagation();return;
+ }
+ const exact=value;
  clearAmountError(el);el.value=String(exact);el.dataset.exact=String(exact);
  el.title=exact===''?'비워 두면 자동 계산 · 예: 12K, 1.25M':'정확한 수량: '+exactAmountText(exact)+' · 예: 12K, 1.25M';
 },true);
@@ -1695,4 +1756,4 @@ document.addEventListener('focusout',e=>{
 });
 document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el.classList?.contains('amount-input')){e.preventDefault();el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('aria-invalid')!=='true')el.blur();}});
 loadState();renderAll();saveState();syncSavedProduction();initTermTooltips();initializeNavigation();
-</script><script src="photo-import.js?v=20261125d" defer></script><script src="update-check.js?v=20261125"></script></body></html>
+</script><script src="photo-import.js?v=20261126" defer></script><script src="update-check.js?v=20261125"></script></body></html>
