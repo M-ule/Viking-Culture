@@ -2,7 +2,6 @@
 (() => {
   "use strict";
   const $p = id => document.getElementById(id);
-  const IMPORT_VERSION = "20261025i";
   const BASE_W = 1536, BASE_H = 709;
   const TYPES = {
     buildings: [
@@ -924,45 +923,65 @@
     $p('photoBuildings').value='';$p('photoStocks').value='';
     clearPhotoResults('사진과 분석 결과를 초기화했습니다. 사진을 선택해주세요.');
   }
+  function mergePhotoRows(results){
+    const byId=new Map();
+    for(const entry of results){
+      if(!byId.has(entry.id))byId.set(entry.id,[]);
+      byId.get(entry.id).push(entry);
+    }
+    const mixed=new Set([...byId.keys()].filter(id=>id.includes("_mix_")).map(id=>id.split("_mix_")[0]));
+    const merged=[...byId.entries()].flatMap(([id,entries])=>{
+      if(mixed.has(id.replace(/_(lv|count)$/,"")))return [];
+      const readable=entries.filter(entry=>entry.value!==null);
+      if(!readable.length)return [entries[0]];
+      const preferred=readable.find(entry=>!entry.needsReview)||readable[0];
+      const observed=[...new Set(readable.map(entry=>entry.value))];
+      if(observed.length===1)return [preferred];
+      const candidates=[...new Set([...observed,...readable.flatMap(entry=>entry.candidates||[])])];
+      return [{...preferred,value:null,needsReview:true,candidates,
+        extra:"사진마다 값이 다릅니다 · 적용할 원본과 숫자를 확인하세요."}];
+    });
+    const buildingConflicts=new Set(merged.filter(entry=>entry.source==="buildings"&&entry.value===null&&entry.candidates?.length>1)
+      .map(entry=>entry.id.replace(/_(lv|count)$/,"")));
+    return merged.map(entry=>buildingConflicts.has(entry.id.replace(/_(lv|count)$/,""))?
+      {...entry,needsReview:true}:entry);
+  }
   async function scan(){
     if(busy)return;
-    const building=$p("photoBuildings").files[0], goods=$p("photoStocks").files[0];
-    if(!building&&!goods){setStatus("건물 사진 또는 생산물 사진을 선택하세요.",true);return;}
-    findings=[];$p("photoReview").replaceChildren();
+    const files=[
+      ...[...$p("photoBuildings").files].map(file=>({file,isBuilding:true})),
+      ...[...$p("photoStocks").files].map(file=>({file,isBuilding:false}))
+    ];
+    if(!files.length){setStatus("건물 사진 또는 보유량 사진을 선택하세요.",true);return;}
+    findings=[];setApplyStatus();$p("photoReview").replaceChildren();
     busy=true;$p("photoScan").disabled=true;$p("photoApply").disabled=true;syncPhotoControls();
     try{
       setStatus("인식 엔진 준비 중… 처음 이용할 때 다운로드가 필요합니다.");
-      const imgs={};
-      if(building)imgs.buildings=await readImage(building);
-      if(goods)imgs.stock=await readImage(goods);
-      const worker=await loadOCR();
-      const total=(imgs.buildings?TYPES.buildings.length*2:0)+(imgs.stock?TYPES.stock.length:0);
-      let done=0;
-      const results=[];
-      if(imgs.buildings){
-        setStatus("건물 이름과 레벨 표시를 검색하는 중…");
-        try{results.push(...await recognizeBuildings(imgs.buildings,worker));}
-        catch(err){
-          for(const item of TYPES.buildings){
-            results.push(makeEntry(item.id+"_lv",item.name+" 레벨",null,"buildings","level","한글 카드 분석 실패 · 직접 입력"));
-            results.push(makeEntry(item.id+"_count",item.name+" 수량",null,"buildings","count","한글 카드 분석 실패 · 직접 입력"));
+      const worker=await loadOCR(),results=[],errors=[];
+      for(const [index,{file,isBuilding}] of files.entries()){
+        const progress="사진 "+(index+1)+" / "+files.length;
+        try{
+          if(file.size>20*1024*1024)throw new Error("20MB 이하 이미지를 선택하세요.");
+          const img=await readImage(file);
+          setStatus(progress+" · "+(isBuilding?"건물":"보유량")+" 분석 중…");
+          if(isBuilding){
+            results.push(...await recognizeBuildings(img,worker));
+            continue;
           }
-          setStatus(err?.message||"건물 분석 실패. 자원 사진 분석은 진행합니다.",true);
-        }
-        done+=TYPES.buildings.length*2;
+          for(const item of TYPES.stock){
+            const result=await readStock(worker,img,item.box);
+            const extra=[result.extra,result.approximate?"K/M 단위 표시는 반올림된 근삿값":""].filter(Boolean).join(" · ");
+            results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),
+              needsReview:result.needsReview,preview:result.preview,diagnostics:result.diagnostics,
+              candidates:result.candidates,rejectedCandidates:result.rejectedCandidates});
+          }
+        }catch(err){errors.push(progress+" · "+(err?.message||"인식 실패"));}
       }
-      if(imgs.stock){
-        for(const item of TYPES.stock){
-          setStatus("생산물 사진 분석 중… "+(done+1)+"/"+total);
-          const result=await readStock(worker,imgs.stock,item.box);done++;
-          const extra=[result.extra,result.approximate?'K/M 단위 표시는 반올림된 근삿값':''].filter(Boolean).join(' · ');
-          results.push({...makeEntry(item.id,item.name,result.value,"stock","stock",extra),needsReview:result.needsReview,preview:result.preview,diagnostics:result.diagnostics,candidates:result.candidates,rejectedCandidates:result.rejectedCandidates});
-        }
-      }
-      findings=results;
+      findings=mergePhotoRows(results);
       review();
-      const recognized=results.filter(item=>item.value!==null).length;
-      setStatus("분석 완료 ["+IMPORT_VERSION+"]: "+recognized+"/"+results.length+"개 값 추출 · 정확성 확인 필요. 숫자를 확인·수정한 뒤 적용하세요.");
+      const recognized=findings.filter(item=>item.value!==null||item.candidates?.length).length;
+      const result=recognized?"인식값 "+recognized+"개 · 원본과 비교한 뒤 적용하세요.":"읽을 수 있는 값이 없습니다.";
+      setStatus([result,...errors].join(" / "),!recognized||errors.length>0);
     }catch(err){setStatus(err?.message||"사진 인식에 실패했습니다.",true);}
     finally{busy=false;$p("photoScan").disabled=false;syncPhotoControls();}
   }
