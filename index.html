@@ -1485,7 +1485,9 @@ renderConvert=function(){
    }
   }
  }
- $('tc').innerHTML=head(['생산 항목','생산 방식','Lv1','Lv2','Lv3','Lv4','Lv5','Lv6'])+'<tbody>'+rows.join('')+'</tbody>';
+ const labels=['생산 항목','생산 방식','Lv1','Lv2','Lv3','Lv4','Lv5','Lv6'];
+ const headers=labels.map(label=>'<th scope="col" data-label="'+label+'">'+label+'</th>').join('');
+ $('tc').innerHTML='<thead><tr>'+headers+'</tr></thead><tbody>'+rows.join('')+'</tbody>';
 };
 function cityStatus(label,value,cls=''){return '<div class="inline-status-row"><span class="inline-status-label">'+termHtml(label)+'</span><span class="inline-status-value '+cls+'">'+value+'</span></div>';}
 function citySupplyData(){let workers=0,sailors=0,usedWorkers=0,usedSailors=0;const staff=WONDER_STAFF[app.settings.wonderName];workers+=staffAt(staff.worker,app.settings.bonusLv).value;sailors+=staffAt(staff.sailor,app.settings.bonusLv).value;for(const b of CITY_DATA.buildings)for(const {n,l} of cityGroups(b)){workers+=n*l.supply;sailors+=n*l.sailorSupply;usedWorkers+=n*l.workers;usedSailors+=n*l.sailors;}return{workers,sailors,usedWorkers,usedSailors};}
