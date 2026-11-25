@@ -191,3 +191,217 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   #panel-prod:not(.expanded) :is(#t1, #t3) th:nth-child(9) { width: 20% !important; }
   #panel-prod:not(.expanded) :is(#t1, #t3) th:nth-child(10) { width: 18% !important; }
 }
+
+/* Match the shared settings and city controls while retaining Viking colors. */
+[hidden] { display: none !important; }
+.tabs button { border-color: var(--surface-line); }
+.tabs button.active { border-color: var(--blue); }
+.sectionbar h2 .info-tip { border-color: var(--surface-line); }
+.title-actions button:not(.danger), .detail-open, #wonderView, #cityView {
+  border-color: var(--surface-line);
+}
+#productionSettings .settings { gap: 16px 24px; }
+#productionSettings .settings .number-step { width: 120px; }
+#wonderSettings .settings { gap: 16px 24px; }
+#wonderSettings .settings .number-step { width: 81px; }
+#wonderContext { gap: 12px; }
+#goalSummary { grid-template-columns: minmax(190px, 1fr) minmax(0, 3fr); }
+#goalSummary .metric, #bonusSummary .metric { justify-content: flex-start; }
+#goalSummary .metric > span, #bonusSummary .metric > span { margin-bottom: 7px; }
+#goalSummary .metric > strong, #bonusSummary .metric > strong {
+  font-size: 17px;
+  line-height: 1.55;
+}
+.metric-support {
+  display: block;
+  margin-top: 6px;
+  color: #506674;
+  font-size: 13px;
+  line-height: 1.6;
+}
+#citySummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#citySummary .metric { justify-content: flex-start; min-height: 140px !important; }
+#citySummary .metric strong { font-size: 17px !important; }
+#citySummary .metric a { color: var(--blue); text-underline-offset: 3px; }
+#citySummary .metric .metric-support a { display: inline-block; margin-top: 4px; }
+#cityOverviewCard .sectionbar h2 { flex: 1; }
+#cityOverviewCard .city-territory {
+  border: 0;
+  padding: 0;
+  background: none;
+  scroll-margin-top: 76px;
+}
+#cityOverviewCard .city-territory h3 {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+#cityOverviewCard .city-breakdown { border-top: 1px solid var(--surface-line); }
+#cityOverviewCard .city-breakdown summary { min-height: 44px; padding: 12px 4px; }
+#cityBuildings .building-dimensions {
+  display: block;
+  margin-top: 3px;
+  color: inherit;
+  font-weight: 400;
+}
+#cityBuildings:not(.building-details-open) tr > :nth-child(3) { display: none; }
+#cityBudgetSummary { margin: 10px 0; padding: 0; border: 0; }
+.penny-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--surface-line);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+.penny-breakdown .inline-status-row { border: 0; }
+.penny-breakdown .inline-status-row + .inline-status-row { border-left: 1px solid var(--surface-line); }
+
+@media (max-width: 720px) {
+  .card { padding: 12px; margin: 10px 0; }
+  :is(#productionSettings,#wonderSettings,#sleepCard,#cityOverviewCard,#dirhamCard) .bar label {
+    min-width: 0;
+    font-size: 14px;
+  }
+  #productionSettings .settings { gap: 12px; }
+  #productionSettings .settings :is(#wonderName,.number-step),
+  #cityOverviewCard .territory-controls .number-step,
+  #dirhamCard .currency-settings :is(.number-step,.amount-input) {
+    width: min(146px, 48%);
+    flex: 0 0 min(146px, 48%);
+    height: 48px;
+    min-height: 48px;
+  }
+  #productionSettings .settings .number-step input,
+  #cityOverviewCard .territory-controls .number-step input,
+  #dirhamCard .currency-settings .number-step input { min-height: 46px; }
+  #productionSettings .settings #wonderName { max-width: 48%; }
+  #wonderSettings .sectionbar { flex-wrap: nowrap; }
+  #wonderSettings .sectionbar #wonderView {
+    width: auto;
+    min-width: max-content;
+    flex: 0 0 auto;
+  }
+  #wonderSettings .settings {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  #wonderSettings .settings label { gap: 4px; white-space: nowrap; }
+  #wonderSettings .settings .number-step {
+    width: clamp(60px, 24vw, 90px);
+    height: 44px;
+    flex: 0 0 auto;
+  }
+  #wonderContext { grid-column: 1 / -1; }
+  #goalSummary { grid-template-columns: minmax(0, 1fr); }
+  #goalSummary .metric, #bonusSummary .metric { min-height: 74px; padding: 10px 12px; }
+  .detail-open-full { display: none; }
+  #citySummary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #citySummary .metric { grid-column: auto; padding: 12px 14px; }
+  #cityOverviewCard .territory-controls {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    gap: 10px;
+  }
+  #cityOverviewCard .territory-controls label { width: 100%; }
+  .penny-breakdown { grid-template-columns: minmax(0,1fr); }
+  .penny-breakdown .inline-status-row + .inline-status-row {
+    border-left: 0;
+    border-top: 1px solid var(--surface-line);
+  }
+  :is(#goalTable,#sleepTable,#powerTable,#cityBuildings) .mobilelabel,
+  #panel-prod #productionSections .mobilelabel {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+}
+
+#panel-city > .mobile-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+#constructionCard .sectionbar h2, #cityResearchCard .sectionbar h2,
+#cityCompositionCard .sectionbar h2, #dirhamCard .sectionbar h2 { flex: 1; }
+#constructionCard .sectionbar, #cityResearchCard .sectionbar { flex-wrap: nowrap; }
+.construction-guide, .research-guide { margin: 0 0 12px; }
+#construction .construction-empty {
+  margin: 0 0 14px;
+  padding: 16px;
+  border: 1px solid var(--surface-line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: #506674;
+  font-weight: 700;
+  text-align: center;
+}
+#cityResearchCard .research-selection { padding-top: 4px; }
+#cityResearchCard .research-selection p { margin-top: 0; color: #506674; font-size: 14px; }
+#cityResearchCard .research-budget { display: block; margin-bottom: 12px; }
+#cityResearchCard .research-search label { gap: 10px; white-space: nowrap; }
+#cityResearchCard .research-search :is(input, select) { margin: 0; }
+#detailDialog .modalhead { display: grid; grid-template-columns: minmax(0,1fr) 44px; gap: 10px; }
+#detailDialog .modalhead h2 { color: var(--blue); }
+#detailDialog .modalhead button,
+#detailDialog .detail-toggle-box {
+  background: var(--surface-muted);
+  border-color: var(--surface-line);
+}
+#detailDialog .detail-toggle-box {
+  border: 1px solid var(--surface-line);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+#detailDialog .detail-toggle-box > span { display: block; margin-bottom: 4px; color: #506674; font-size: 14px; }
+#detailDialog .detail-footer button:disabled { opacity: .5; }
+
+@media (max-width: 720px) {
+  #panel-city > .mobile-section-nav { gap: 6px; }
+  #detailDialog {
+    width: calc(100% - 16px);
+    max-width: none;
+    padding: 14px 12px;
+  }
+  #detailDialog .modalhead button { width: 44px; }
+  #detailDialog .modal-tabs button, #detailDialog .detail-footer button { min-height: 48px; }
+  #sleepCard .bar .number-step,
+  #cityResearchCard .research-search :is(input, select) {
+    width: min(146px, 48%);
+    min-width: 0;
+    height: 48px;
+    min-height: 48px;
+    flex: 0 0 min(146px, 48%);
+  }
+  #sleepCard .bar .sleep-cycle-field { flex-wrap: wrap; }
+  #sleepCard .bar .sleep-cycle-field select { width: 100%; max-width: none; flex: 0 0 100%; min-height: 48px; }
+  #panel-wonder:not(.expanded) :is(#sleepTable,#powerTable) tbody tr {
+    grid-template-columns: minmax(84px, 35%) minmax(0, 1fr);
+    margin-bottom: 8px;
+  }
+  #panel-wonder:not(.expanded) :is(#sleepTable,#powerTable) tbody tr td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    background: #e7eff4;
+    color: var(--blue);
+  }
+  #panel-wonder:not(.expanded) :is(#sleepTable,#powerTable) tbody tr td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 68px;
+  }
+  #panel-wonder:not(.expanded) #goalTable tbody td:nth-child(2),
+  #panel-wonder:not(.expanded) #goalTable tbody td:last-child { min-height: 88px; }
+  #panel-prod #t2 tbody td.viking-stock {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    align-items: stretch;
+    gap: 8px;
+  }
+  #panel-prod #t2 td.viking-stock > .mobilelabel { grid-column: 1 / -1; }
+  #panel-prod #t2 .pair-line { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+  #panel-prod #t2 .pair-line > span { flex-basis: auto; text-align: center; font-size: 13px; }
+  #panel-prod #t2 .pair-line input { flex: 0 0 auto; width: 100% !important; min-height: 48px; }
+}
