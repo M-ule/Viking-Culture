@@ -455,7 +455,7 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 }
 @media (max-width: 720px) {
   #conversionCard #tc { width: 500px; min-width: 500px; }
-  #conversionCard #tc th { height: 40px; }
+  #conversionCard #tc th { height: 40px; white-space: nowrap; }
   #tc tr > :first-child { width: 108px; }
   #tc tr > :nth-child(2) { width: 80px; }
   #panel-wonder.expanded :is(#goalTable,#sleepTable,#powerTable) tbody td:not(:first-child) {
