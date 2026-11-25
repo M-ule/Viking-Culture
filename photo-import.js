@@ -35,6 +35,11 @@
     el.textContent=message;
     el.classList.toggle("bad",error);
   }
+  function setApplyStatus(message="") {
+    const status=$p("photoApplyStatus");
+    status.textContent=message;
+    status.hidden=!message;
+  }
   function makeEntry(id,label,value,source,kind,extra="") {
     return {id,label,value,source,kind,extra};
   }
@@ -820,17 +825,26 @@
     const root=$p("photoReview");
     root.replaceChildren();
     if(!findings.length){$p("photoApply").disabled=true;return;}
-    const skip=document.createElement("button");skip.type="button";skip.textContent="미인식·확인 필요 값 미적용";
-    skip.addEventListener("click",()=>{
-      let count=0;
-      for(const check of root.querySelectorAll(".photo-select")){
-        const entry=findings.find(f=>f.id===check.dataset.id);
-        if(entry.value===null||entry.needsReview||entry.extra.includes("직접 확인")){
-          check.checked=false;count++;
-        }
-      }
-      setStatus(count+"개 항목을 미적용으로 설정했습니다. 기존 입력값은 유지됩니다.");
-    });root.append(skip);
+    const actions=document.createElement("div");actions.className="photo-review-actions";
+    const selectAll=document.createElement("button"),deselectAll=document.createElement("button");
+    selectAll.type=deselectAll.type="button";
+    selectAll.textContent="모두 선택";deselectAll.textContent="모두 해제";
+    selectAll.addEventListener("click",()=>{
+      const inputs=[...root.querySelectorAll(".photo-amount")];
+      let skipped=0;
+      inputs.forEach((input,index)=>{
+        const entry=findings[index],check=input.closest("tr").querySelector(".photo-select");
+        const valid=numeric(input.value,entry.kind==="level")!==null;
+        check.checked=valid&&(check.checked||!entry.needsReview&&!entry.extra.includes("직접 확인"));
+        if(!check.checked)skipped++;
+      });
+      setApplyStatus(skipped?"미인식·확인 필요 "+skipped+"개는 선택에서 제외했습니다.":"");
+    });
+    deselectAll.addEventListener("click",()=>{
+      for(const check of root.querySelectorAll(".photo-select"))check.checked=false;
+      setApplyStatus();
+    });
+    actions.append(selectAll,deselectAll);root.append(actions);
     const table=document.createElement("table");
     table.className="photo-table";
     const header=document.createElement("thead");
@@ -851,7 +865,8 @@
       number.dataset.id=entry.id;
       number.setAttribute("aria-label",entry.label+" 인식값");
       number.placeholder="인식 실패 · 직접 입력";
-      number.addEventListener("input",()=>{if(number.value.trim()!=="")check.checked=true;});
+      number.addEventListener("input",()=>{if(number.value.trim()!=="")check.checked=true;setApplyStatus();});
+      check.addEventListener("change",()=>setApplyStatus());
       c.append(number);
       const candidates=[...new Set(entry.candidates||[])];
       if(candidates.length>1||(entry.needsReview&&candidates.length)){
@@ -866,7 +881,7 @@
           button.setAttribute('aria-label',entry.label+' '+value.toLocaleString('ko-KR')+' 선택');
           button.setAttribute('aria-pressed','false');
           button.addEventListener('click',()=>{
-            number.value=String(value);check.checked=true;update();
+            number.value=String(value);check.checked=true;update();setApplyStatus();
           });
           buttons.push({button,value});options.append(button);
         }
@@ -896,7 +911,7 @@
     $p('photoReset').disabled=busy||(!findings.length&&!$p('photoBuildings').files.length&&!$p('photoStocks').files.length);
   }
   function clearPhotoResults(message){
-    findings=[];$p('photoReview').replaceChildren();$p('photoApply').disabled=true;
+    setApplyStatus();findings=[];$p('photoReview').replaceChildren();$p('photoApply').disabled=true;
     setStatus(message);syncPhotoControls();
   }
   function clearPhoto(id){
@@ -953,6 +968,7 @@
   }
   function apply(){
     if(busy)return;
+    setApplyStatus();
     const values={};
     let selected=0;
     for(const check of $p("photoReview").querySelectorAll(".photo-select")){
@@ -960,23 +976,26 @@
       const input=$p("photoReview").querySelector('.photo-amount[data-id="'+check.dataset.id+'"]');
       const original=findings.find(f=>f.id===check.dataset.id);
       const value=numeric(input.value,original?.kind==="level");
-      if(value===null){setStatus(original.label+" 항목의 숫자를 확인하세요.",true);input.focus();return;}
-      if(original.kind==="level"&&(value<1||value>6)){setStatus(original.label+" 레벨은 1~6이어야 합니다.",true);input.focus();return;}
-      if(original.kind==="count"&&value>10000){setStatus(original.label+" 수량을 확인하세요.",true);input.focus();return;}
+      if(value===null){setApplyStatus(original.label+" 항목의 "+(original.kind==="level"?"레벨(1~6)을":"숫자를")+" 확인하세요.");return;}
+      if(original.kind==="count"&&value>10000){setApplyStatus(original.label+" 수량을 확인하세요.");return;}
       values[check.dataset.id]=value;selected++;
     }
-    if(!selected){setStatus("적용할 항목을 체크하세요.",true);return;}
-    // A partial mixed-level house would replace its total and silently lose
-    // unchecked levels. Validate all groups before mutating any application state.
-    for(const item of TYPES.buildings.filter(item=>item.home)){
-      const groups=findings.filter(f=>f.id.startsWith(item.id+'_mix_'));
-      if(groups.some(f=>values[f.id]!==undefined)&&groups.some(f=>values[f.id]===undefined)){
-        setStatus(item.name+' 전체 수량을 반영하려면 각 레벨의 수량을 모두 확인·선택해주세요.',true);return;
-      }
-    }
+    if(!selected){setApplyStatus("적용할 항목을 체크하세요.");return;}
+    // Preserve unselected house levels when updating a recognized mix.
+    // A tavern photo can only provide a total for city planning, so partial
+    // tavern selections leave that total alone while other selections apply.
     const mixedTaverns=findings.filter(f=>f.id.startsWith('tavern_mix_'));
-    if(mixedTaverns.some(f=>values[f.id]!==undefined)&&mixedTaverns.some(f=>values[f.id]===undefined)){
-      setStatus('선술집 전체 수량을 반영하려면 각 레벨의 수량을 모두 확인·선택해주세요.',true);return;
+    let skippedTavern=0;
+    if(mixedTaverns.some(f=>values[f.id]===undefined)){
+      for(const {id} of mixedTaverns){
+        if(values[id]===undefined)continue;
+        delete values[id];skippedTavern++;
+      }
+      selected-=skippedTavern;
+    }
+    if(!selected){
+      setApplyStatus("선술집 총수를 반영하려면 각 레벨의 수량을 모두 선택하세요.");
+      return;
     }
     const affected=TYPES.buildings.filter(item=>item.prod&&(values[item.id+"_lv"]!==undefined||values[item.id+"_count"]!==undefined)).map(item=>item.prod);
     if(values.tavern_lv!==undefined||values.tavern_count!==undefined)affected.push("벌꿀 술","건어물");
@@ -992,9 +1011,13 @@
           .filter(group=>group.lv>=1&&group.lv<=6);
         if(mixed.length){
           app.city.homeMix??={};
-          app.city.homeMix[item.home]=mixed;
-          const total=mixed.reduce((sum,g)=>sum+g.count,0);
-          const main=[...mixed].sort((a,b)=>b.count-a.count)[0];
+          const partial=findings.some(f=>f.id.startsWith(item.id+"_mix_")&&values[f.id]===undefined);
+          const previous=app.city.homeMix[item.home]||[app.city.homes[item.home]];
+          const unchanged=partial?previous.filter(g=>g.count>0&&!mixed.some(row=>row.lv===g.lv)):[];
+          const combined=[...unchanged,...mixed].sort((a,b)=>a.lv-b.lv);
+          app.city.homeMix[item.home]=combined;
+          const total=combined.reduce((sum,g)=>sum+g.count,0);
+          const main=[...combined].sort((a,b)=>b.count-a.count)[0];
           app.city.homes[item.home]={lv:main.lv,count:total};
         }else if(lv!==undefined||count!==undefined){
           if(app.city.homeMix)delete app.city.homeMix[item.home];
@@ -1036,6 +1059,7 @@
     if(tavernMix.length||(tavernCount!==undefined&&(tavernLv===undefined||tavernLv>=4))){
       $p("resetStatus").textContent+=" · 선술집 총수는 도시 관리에 반영했습니다. 벌꿀 술·건어물의 생산별 건물 수와 레벨은 생산 계산기에서 직접 확인하세요.";
     }
+    if(skippedTavern)$p("resetStatus").textContent+=" · 선술집 총수는 모든 레벨을 선택하면 반영됩니다.";
     $p("resetStatus").scrollIntoView({block:"nearest",behavior:"smooth"});
   }
   $p("photoImportBtn").addEventListener("click",()=>{$p("photoImportDialog").showModal();});

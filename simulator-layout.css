@@ -1,0 +1,184 @@
+/* Common calculator layout with the Viking palette. */
+:root {
+  background: #f1f5f8;
+  --surface-line: #b7c8d2;
+  --surface-muted: #eef4f7;
+}
+
+h1 { color: var(--blue); margin-bottom: 12px; }
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  color: #506674;
+  font-size: 14px;
+}
+.legend .chip { margin: 0; }
+.tabs { background: #f1f5f8; }
+
+.sectionbar { justify-content: space-between; }
+.title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.title-actions button,
+.detail-open,
+#wonderView { min-height: 44px; white-space: nowrap; }
+.title-actions button:disabled { opacity: .45; }
+#resetStatus { display: block; }
+#resetStatus:empty { display: none; }
+#productionSettings .settings,
+#wonderSettings .settings,
+#sleepCard > .bar { margin-bottom: 16px; }
+
+#bonusSummary, #goalSummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#bonusSummary .metric, #goalSummary .metric {
+  grid-column: auto;
+  height: auto;
+  min-height: 90px;
+  background: var(--surface-muted);
+}
+.production-section-title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
+}
+.production-title-meta {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  min-width: 0;
+}
+.detail-summary, .quest-reward-note { color: #506674; font-size: 14px; }
+.detail-summary.applied, .quest-reward-note a { color: var(--blue); font-weight: 700; }
+#questRewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+#questRewards label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#questRewards input, .detail-enabled input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+#questRewards label > span > span { white-space: nowrap; }
+
+#conversionCard .sectionbar { justify-content: flex-start; }
+#conversionCard .sectionbar .note { margin: 0; font-size: 14px; }
+#conversionCard #tc {
+  width: 100%;
+  min-width: 680px;
+  table-layout: fixed;
+}
+#tc th, #tc td { height: 42px; padding: 6px 8px; font-size: 14px; }
+#tc tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 140px;
+  background: white;
+  box-shadow: 2px 0 var(--line);
+}
+#tc thead tr > :first-child { z-index: 2; background: var(--blue); }
+#tc tr > :nth-child(2) { width: 145px; white-space: normal; }
+#convert:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+#detailDialog {
+  width: min(860px, calc(100% - 32px));
+  max-height: 90dvh;
+  padding: 20px;
+  overscroll-behavior: contain;
+}
+#detailDialog[open] { display: flex; flex-direction: column; }
+#detailDialog .modalhead, #detailTabs, .detail-footer { flex-shrink: 0; }
+#detailDialog .modalhead { align-items: flex-start; margin-bottom: 12px; }
+#detailDialog .modalhead button { min-width: 44px; min-height: 44px; }
+#detailDialog .modalhead p { margin: 4px 0 0; }
+#detailDialog .modal-tabs { margin-bottom: 12px; }
+#detailDialog .detail-content { overflow: auto; min-height: 0; padding: 4px; }
+.detail-enabled { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.detail-result {
+  margin: 8px 0 12px;
+  padding: 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--surface-line);
+  border-radius: 6px;
+}
+#detailDialog .detailrow {
+  grid-template-columns: minmax(72px, 1fr) minmax(135px, 1.5fr) minmax(76px, 1fr) minmax(100px, 1fr) 44px;
+}
+#detailDialog .detailrow :is(input, select, .number-step) { width: 100%; min-width: 0; }
+.detail-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--surface-line);
+}
+.detail-footer button { min-height: 44px; }
+.detail-footer .primary-action { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.currency-settings label { align-items: flex-start; }
+.currency-settings input, .currency-settings .number-step { width: 132px; }
+.currency-time-context { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.currency-time-context .note { margin: 0; }
+.currency-time-context button { min-height: 40px; }
+.research-search { margin: 8px 0 14px; }
+#researchSearch { min-height: 44px; padding: 8px; }
+#researchStage { min-width: 110px; }
+.photo-review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+#photoApplyStatus { margin: 8px 0; color: #8b2433; }
+#photoApplyStatus[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .sectionbar h2 .term-wrap { flex-wrap: nowrap; }
+  #productionSettings .sectionbar, .title-actions { width: 100%; }
+  .title-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .title-actions button { padding: 8px 5px; }
+  #prodView { grid-column: 1 / -1; }
+  #productionSettings .settings, #wonderSettings .settings, #sleepCard > .bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  #productionSettings .settings label,
+  #wonderSettings .settings label,
+  #sleepCard .bar label,
+  .currency-settings label,
+  .research-search label { width: 100%; }
+  .currency-settings, .research-search { display: grid; grid-template-columns: minmax(0, 1fr); }
+  #researchSearch { width: min(55%, 220px); }
+  #productionSettings .settings select { width: 55%; max-width: 210px; }
+  #sleepCard .bar select { width: 120px; }
+  #bonusSummary, #goalSummary { grid-template-columns: minmax(0, 1fr); }
+  .production-section-title { align-items: flex-start; }
+  .production-title-meta { flex-basis: 100%; font-size: 13px; }
+  #stage2 .production-title-meta { min-width: 0; }
+  #questRewards label { min-height: 36px; }
+  #tc tr > :first-child { width: 102px; }
+  #tc tr > :nth-child(2) { width: 115px; }
+  #detailDialog { width: calc(100% - 16px); padding: 14px; }
+  #detailDialog .detailrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #detailDialog .detailrow > button { grid-column: 2; justify-self: end; min-width: 44px; }
+  .detail-footer button { flex: 1; }
+}

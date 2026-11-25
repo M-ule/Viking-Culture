@@ -30,16 +30,16 @@
     const html = await fetchContent(target, checkedAt, signal);
     const template = document.createElement('template');
     template.innerHTML = new TextDecoder().decode(html);
-    const scripts = new Set();
-    for (const script of template.content.querySelectorAll('script[src]')) {
-      const url = new URL(script.getAttribute('src'), target);
+    const assets = new Set();
+    for (const asset of template.content.querySelectorAll('script[src], link[rel="stylesheet"][href]')) {
+      const url = new URL(asset.getAttribute('src') || asset.getAttribute('href'), target);
       if (url.origin !== target.origin) continue;
       url.hash = '';
-      scripts.add(url.href);
+      assets.add(url.href);
     }
     const digests = await Promise.all([
       contentDigest(html),
-      ...Array.from(scripts, async url => contentDigest(await fetchContent(url, checkedAt, signal)))
+      ...Array.from(assets, async url => contentDigest(await fetchContent(url, checkedAt, signal)))
     ]);
     return digests.join(':');
   }
