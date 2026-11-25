@@ -182,3 +182,12 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   #detailDialog .detailrow > button { grid-column: 2; justify-self: end; min-width: 44px; }
   .detail-footer button { flex: 1; }
 }
+
+#goalSummary .missing-hours { margin-top: 6px; color: #506674; font-size: 13px; }
+
+@media (min-width: 1101px) {
+  #panel-prod:not(.expanded) #t2 th:nth-child(6) { width: 46% !important; }
+  #panel-prod:not(.expanded) :is(#t1, #t3) th:nth-child(6) { width: 20% !important; }
+  #panel-prod:not(.expanded) :is(#t1, #t3) th:nth-child(9) { width: 20% !important; }
+  #panel-prod:not(.expanded) :is(#t1, #t3) th:nth-child(10) { width: 18% !important; }
+}

@@ -997,11 +997,46 @@
       setApplyStatus("선술집 총수를 반영하려면 각 레벨의 수량을 모두 선택하세요.");
       return;
     }
-    const affected=TYPES.buildings.filter(item=>item.prod&&(values[item.id+"_lv"]!==undefined||values[item.id+"_count"]!==undefined)).map(item=>item.prod);
-    if(values.tavern_lv!==undefined||values.tavern_count!==undefined)affected.push("벌꿀 술","건어물");
-    const active=[...new Set(affected)].filter(b=>app.details?.[b]?.enabled);
-    if(active.length&&!window.confirm("상세 설정이 적용 중인 건물이 있습니다: "+active.join(", ")+"\n사진의 기본 수량·레벨을 반영하려면 해당 상세 설정을 해제해야 합니다. 계속하시겠습니까?"))return;
-    for(const b of active)app.details[b].enabled=false;
+    // An imported level and count update that level within an existing
+    // detailed setup. Other levels and their operating settings are preserved.
+    const detailWarnings=[];
+    function updateProduction(building,lv,count){
+      const basic=app.buildings[building],detail=app.details[building];
+      if(detail.enabled&&count!==undefined&&lv!==undefined){
+        const matching=detail.rows.filter(row=>row.lv===lv);
+        if(!matching.length){
+          if(detail.rows.length>=20)return false;
+          detail.rows.push({lv,count,mode:modeForLevel(building,lv,basic.mode),hours:''});
+        }else{
+          let remaining=count;
+          for(const row of matching){
+            row.count=Math.min(row.count,remaining);
+            remaining-=row.count;
+          }
+          matching[0].count+=remaining;
+        }
+      }
+      if(lv!==undefined){basic.lv=lv;basic.mode=modeForLevel(building,lv,basic.mode);}
+      if(count!==undefined)basic.bldgs=detail.enabled?actualBuildings(building):count;
+      return true;
+    }
+    for(const {id,prod,name} of TYPES.buildings){
+      if(!prod||!app.details[prod]?.enabled)continue;
+      const levelKey=id+"_lv",countKey=id+"_count",lv=values[levelKey],count=values[countKey];
+      if(lv===undefined&&count===undefined)continue;
+      const detail=app.details[prod];
+      if(lv!==undefined&&count!==undefined){
+        if(detail.rows.length<20||detail.rows.some(row=>row.lv===lv))continue;
+        detailWarnings.push(name+" 상세 구성 한도(20개)에 도달했습니다.");
+      }else{
+        detailWarnings.push(name+" 상세 설정을 갱신하려면 레벨과 수량을 함께 선택하세요.");
+      }
+      for(const key of [levelKey,countKey]){
+        if(values[key]===undefined)continue;
+        delete values[key];selected--;
+      }
+    }
+    if(!selected){setApplyStatus(detailWarnings.join(" "));return;}
     for(const item of TYPES.buildings){
       const lv=values[item.id+"_lv"],count=values[item.id+"_count"];
       if(item.home){
@@ -1025,9 +1060,9 @@
           if(count!==undefined)app.city.homes[item.home].count=count;
         }
       } else if(item.prod){
-        const s=app.buildings[item.prod];
-        if(lv!==undefined){s.lv=closestAvailableLevel(item.prod,lv);s.mode=modeForLevel(item.prod,s.lv,s.mode);}
-        if(count!==undefined)s.bldgs=count;
+        if(lv===undefined&&count===undefined)continue;
+        const level=lv===undefined?undefined:closestAvailableLevel(item.prod,lv);
+        updateProduction(item.prod,level,count);
         const map={bee:"Beehive_Average",fishpier:"FishingPier_Average",expedition:"ExpeditionPier_Average",harbor:"SailorPort_Average"};
         if(map[item.id])delete app.city.manual[map[item.id]];
       }
@@ -1038,8 +1073,8 @@
     if(tavernCount!==undefined){
       app.city.manual.Workshop_Tavern=tavernCount;
       if(tavernLv!==undefined&&tavernLv<4){
-        app.buildings["벌꿀 술"].bldgs=tavernCount;
-        app.buildings["건어물"].bldgs=0;
+        if(!updateProduction("벌꿀 술",tavernLv,tavernCount))detailWarnings.push("벌꿀 술 상세 구성 한도(20개)에 도달했습니다.");
+        if(!app.details["건어물"].enabled)app.buildings["건어물"].bldgs=0;
       }
     }
     if(tavernLv!==undefined&&tavernLv<4){
@@ -1059,6 +1094,7 @@
     if(tavernMix.length||(tavernCount!==undefined&&(tavernLv===undefined||tavernLv>=4))){
       $p("resetStatus").textContent+=" · 선술집 총수는 도시 관리에 반영했습니다. 벌꿀 술·건어물의 생산별 건물 수와 레벨은 생산 계산기에서 직접 확인하세요.";
     }
+    if(detailWarnings.length)$p("resetStatus").textContent+=" · "+detailWarnings.join(" ");
     if(skippedTavern)$p("resetStatus").textContent+=" · 선술집 총수는 모든 레벨을 선택하면 반영됩니다.";
     $p("resetStatus").scrollIntoView({block:"nearest",behavior:"smooth"});
   }
