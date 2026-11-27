@@ -62,12 +62,12 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 }
 .detail-summary, .quest-reward-note { color: #506674; font-size: 14px; }
 .detail-summary.applied, .quest-reward-note a { color: var(--blue); font-weight: 700; }
-#questRewards {
+.quest-rewards {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
 }
-#questRewards label {
+.quest-rewards label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -76,14 +76,14 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   font-weight: 700;
   cursor: pointer;
 }
-#questRewards input, .detail-enabled input {
+.quest-rewards input, .detail-enabled input {
   width: 18px;
   height: 18px;
   min-height: 18px;
   margin: 0;
   accent-color: var(--blue);
 }
-#questRewards label > span > span { white-space: nowrap; }
+.quest-rewards label > span > span { white-space: nowrap; }
 
 #conversionCard .sectionbar { justify-content: flex-start; }
 #conversionCard .sectionbar .note { margin: 0; font-size: 14px; }
@@ -156,7 +156,7 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   .production-section-title { align-items: flex-start; }
   .production-title-meta { flex-basis: 100%; font-size: 13px; }
   #stage2 .production-title-meta { min-width: 0; }
-  #questRewards label { min-height: 36px; }
+  .quest-rewards label { min-height: 36px; }
   #tc tr > :first-child { width: 102px; }
   #tc tr > :nth-child(2) { width: 115px; }
   #detailDialog { width: calc(100% - 16px); padding: 14px; }
@@ -386,6 +386,7 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   accent-color: var(--blue);
 }
 .territory-meter progress.over-capacity { accent-color: var(--red); }
+.quest-applied[hidden] { display: none; }
 .quest-applied { display: block; text-align: center; color: var(--blue); font-size: 12px; }
 #termHelpDialog { width: min(460px, calc(100% - 24px)); }
 #termHelpText { margin: 12px 0 0; line-height: 1.65; }
@@ -694,7 +695,7 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   #cityBuildings th:nth-child(3), #cityBuildings th:nth-child(4) { width: 16%; }
 }
 @media (min-width: 721px) and (max-width: 1000px) {
-  #stage2 .quest-reward-note, #stage2 #questRewards { flex-basis: 100%; }
+  #productionSections .quest-reward-note, #productionSections .quest-rewards { flex-basis: 100%; }
 }
 @media (min-width: 721px) and (max-width: 850px) {
   #sleepCard .area-field:last-child, #dirhamCard .area-field:last-child { flex-basis: 100%; }
@@ -709,8 +710,8 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   #productionSections .detail-open { min-width: 84px; padding-inline: 10px; }
   #productionSections .production-section-title { gap: 4px; }
   #productionSections .production-title-meta { margin-left: 12px; }
-  #questRewards { flex-basis: 100%; }
-  #stage2 .quest-reward-note { flex-basis: 100%; }
+  .quest-rewards { flex-basis: 100%; }
+  #productionSections .quest-reward-note { flex-basis: 100%; }
   #productionSections .sectionbar, #panel-wonder .sectionbar,
   #panel-city .sectionbar { margin-bottom: 12px; }
   #wonderView { min-height: 44px; padding-inline: 11px; }

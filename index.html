@@ -508,7 +508,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 }
 .home-mix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.home-mix label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.home-mix-total{white-space:nowrap;color:var(--blue);font-size:.95em}.home-mix input{width:66px;min-width:55px;height:35px}
 </style>
-<link rel="stylesheet" href="simulator-layout.css?v=20261127c">
+<link rel="stylesheet" href="simulator-layout.css?v=20261127d">
 </head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><section class="card" id="productionSettings">
 <div class="sectionbar"><h2 data-tip-key="생산 설정">생산 설정</h2><div class="title-actions">
 <button id="photoImportBtn" type="button">사진으로 입력</button>
@@ -525,10 +525,11 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 <div id="bonusSummary" class="summary"></div></section><div id="productionSections"><div class="card" id="stage0"><div class="sectionbar"><div class="production-section-title"><h2 data-tip-key="기초 자원">기초 자원</h2><div class="production-title-meta">
 <span class="detail-summary" id="detailSummary0">기본 설정 사용</span></div></div>
 <button type="button" class="detail-open" data-detail-group="0" aria-label="기초 자원 상세 설정"><span class="detail-open-full">기초 자원 </span>상세 설정</button></div><div class="wrap"><table class="prodtable" id="t1"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage1"><div class="sectionbar"><div class="production-section-title"><h2 data-tip-key="중간 자원">중간 자원</h2><div class="production-title-meta">
-<span class="detail-summary" id="detailSummary1">기본 설정 사용</span></div></div>
+<span class="detail-summary" id="detailSummary1">기본 설정 사용</span><span class="quest-reward-note"><a href="https://heroesofhistory.wiki/allied-cultures#quests" target="_blank" rel="noopener noreferrer">퀘스트 보상</a> · 미수령 보상만 선택</span>
+<div class="quest-rewards" data-quest-group="mid" role="group" aria-label="중간 자원 퀘스트 예정 보상"></div></div></div>
 <button type="button" class="detail-open" data-detail-group="1" aria-label="중간 자원 상세 설정"><span class="detail-open-full">중간 자원 </span>상세 설정</button></div><div class="wrap"><table class="prodtable" id="t3"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage2"><div class="sectionbar"><div class="production-section-title"><h2 data-tip-key="상품">상품</h2><div class="production-title-meta">
 <span class="detail-summary" id="detailSummary2">기본 설정 사용</span><span class="quest-reward-note"><a href="https://heroesofhistory.wiki/allied-cultures#quests" target="_blank" rel="noopener noreferrer">퀘스트 보상</a> · 체크 시 불가사의 계산에 합산</span>
-<div id="questRewards" role="group" aria-label="상품 퀘스트 예정 보상"></div></div></div>
+<div class="quest-rewards" data-quest-group="treasure" role="group" aria-label="상품 퀘스트 예정 보상"></div></div></div>
 <button type="button" class="detail-open" data-detail-group="2" aria-label="상품 상세 설정"><span class="detail-open-full">상품 </span>상세 설정</button></div><div class="wrap"><table class="prodtable" id="t2"><thead></thead><tbody></tbody></table></div></div></div></section>
 <section id="panel-wonder" class="panel"><nav class="mobile-section-nav" aria-label="불가사의 목표 섹션 바로가기"><a href="#goalCard">목표 현황</a><a href="#sleepCard">수면</a><a href="#powerCard">생산력</a><a href="#conversionCard">환산표</a></nav><section class="card" id="wonderSettings">
 <div class="sectionbar"><h2 data-tip-key="불가사의 목표">불가사의 목표</h2>
@@ -616,8 +617,9 @@ const DETAIL_GROUPS={base:{title:'기초 자원 상세 설정',buildings:BASE,su
 const TREASURE_NAMES=['도자기 보물','황금 보물','향신료 보물','보석 보물'];
 // Heroes of History Wiki, Allied Cultures → Quests, all three Viking events.
 const QUEST_REWARDS={
-  eternalIce:{name:'Eternal Ice',items:{'도자기 보물':1000,'황금 보물':800}},
-  finalStretch:{name:'The Final Stretch',items:{'향신료 보물':3500,'보석 보물':1000}}
+  eternalIceMead:{name:'Eternal Ice · 개별 퀘스트',group:'mid',items:{'벌꿀 술':2000}},
+  eternalIce:{name:'Eternal Ice',group:'treasure',items:{'도자기 보물':1000,'황금 보물':800}},
+  finalStretch:{name:'The Final Stretch',group:'treasure',items:{'향신료 보물':3500,'보석 보물':1000}}
 };
 function questBonus(name){
   return Object.entries(QUEST_REWARDS).reduce((sum,[id,quest])=>sum+(app.settings.questRewards?.[id]===true?(quest.items[name]||0):0),0);
@@ -719,7 +721,7 @@ function demandOf(resource,hOverride=null){
   if(resource==='건어물')return use('선원 항구','건어물',hOverride);
   return 0;
 }
-function resourceRemain(resource){return stockOf(resource)+producedOf(resource)-demandOf(resource);}
+function resourceRemain(resource){return plannedStock(resource)+producedOf(resource)-demandOf(resource);}
 function resourceProducer(resource){if(resource==='꿀')return '벌집';if(resource==='생선')return '부두';if(resource==='벌꿀 술')return '벌꿀 술';if(resource==='건어물')return '건어물';return null;}
 function boundedProduction(building,h){
  const total={out1:0,out2:0,uses:{}};
@@ -744,7 +746,7 @@ function timeToOutput(building,need,key='out1'){
  return hi;
 }
 function resourceTime(resource){
-  const need=Math.max(0,demandOf(resource)-stockOf(resource));if(need<=0)return 0;
+  const need=Math.max(0,demandOf(resource)-plannedStock(resource));if(need<=0)return 0;
   const building=resourceProducer(resource);if(!building)return null;
   return timeToOutput(building,need,'out1');
 }
@@ -1036,10 +1038,11 @@ function sleepRequirements(){
  for(const building of BASE.concat(MID)){
   const resource=STOCK_KEY[building],beforeUse=num(preUse[resource]),required=num(reserved[resource]);
   capacity[building]=pre[building].out1;
-  projected[building]=stockOf(resource)+capacity[building]-beforeUse;
+  const stock=plannedStock(resource);
+  projected[building]=stock+capacity[building]-beforeUse;
   needAmount[building]=required;
   remain[building]=projected[building]-required;
-  const shortage=Math.max(0,beforeUse+required-stockOf(resource)),ref=benchmarkRate(building)*h;
+  const shortage=Math.max(0,beforeUse+required-stock),ref=benchmarkRate(building)*h;
   needEq[building]=shortage<=1e-9?0:ref>0?shortage/ref:null;
  }
  return {h,needEq,needAmount,projected,remain,capacity};
@@ -1289,13 +1292,13 @@ targetRequirements=function(){
  const sail=pairedTargetInputs('선원 항구',short['향신료 보물'],short['보석 보물']);
  const meadDemand=num(exp['벌꿀 술'])+num(sail['벌꿀 술']),driedDemand=num(sail['건어물']);
  const netNeed=(gross,stock)=>gross>0?Math.max(0,gross-stock):0;
- const mead=singleTargetInputs(goalReferenceRates('벌꿀 술')[0],netNeed(meadDemand,stockOf('벌꿀 술')));
- const dried=singleTargetInputs(goalReferenceRates('건어물')[0],netNeed(driedDemand,stockOf('건어물')));
+ const mead=singleTargetInputs(goalReferenceRates('벌꿀 술')[0],netNeed(meadDemand,plannedStock('벌꿀 술')));
+ const dried=singleTargetInputs(goalReferenceRates('건어물')[0],netNeed(driedDemand,plannedStock('건어물')));
  const needAmount={'벌집':num(mead['꿀'])+num(dried['꿀']),'부두':num(exp['생선'])+num(dried['생선']),
   '벌꿀 술':meadDemand,'건어물':driedDemand,...short},needEq={};
  for(const item of BASE.concat(MID,TREASURE_NAMES)){
   const treasure=TREASURE_NAMES.includes(item),b=treasure?treasurePair(item):item,key=treasure?treasureOutputKey(item):'out1';
-  const amount=treasure?short[item]:netNeed(needAmount[item],stockOf(STOCK_KEY[item]));
+  const amount=treasure?short[item]:netNeed(needAmount[item],plannedStock(STOCK_KEY[item]));
   const ref=benchmarkRate(b,key)*productionWindow(b);
   needEq[item]=amount<=1e-10?0:ref>0?amount/ref:null;
  }
@@ -1392,7 +1395,7 @@ Object.assign(TOOLTIPS,{
  '소비·필요량':'소비는 다른 생산에 사용되는 자원량, 필요는 해당 건물의 생산에 필요한 원료량입니다. 상품의 목표 필요량은 불가사의 목표 레벨까지 요구되는 수량입니다.',
  '상세 설정':'같은 생산 항목의 건물별 레벨·생산 방식·건물 수·운영 시간을 개별 설정합니다.',
  '최대 도달(생선 기준)':'보유 상품·건어물과 보유·예상 생산 생선을 기준으로 최대 도달 레벨을 계산합니다. 부족한 상품은 Lv6·30분 일반 생산과 2시간 단일 생산을 조합해 생선 소비를 최소화합니다. 퀘스트 상품 보상을 반영하며, 꿀·벌꿀 술은 충분하다고 가정하며, 상품 생산에 걸리는 시간은 고려하지 않습니다.',
- '수면 대비 자원 확보':'취침 전에 걸어둘 모든 생산 예약의 원료를 미리 확보할 수 있는지 확인합니다. 불가사의 목표와 무관하게 건물 수·레벨·예약 주기·횟수를 반영합니다. 수면 중 생산된 자원은 다른 예약의 원료로 사용하지 않습니다.',
+ '수면 대비 자원 확보':'취침 전에 걸어둘 모든 생산 예약의 원료를 미리 확보할 수 있는지 확인합니다. 건물 수·레벨·예약 주기·횟수와 선택한 퀘스트 보상을 반영합니다. 취침 전에 수령할 보상만 선택하세요. 수면 중 생산된 자원은 다른 예약의 원료로 사용하지 않습니다.',
  '총 필요량':'수면 전 소비와 수면 중 생산에 필요한 자원의 합계입니다.',
  '취침 전 확보량':'현재 보유량에 취침 전 생산량을 더하고 취침 전 소비량을 뺀 수량입니다. 수면 중 생산량은 포함하지 않습니다.',
  '생산력 환산표':'Lv6 건물 1채의 생산력을 100으로 봅니다. 주기 생산은 30분, 꿀·생선은 연속 생산을 기준으로 환산합니다.',
@@ -1418,7 +1421,7 @@ Object.assign(TOOLTIPS,{
 // Reuse the same wording and tooltip behavior for all headings and inputs.
 for(const key of Object.keys(TOOLTIPS))if(key.includes('디르함'))TOOLTIPS[key.replaceAll('디르함','페니')]=TOOLTIPS[key].replaceAll('디르함','페니');
 TOOLTIPS['자원']='바이킹의 기초·중간 자원인 꿀·생선·벌꿀 술·건어물입니다.';
-TOOLTIPS['목표 레벨 생산력 비교']='보유 보물과 선택한 퀘스트 보상을 뺀 목표량을 비교합니다. 원료는 설정한 생산 방식을 Lv6 기준으로 환산하며, 두 보물을 함께 생산하는 주기의 소비는 한 번만 계산합니다.';
+TOOLTIPS['목표 레벨 생산력 비교']='보물과 중간 자원의 보유량 및 선택한 퀘스트 보상을 반영해 필요한 생산력을 비교합니다. 원료는 설정한 생산 방식을 Lv6 기준으로 환산하며, 두 보물을 함께 생산하는 주기의 소비는 한 번만 계산합니다.';
 TOOLTIPS['페니 현황']='현재 보유량과 예상 생산량을 합하고 건설·목표 연구 비용을 차감한 잔여/부족을 표시합니다.';
 function shortName(t){return t.replace(' 보물','');}
 function fmtPenny(value){if(!Number.isFinite(value))return '—';const abs=Math.abs(value),unit=abs>=1e6?1e6:abs>=100000?1000:1;return unit===1?fmtQty(value):(value/unit).toLocaleString('en-US',{maximumFractionDigits:2})+(unit===1e6?'M':'K');}
@@ -1451,14 +1454,15 @@ function commonProductionCells(building){
  td(input('bldgs',detailed?actualBuildings(building):s.bldgs,'min="0" step="1" '+dis))+
  td(detailed?(hours.length===1?duration(hours[0]):'혼합'):input('hours',s.hours,'min="0" step="any" placeholder="기본 '+fmtHours(app.settings.baseH)+'"'),'detailcol');
 }
+function questStockNote(name){return '<small data-reward-resource="'+name+'" class="quest-applied" hidden></small>';}
 function resourceRow(building){
  const n=STOCK_KEY[building],s=app.buildings[building],m=metrics(building),need=demandOf(n),remain=resourceRemain(n),uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([name,v])=>'필요 '+name+' '+amountHtml(v)),useText='소비 '+amountHtml(need)+(uses.length?'<br>'+uses.join('<br>'):'');
- return '<tr data-building="'+building+'">'+td(n+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td('<input type="text" class="amount-input" data-k="stock" value="'+s.stock+'">')+td(amountHtml(remain),'calc '+(remain<0?'bad':'ok'))+td(amountHtml(m.out1),'calc detailcol')+td(useText,'calc detailcol')+td(duration(resourceTime(n)),'calc')+'</tr>';
+ return '<tr data-building="'+building+'">'+td(n+(detailEnabled(building)?'<span class="badge">상세</span>':''))+commonProductionCells(building)+td('<input type="text" class="amount-input" data-k="stock" value="'+s.stock+'">'+(MID.includes(building)?questStockNote(n):''))+td(amountHtml(remain),'calc '+(remain<0?'bad':'ok'))+td(amountHtml(m.out1),'calc detailcol')+td(useText,'calc detailcol')+td(duration(resourceTime(n)),'calc')+'</tr>';
 }
 function pairedProductRow(building){
  const m=metrics(building);
  const names=building==='탐험 부두'?TREASURE_NAMES.slice(0,2):TREASURE_NAMES.slice(2);
- const stock=names.map(t=>'<label class="pair-line"><span>'+shortName(t)+'</span><input type="text" class="raw-stock amount-input" data-treasure-stock="'+t+'" value="'+stockOf(t)+'" aria-label="'+shortName(t)+' 현재 보유량"><small data-reward-product="'+t+'" class="quest-applied" hidden></small></label>').join('');
+ const stock=names.map(t=>'<label class="pair-line"><span>'+shortName(t)+'</span><input type="text" class="raw-stock amount-input" data-treasure-stock="'+t+'" value="'+stockOf(t)+'" aria-label="'+shortName(t)+' 현재 보유량">'+questStockNote(t)+'</label>').join('');
  const outputs=names.map((t,i)=>'<span class="pair-output">'+shortName(t)+' '+amountHtml(i===0?m.out1:m.out2)+'</span>').join('');
  const uses=Object.entries(m.uses).filter(([,v])=>v>0).map(([name,v])=>'<span class="pair-output">'+name+' '+amountHtml(v)+'</span>').join('')||'0';
  return '<tr data-building="'+building+'">'+td(building+(detailEnabled(building)?'<span class="badge">상세</span>':''))+
@@ -1473,17 +1477,19 @@ renderProduction=function(){
    summary.textContent=applied.length?'상세 설정 적용: '+applied.map(b=>OUTPUT_LABEL[b]).join(' · '):'기본 설정 사용';
    summary.classList.toggle('applied',applied.length>0);
  });
- $('questRewards').innerHTML=Object.entries(QUEST_REWARDS).map(([id,quest])=>{
-   const amounts=Object.entries(quest.items).map(([name,amount])=>'<span>'+shortName(name)+' +'+fmtQty(amount)+'</span>').join(' · ');
-   return '<label><input type="checkbox" data-quest="'+id+'" title="'+quest.name+'"'+(app.settings.questRewards?.[id]?' checked':'')+'><span>'+amounts+'</span></label>';
- }).join('');
+ for(const group of document.querySelectorAll('[data-quest-group]')){
+   group.innerHTML=Object.entries(QUEST_REWARDS).filter(([,quest])=>quest.group===group.dataset.questGroup).map(([id,quest])=>{
+     const amounts=Object.entries(quest.items).map(([name,amount])=>'<span>'+shortName(name)+' +'+fmtQty(amount)+'</span>').join(' · ');
+     return '<label><input type="checkbox" data-quest="'+id+'" title="'+quest.name+'"'+(app.settings.questRewards?.[id]?' checked':'')+'><span>'+amounts+'</span></label>';
+   }).join('');
+ }
  syncQuestBonuses();
  // Preserve the two independently editable stock values in each dock row.
  $('t2').querySelectorAll('[data-treasure-stock]').forEach(el=>el.setAttribute('aria-label',shortName(el.dataset.treasureStock)+' 현재 보유량'));
 };
 function syncQuestBonuses(){
- for(const note of document.querySelectorAll('[data-reward-product]')){
-  const amount=questBonus(note.dataset.rewardProduct);
+ for(const note of document.querySelectorAll('[data-reward-resource]')){
+  const amount=questBonus(note.dataset.rewardResource);
   note.textContent=amount?'퀘스트 +'+fmtQty(amount):'';
   note.hidden=!amount;
  }
@@ -1544,9 +1550,9 @@ renderGoal=function(required=targetRequirements()){
 };
 renderSleep=function(){
  const req=sleepRequirements();
- const labels=['자원',{label:'생산력 차이',tip:'현재 생산력 − 취침 전 원료 확보에 필요한 생산력입니다.'},{label:'현재 생산력',tip:'건물별 운영 시간과 취침 전 남은 시간을 반영한 현재 생산 능력입니다.'},{label:'필요 생산력',tip:'취침 전 소비량과 모든 예약 원료량에서 현재 보유량을 뺀 부족량을 취침 전까지 생산하기 위해 필요한 생산력입니다.'},
+ const labels=['자원',{label:'생산력 차이',tip:'현재 생산력 − 취침 전 원료 확보에 필요한 생산력입니다.'},{label:'현재 생산력',tip:'건물별 운영 시간과 취침 전 남은 시간을 반영한 현재 생산 능력입니다.'},{label:'필요 생산력',tip:'취침 전 소비량과 예약 원료량에서 보유량과 선택한 보상을 빼고, 그 부족량을 취침 전까지 생산하는 데 필요한 생산력입니다.'},
   {label:'필요량',tip:'취침 전에 걸어둘 모든 생산 예약에 필요한 원료입니다. 수면 중 생산될 자원은 차감하지 않습니다.'},
-  {label:'예상 확보량',tip:'현재 보유량 + 취침 전 생산량 − 취침 전 소비량입니다.'},
+  {label:'예상 확보량',tip:'현재 보유량 + 선택한 퀘스트 보상 + 취침 전 생산량 − 취침 전 소비량입니다.'},
   {label:'잔여/부족',tip:'취침 전 예상 확보량에서 예약 생산에 필요한 양을 뺀 값입니다.'}];
  $('ts').innerHTML=head(labels)+'<tbody>'+BASE.concat(MID).map(b=>{
   const ref=benchmarkRate(b)*req.h,cur=ref>0?req.capacity[b]/ref*100:0,need=req.needEq[b]===null?null:req.needEq[b]*100,diff=need===null?null:cur-need,remain=req.remain[b];
@@ -1774,13 +1780,19 @@ $('resetCityBuildings').onclick=()=>{
 };
 for(const [id,apply]of [['bonusLv',v=>app.settings.bonusLv=clamp(Math.round(num(v)),0,50)],['baseH',v=>app.settings.baseH=Math.max(0,num(v))],['curLv',v=>app.wonder.cur=clamp(Math.round(num(v)),0,50)],['tgtLv',v=>app.wonder.tgt=clamp(Math.round(num(v)),0,50)],['sleepPrepH',v=>app.settings.sleepPrepH=v===''?'':Math.max(0,num(v))],['sleepCount',v=>app.settings.sleepCount=Math.max(0,Math.floor(num(v)))]])$(id).onchange=e=>{apply(e.target.value);renderAll();saveState();};
 $('sleepCycle').onchange=e=>{app.settings.sleepCycle=e.target.value;renderAll();saveState();};
-$('questRewards').onchange=e=>{
- const id=e.target.dataset.quest;
- if(!Object.hasOwn(QUEST_REWARDS,id))return;
- app.settings.questRewards[id]=e.target.checked;syncQuestBonuses();
- const required=targetRequirements();renderGoal(required);renderPower(required);syncViews();saveState();
-};
-$('productionSections').addEventListener('change',e=>{const el=e.target;if(el.dataset.treasureStock){commitTreasureStock(el.dataset.treasureStock,el.value);return;}const row=el.closest('[data-building]');if(row&&el.dataset.k)commitBuildingValue(row.dataset.building,el.dataset.k,el.value);});
+$('productionSections').addEventListener('change',e=>{
+ const el=e.target,id=el.dataset.quest;
+ if(Object.hasOwn(QUEST_REWARDS,id)){
+  app.settings.questRewards[id]=el.checked;
+  syncQuestBonuses();
+  renderStockChange();
+  saveState();
+  return;
+ }
+ if(el.dataset.treasureStock){commitTreasureStock(el.dataset.treasureStock,el.value);return;}
+ const row=el.closest('[data-building]');
+ if(row&&el.dataset.k)commitBuildingValue(row.dataset.building,el.dataset.k,el.value);
+});
 function syncSavedProduction(){
  try{$('restore').disabled=!localStorage.getItem(STORAGE_KEY+'_manual');}
  catch{$('restore').disabled=true;}
