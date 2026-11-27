@@ -84,6 +84,9 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   accent-color: var(--blue);
 }
 .quest-rewards label > span > span { white-space: nowrap; }
+.goal-quest-settings { margin-bottom: 12px; }
+.goal-quest-settings .note { margin: 4px 0 0; }
+.goal-quest-settings strong { color: var(--blue); }
 
 #conversionCard .sectionbar { justify-content: flex-start; }
 #conversionCard .sectionbar .note { margin: 0; font-size: 14px; }
