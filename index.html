@@ -474,10 +474,10 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 </style><style>
 #photoImportDialog{width:min(810px,96vw);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;padding:20px}
 .photo-description{font-size:14px;color:#50636e;line-height:1.65;margin:12px 0}
-.photo-files{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
-.photo-file{display:flex;flex-direction:column;gap:8px}.photo-file>button{align-self:flex-start}
+.photo-files{margin:16px 0}
+.photo-file{display:flex;flex-direction:column;gap:8px}.photo-file small{margin:0}
 .photo-files label{font-size:15px;font-weight:700;display:flex;flex-direction:column;gap:8px}
-.photo-files input[type=file]{background:#f4f8fa;border:1px solid #9fb0ba;padding:10px;text-align:left;height:auto;font-size:14px}
+.photo-files input[type=file]{background:#f4f8fa;border:1px solid #9fb0ba;padding:10px;text-align:left;height:auto;max-width:100%;font-size:14px}
 .photo-review{max-height:none;overflow:visible}
 .photo-table{min-width:0;table-layout:fixed;width:100%}
 .photo-table th,.photo-table td{height:auto;min-width:0;font-size:14px;padding:10px 7px}
@@ -488,7 +488,25 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 .photo-caution{display:block;font-weight:400;color:#886119;font-size:12px;line-height:1.45;margin-top:4px}
 #photoStatus{font-size:14px;flex:1;line-height:1.5}
 #photoImportDialog button:disabled{opacity:.45;cursor:default}
-@media(max-width:720px){.photo-files{grid-template-columns:1fr}#photoImportDialog{padding:13px}.photo-table th,.photo-table td{font-size:13px;padding:8px 4px}.photo-table th:nth-child(2),.photo-table td:nth-child(2){width:42%}.photo-table input[type=text]{font-size:16px}}
+#photoImportDialog .photo-table input[type=text]{width:100%;box-sizing:border-box}
+@media(max-width:720px){
+  #photoImportDialog{width:calc(100% - 16px);max-width:560px;max-height:calc(100dvh - 24px);padding:14px 12px;border-radius:12px}
+  #photoImportDialog .modalhead h2{font-size:18px}
+  #photoImportDialog .photo-description{font-size:13px}
+  #photoFiles{min-height:48px}
+  #photoImportDialog .photo-table,#photoImportDialog .photo-table tbody{display:block;width:100%}
+  #photoImportDialog .photo-table thead{display:none}
+  #photoImportDialog .photo-table tbody tr{display:grid;grid-template-columns:36px minmax(0,1fr);border:1px solid var(--line);border-radius:6px;margin:8px 0;padding:8px;gap:4px 8px}
+  #photoImportDialog .photo-table td{display:block;border:0;width:auto;height:auto;padding:0;min-width:0;background:transparent}
+  #photoImportDialog .photo-table td:first-child{grid-column:1;grid-row:1/3;align-self:start;padding:10px 0}
+  #photoImportDialog .photo-table td:nth-child(n+2){grid-column:2;text-align:left}
+  #photoImportDialog .photo-table td:nth-child(2){font-weight:700;line-height:1.5}
+  #photoImportDialog .photo-table input[type=text]{min-height:48px;font-size:16px}
+  #photoImportDialog .photo-table input[type=checkbox]{width:24px;height:24px;min-width:24px}
+  #photoImportDialog .bar>button{min-height:44px;flex:1}
+  #photoApply{width:100%;min-height:48px!important}
+  #photoStatus{flex-basis:100%;font-size:13px}
+}
 .home-mix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.home-mix label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.home-mix-total{white-space:nowrap;color:var(--blue);font-size:.95em}.home-mix input{width:66px;min-width:55px;height:35px}
 </style>
 <link rel="stylesheet" href="simulator-layout.css?v=20261126">
@@ -547,7 +565,16 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 <p id="detailResult" class="detail-result" role="status"></p><div id="detailRows"></div></div>
 <div class="detail-footer"><button id="detailAdd" type="button">+ 건물 구성 추가</button><button data-close="detailDialog" class="primary-action" type="button">완료</button></div>
 </dialog>
-<dialog id="photoImportDialog" aria-labelledby="photoImportTitle"><div class="modalhead"><h2 id="photoImportTitle">게임 사진으로 입력</h2><button id="photoImportClose" type="button">닫기</button></div><p class="photo-description">건물 목록 사진과 보유량 사진을 각각 여러 장 선택할 수 있습니다. 사진은 외부 서버로 전송하지 않으며, 확인 후 선택한 값만 반영됩니다.</p><div class="photo-files"><div class="photo-file"><label for="photoBuildings">건물 목록 화면<input id="photoBuildings" type="file" accept="image/*" multiple></label><button id="photoBuildingsClear" type="button" disabled>건물 사진 삭제</button></div><div class="photo-file"><label for="photoStocks">생산물·보유 자원 화면<input id="photoStocks" type="file" accept="image/*" multiple></label><button id="photoStocksClear" type="button" disabled>자원 사진 삭제</button></div></div><div class="bar"><button id="photoScan" type="button">사진 분석</button><button id="photoReset" type="button" disabled>사진 입력 초기화</button><span class="status" id="photoStatus" role="status" aria-live="polite">한 종류의 사진만 올려도 됩니다.</span></div><div id="photoReview" class="photo-review"></div><p class="photo-description">인식 결과를 꼭 확인하세요. 건물명을 찾아 해당 카드의 레벨과 수량을 인식합니다. 건물명을 찾지 못하면 해당 항목은 비워 두며, 수치를 확인한 후 적용하세요. 선술집 레벨 4 이상은 벌꿀 술·건어물 생산 건물 수를 따로 지정해야 합니다.</p><p id="photoApplyStatus" role="status" class="photo-description" hidden></p><div class="bar"><button id="photoApply" type="button" disabled>확인한 값 적용</button></div></dialog><dialog id="resetDialog"><div class="modalhead"><h2>생산 계산기 초기화</h2><button data-close="resetDialog">닫기</button></div><div class="bar"><button id="factory" class="danger">기본값으로 초기화</button></div><p class="note">생산 계산기의 입력값을 기본값으로 되돌립니다.</p></dialog>
+<dialog id="photoImportDialog" aria-labelledby="photoImportTitle">
+<div class="modalhead"><h2 id="photoImportTitle">게임 사진으로 입력</h2><button id="photoImportClose" type="button">닫기</button></div>
+<p class="photo-description">바이킹 게임 사진에서 건물·보유량을 읽습니다. 인식값을 확인하고 선택한 항목만 적용하세요. 사진은 외부 서버에 전송하지 않습니다.</p>
+<div class="photo-files"><div class="photo-file"><label for="photoFiles">게임 사진<input id="photoFiles" type="file" accept="image/*" multiple></label><small class="photo-description">건물 목록과 보유량 사진을 함께 선택하세요. 겹치는 건물은 한 번만 집계합니다.</small></div></div>
+<div class="bar"><button id="photoScan" type="button">사진 분석</button><button id="photoReset" type="button" disabled>사진 입력 초기화</button><span class="status" id="photoStatus" role="status" aria-live="polite">건물 목록과 보유량 사진을 함께 선택할 수 있습니다.</span></div>
+<div id="photoReview" class="photo-review"></div>
+<p class="photo-description">선술집 레벨 4 이상은 벌꿀 술·건어물 생산 건물 수를 생산 계산기에서 따로 지정하세요.</p>
+<p id="photoApplyStatus" role="status" class="photo-description" hidden></p>
+<div class="bar"><button id="photoApply" type="button" disabled>확인한 값 적용</button></div>
+</dialog><dialog id="resetDialog"><div class="modalhead"><h2>생산 계산기 초기화</h2><button data-close="resetDialog">닫기</button></div><div class="bar"><button id="factory" class="danger">기본값으로 초기화</button></div><p class="note">생산 계산기의 입력값을 기본값으로 되돌립니다.</p></dialog>
 <dialog id="researchDialog"><div class="modalhead"><h2 id="researchTitle"></h2><button data-close="researchDialog">닫기</button></div><p id="researchInfo"></p><div class="bar"><button id="currentResearch">현재 완료 선택/해제</button><button id="targetResearch">목표 선택/해제</button></div></dialog>
 
 
@@ -1756,4 +1783,4 @@ document.addEventListener('focusout',e=>{
 });
 document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el.classList?.contains('amount-input')){e.preventDefault();el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('aria-invalid')!=='true')el.blur();}});
 loadState();renderAll();saveState();syncSavedProduction();initTermTooltips();initializeNavigation();
-</script><script src="photo-import.js?v=20261126" defer></script><script src="update-check.js?v=20261125"></script></body></html>
+</script><script src="photo-import.js?v=20261127" defer></script><script src="update-check.js?v=20261125"></script></body></html>
