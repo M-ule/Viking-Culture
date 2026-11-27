@@ -508,7 +508,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 }
 .home-mix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.home-mix label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.home-mix-total{white-space:nowrap;color:var(--blue);font-size:.95em}.home-mix input{width:66px;min-width:55px;height:35px}
 </style>
-<link rel="stylesheet" href="simulator-layout.css?v=20261127">
+<link rel="stylesheet" href="simulator-layout.css?v=20261127b">
 </head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><section class="card" id="productionSettings">
 <div class="sectionbar"><h2 data-tip-key="생산 설정">생산 설정</h2><div class="title-actions">
 <button id="photoImportBtn" type="button">사진으로 입력</button>
@@ -517,7 +517,11 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 <button id="resetBtn" class="danger" type="button">초기화</button>
 <button id="prodView" type="button" aria-controls="t1 t3 t2">상세 보기</button>
 </div></div>
-<div class="bar settings"><label class="wide" data-tip-key="불가사의">불가사의 <select id="wonderName" aria-label="불가사의 선택"><option>발할라</option><option>위그드라실</option><option>드래곤십 엘리다</option></select></label><label data-tip-key="보너스 적용 레벨">보너스 적용 레벨 <input id="bonusLv" type="number" min="0" max="50" step="1"></label><label data-tip-key="기본 운영 시간(h)">기본 운영 시간(h) <input id="baseH" type="number" min="0" step="any"></label></div><span id="resetStatus" role="status" class="status"></span>
+<div class="settings">
+<div class="production-field"><label for="wonderName">불가사의</label><select id="wonderName"><option>발할라</option><option>위그드라실</option><option>드래곤십 엘리다</option></select></div>
+<div class="production-field"><label for="bonusLv" data-tip-key="보너스 적용 레벨">보너스 적용 레벨</label><input id="bonusLv" type="number" min="0" max="50" step="1"></div>
+<div class="production-field"><label for="baseH" data-tip-key="기본 운영 시간(h)">기본 운영 시간(h)</label><input id="baseH" type="number" min="0" step="any"></div>
+</div><span id="resetStatus" role="status" class="status"></span>
 <div id="bonusSummary" class="summary"></div></section><div id="productionSections"><div class="card" id="stage0"><div class="sectionbar"><div class="production-section-title"><h2 data-tip-key="기초 자원">기초 자원</h2><div class="production-title-meta">
 <span class="detail-summary" id="detailSummary0">기본 설정 사용</span></div></div>
 <button type="button" class="detail-open" data-detail-group="0" aria-label="기초 자원 상세 설정"><span class="detail-open-full">기초 자원 </span>상세 설정</button></div><div class="wrap"><table class="prodtable" id="t1"><thead></thead><tbody></tbody></table></div></div><div class="card" id="stage1"><div class="sectionbar"><div class="production-section-title"><h2 data-tip-key="중간 자원">중간 자원</h2><div class="production-title-meta">
@@ -1356,7 +1360,7 @@ function metricBox(k,v,cls=''){return '<div class="metric '+cls+'"><span>'+termH
 function summaryMetrics(target,arr){$(target).innerHTML=arr.map(([k,v,cls])=>metricBox(k,v,cls||'')).join('')}
 function fitMetricSummaries(){document.querySelectorAll('.summary .metric').forEach(box=>box.classList.remove('metric-compact','metric-tight'))}
 
-function decorateNumbers(root=document){root.querySelectorAll('input[type="number"]').forEach(input=>{if(input.matches('[data-k="stock"],.raw-stock,#dirhamStock,#dirhamRate'))return;if(input.parentElement?.classList.contains('number-step'))return;const wrapper=document.createElement('span');wrapper.className='number-step';const arrows=document.createElement('span');arrows.className='number-arrows';const name=input.getAttribute('aria-label')||input.closest('label')?.textContent.trim()||'숫자';for(const delta of [1,-1]){const button=document.createElement('button');button.type='button';button.dataset.numberDelta=String(delta);button.textContent=delta>0?'▲':'▼';button.setAttribute('aria-label',name+(delta>0?' 증가':' 감소'));button.disabled=input.disabled;arrows.appendChild(button)}input.replaceWith(wrapper);wrapper.appendChild(input);wrapper.appendChild(arrows)})}
+function decorateNumbers(root=document){root.querySelectorAll('input[type="number"]').forEach(input=>{if(input.matches('[data-k="stock"],.raw-stock,#dirhamStock,#dirhamRate'))return;if(input.parentElement?.classList.contains('number-step'))return;const wrapper=document.createElement('span');wrapper.className='number-step';const arrows=document.createElement('span');arrows.className='number-arrows';const name=input.getAttribute('aria-label')||input.labels?.[0]?.querySelector('.term-text')?.textContent||input.labels?.[0]?.textContent.trim()||'숫자';for(const delta of [1,-1]){const button=document.createElement('button');button.type='button';button.dataset.numberDelta=String(delta);button.textContent=delta>0?'▲':'▼';button.setAttribute('aria-label',name+(delta>0?' 증가':' 감소'));button.disabled=input.disabled;arrows.appendChild(button)}input.replaceWith(wrapper);wrapper.appendChild(input);wrapper.appendChild(arrows)})}
 function labelInputs(target){const root=$(target);root.querySelectorAll('table').forEach(table=>{const hs=[...table.querySelectorAll('thead th')];const specs=hs.map(th=>{const label=th.dataset.label||th.querySelector('.term-text')?.textContent||th.textContent.trim(),tip=th.dataset.help||TOOLTIPS[label]||'';th.dataset.label=label;th.dataset.help=tip;if(!th.querySelector('.term-wrap'))th.innerHTML=termHtml({label,tip});return{label,tip}});table.querySelectorAll('tbody tr').forEach(row=>{if(row.classList.contains('construction-empty'))return;const first=row.cells[0];let name='항목';if(first){const clone=first.cloneNode(true);clone.querySelectorAll('.mobilelabel').forEach(n=>n.remove());name=clone.textContent.trim()||'항목'}[...row.cells].forEach((cell,j)=>{const s=specs[j]||{label:'',tip:''};cell.dataset.label=s.label;cell.querySelector(':scope > .mobilelabel')?.remove();const mobile=document.createElement('span');mobile.className='mobilelabel';mobile.textContent=s.label;if(j>0||target==='construction')cell.insertBefore(mobile,cell.firstChild)});row.querySelectorAll('input,select').forEach(el=>{if(el.hasAttribute('aria-label'))return;const index=el.closest('td')?.cellIndex??0;el.setAttribute('aria-label',name+' '+(specs[index]?.label||'입력값'))})})});decorateNumbers(root)} function table(target,labels,rows){$(target).innerHTML='<table class="result-table">'+head(labels)+'<tbody>'+rows.join('')+'</tbody></table>';labelInputs(target)}
 
 function decorateTipLabels(root=document){root.querySelectorAll('[data-tip-key]').forEach(el=>{if(el.dataset.tipReady)return;const key=el.dataset.tipKey,tip=TOOLTIPS[key];if(!tip)return;const node=[...el.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(!node)return;const span=document.createElement('span');span.className='term-label';span.innerHTML='<span class="term-text">'+node.textContent.trim()+'</span>'+infoIcon(key,tip);node.replaceWith(span,document.createTextNode(' '));el.dataset.tipReady='1'})}
@@ -1488,14 +1492,14 @@ renderBonus=function(){
  const rates=[];
  if(bonus.honey)rates.push('꿀 +'+fmtPct(bonus.honey));
  if(bonus.penny)rates.push('페니 +'+fmtPct(bonus.penny));
- rates.push('일꾼 +'+workers.value+'명','선원 +'+sailors.value+'명');
+ const staffing='일꾼 +'+workers.value+'명 · 선원 +'+sailors.value+'명';
  const next=[['일꾼',workers,staff.worker],['선원',sailors,staff.sailor]].flatMap(([label,group,profile])=>
   group.next===null?[]:['다음 '+label+' 추가 Lv.'+group.next+' (+'+(staffAt(profile,group.next).value-group.value)+'명)']);
  const configured=BUILDINGS.some(b=>actualBuildings(b)>0);
  const operating=BUILDINGS.some(b=>configRows(b).some(row=>row.count>0&&rowHours(b,row)>0));
  const short=BASE.concat(MID).filter(b=>resourceRemain(STOCK_KEY[b])< -1e-8).map(b=>STOCK_KEY[b]);
  const check=(!configured||!operating);
- $('bonusSummary').innerHTML=summaryCard('불가사의 보너스',rates.join(' · '),next.join(' · '))+
+ $('bonusSummary').innerHTML=summaryCard('불가사의 보너스',rates.length?rates.join(' · ')+'<span class="bonus-staff">'+staffing+'</span>':staffing,next.join(' · ')||'다음 인력 추가 없음')+
   summaryCard(check?'생산 설정 확인':'조정 필요 생산 항목',!configured?'건물 수를 입력하세요.':!operating?'운영 시간을 입력하세요.':short.length?short.join(' · '):'없음','',!check&&short.length?'bad':'');
 };
 function powerShortfalls(required){

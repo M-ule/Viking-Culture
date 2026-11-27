@@ -35,7 +35,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 @media (min-width: 721px) and (max-width: 1100px) {
   main { padding: 18px 14px; }
 }
-#productionSettings .settings,
 #wonderSettings .settings,
 #sleepCard > .bar { margin-bottom: 16px; }
 
@@ -156,23 +155,17 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 
 @media (max-width: 720px) {
   .sectionbar h2 .term-wrap { flex-wrap: nowrap; }
-  #productionSettings .sectionbar, .title-actions { width: 100%; }
-  .title-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .title-actions button { padding: 8px 5px; }
-  #prodView { grid-column: 1 / -1; }
-  #productionSettings .settings, #wonderSettings .settings, #sleepCard > .bar {
+  #wonderSettings .settings, #sleepCard > .bar {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
-  #productionSettings .settings label,
   #wonderSettings .settings label,
   #sleepCard .bar label,
   .currency-settings label,
   .research-search label { width: 100%; }
   .currency-settings, .research-search { display: grid; grid-template-columns: minmax(0, 1fr); }
   #researchSearch { width: min(55%, 220px); }
-  #productionSettings .settings select { width: 55%; max-width: 210px; }
   #sleepCard .bar select { width: 120px; }
   #bonusSummary, #goalSummary { grid-template-columns: minmax(0, 1fr); }
   .production-section-title { align-items: flex-start; }
@@ -204,8 +197,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 .title-actions button:not(.danger), .detail-open, #wonderView, #cityView {
   border-color: var(--surface-line);
 }
-#productionSettings .settings { gap: 16px 24px; }
-#productionSettings .settings .number-step { width: 120px; }
 #wonderSettings .settings { gap: 16px 24px; }
 #wonderSettings .settings .number-step { width: 81px; }
 #wonderContext { gap: 12px; }
@@ -283,8 +274,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
     min-width: 0;
     font-size: 14px;
   }
-  #productionSettings .settings { gap: 12px; }
-  #productionSettings .settings :is(#wonderName,.number-step),
   #cityOverviewCard .territory-controls .number-step,
   #dirhamCard .currency-settings :is(.number-step,.amount-input) {
     width: min(146px, 48%);
@@ -292,10 +281,8 @@ h1 { color: var(--blue); margin-bottom: 12px; }
     height: 48px;
     min-height: 48px;
   }
-  #productionSettings .settings .number-step input,
   #cityOverviewCard .territory-controls .number-step input,
   #dirhamCard .currency-settings .number-step input { min-height: 46px; }
-  #productionSettings .settings #wonderName { max-width: 48%; }
   #wonderSettings .sectionbar { flex-wrap: nowrap; }
   #wonderSettings .sectionbar #wonderView {
     width: auto;
@@ -519,3 +506,145 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   #panel-prod #productionSections .prodtable tbody td:first-child { min-height: 42px; }
   #panel-prod #productionSections .prodtable tbody td:nth-child(n+7) { padding-block: 6px; }
 }
+
+/* Shared tab and production settings geometry. */
+.tabs .tab { line-height: 1.35; }
+
+#productionSettings > .sectionbar {
+  min-height: 48px;
+  flex-wrap: nowrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+#productionSettings h2 {
+  flex: 0 1 auto;
+  padding: 10px 12px;
+  line-height: 28px;
+  white-space: nowrap;
+}
+#productionSettings .title-actions { flex-wrap: nowrap; }
+#productionSettings .title-actions button {
+  height: 44px;
+  padding: 8px 12px;
+  line-height: 1.35;
+}
+#productionSettings .settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 0 0 16px;
+}
+.production-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.production-field > label { line-height: 1.5; }
+#productionSettings :is(h2, .production-field) .term-label { display: inline; }
+#productionSettings :is(h2, .production-field) .info-tip { margin-left: 9px; }
+#productionSettings h2 .info-tip { margin-left: 11px; }
+#productionSettings #wonderName { width: 210px; }
+.production-field > .number-step { width: 120px; }
+.production-field > :is(.number-step, select) {
+  flex: none;
+  min-width: 0;
+  height: 44px;
+}
+.production-field .number-step input { height: auto; min-height: 0; }
+.production-field .number-arrows { width: 28px; flex-basis: 28px; }
+
+#bonusSummary { margin-top: 14px; }
+#bonusSummary .metric { display: block; min-height: 90px; }
+#bonusSummary .metric > span { line-height: 1.5; }
+#bonusSummary .metric > strong {
+  display: inline;
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+  word-break: keep-all;
+}
+#bonusSummary .metric-support { margin-bottom: 7px; }
+#bonusSummary .bonus-staff::before { content: " · "; }
+#bonusSummary .metric > strong.bad { color: var(--red); }
+
+@media (max-width: 850px) {
+  #bonusSummary .bonus-staff { display: inline; }
+  #bonusSummary .bonus-staff::before { content: "\a"; white-space: pre; }
+}
+@media (max-width: 1000px) {
+  #productionSettings > .sectionbar {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 12px 8px;
+  }
+  #productionSettings h2 { grid-area: 1 / 1; justify-self: start; }
+  #productionSettings .title-actions { display: contents; }
+  #productionSettings .title-actions button { min-width: 0; font-size: 13px; }
+  #productionSettings #photoImportBtn { grid-area: 1 / 2; font-size: 16px; }
+  #productionSettings #manualSave { grid-area: 2 / 1; }
+  #productionSettings #restore { grid-area: 2 / 2; }
+  #productionSettings #resetBtn { grid-area: 3 / 1; justify-self: start; }
+  #productionSettings #prodView { grid-area: 3 / 2; justify-self: end; }
+}
+@media (max-width: 720px) {
+  main { padding-top: 12px; }
+  .tabs { padding-top: 6px; }
+  .mobile-section-nav a { min-height: 40px; }
+  #productionSettings :is(h2, .production-field) .info-tip {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    margin-left: 8px;
+  }
+  .tabs .tab { min-height: 48px; padding: 7px 4px; font-size: 13px; line-height: 1.4; }
+  #productionSettings > .sectionbar { gap: 8px; margin-bottom: 14px; }
+  #productionSettings h2 { grid-column: 1 / -1; padding: 8px; line-height: 1.5; }
+  #productionSettings #photoImportBtn { grid-area: 2 / 1; font-size: 13px; }
+  #productionSettings #manualSave { grid-area: 2 / 2; }
+  #productionSettings #restore { grid-area: 3 / 1; }
+  #productionSettings #resetBtn { grid-area: 3 / 2; }
+  #productionSettings #prodView { grid-area: 4 / 1 / auto / -1; }
+  #productionSettings .title-actions button {
+    width: 100%;
+    padding: 7px;
+    justify-self: stretch;
+  }
+  #productionSettings .settings {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .production-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 42%);
+    font-size: 14px;
+    white-space: normal;
+  }
+  .production-field > label { word-break: keep-all; }
+  .production-field > .number-step, #productionSettings #wonderName {
+    width: 100%;
+    height: 48px;
+    font-size: 16px;
+  }
+  .production-field .number-arrows { width: 38px; flex-basis: 38px; }
+  .production-field .number-arrows button { min-height: 0; }
+  #productionSettings #wonderName { font-size: clamp(13px, 4.1vw, 16px); }
+  #bonusSummary { gap: 8px; }
+  #bonusSummary .metric { min-height: 0; }
+  #bonusSummary .metric > span { margin-bottom: 5px; }
+  #bonusSummary .metric-support { margin-bottom: 5px; }
+  #bonusSummary .metric > strong { font-size: 16px !important; }
+}
+@media (max-width: 359px) {
+  .production-field {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 40%);
+    font-size: 13px;
+  }
+}
+/* Keep inline staffing at the same size as the production bonus values. */
+#bonusSummary .bonus-staff { display: inline; color: inherit; font: inherit; margin: 0; }
