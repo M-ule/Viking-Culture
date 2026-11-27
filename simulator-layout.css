@@ -6,6 +6,7 @@
 }
 
 h1 { color: var(--blue); margin-bottom: 12px; }
+.panel { scroll-margin-top: 76px; }
 .legend {
   display: flex;
   align-items: center;
@@ -31,6 +32,9 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 .title-actions button:disabled { opacity: .45; }
 #resetStatus { display: block; }
 #resetStatus:empty { display: none; }
+@media (min-width: 721px) and (max-width: 1100px) {
+  main { padding: 18px 14px; }
+}
 #productionSettings .settings,
 #wonderSettings .settings,
 #sleepCard > .bar { margin-bottom: 16px; }
@@ -248,16 +252,33 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 #cityBudgetSummary { margin: 10px 0; padding: 0; border: 0; }
 .penny-breakdown {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border: 1px solid var(--surface-line);
   border-radius: 6px;
   margin-top: 12px;
 }
-.penny-breakdown .inline-status-row { border: 0; }
+.penny-breakdown .inline-status-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px;
+  border: 0;
+  border-radius: 0;
+}
 .penny-breakdown .inline-status-row + .inline-status-row { border-left: 1px solid var(--surface-line); }
+.penny-breakdown a { color: var(--blue); text-underline-offset: 3px; }
+
+@media (max-width: 850px) {
+  .penny-breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .penny-breakdown .inline-status-row:nth-child(odd) { border-left: 0; }
+  .penny-breakdown .inline-status-row:nth-child(n+3) { border-top: 1px solid var(--surface-line); }
+}
 
 @media (max-width: 720px) {
   .card { padding: 12px; margin: 10px 0; }
+  .panel { scroll-margin-top: 70px; }
   :is(#productionSettings,#wonderSettings,#sleepCard,#cityOverviewCard,#dirhamCard) .bar label {
     min-width: 0;
     font-size: 14px;
@@ -304,11 +325,8 @@ h1 { color: var(--blue); margin-bottom: 12px; }
     gap: 10px;
   }
   #cityOverviewCard .territory-controls label { width: 100%; }
-  .penny-breakdown { grid-template-columns: minmax(0,1fr); }
-  .penny-breakdown .inline-status-row + .inline-status-row {
-    border-left: 0;
-    border-top: 1px solid var(--surface-line);
-  }
+  .penny-breakdown .inline-status-row { padding: 9px; }
+  .penny-breakdown a { display: inline-flex; align-items: center; min-height: 32px; }
   :is(#goalTable,#sleepTable,#powerTable,#cityBuildings) .mobilelabel,
   #panel-prod #productionSections .mobilelabel {
     padding: 0;
@@ -327,15 +345,22 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 #cityCompositionCard .sectionbar h2, #dirhamCard .sectionbar h2 { flex: 1; }
 #constructionCard .sectionbar, #cityResearchCard .sectionbar { flex-wrap: nowrap; }
 .construction-guide, .research-guide { margin: 0 0 12px; }
-#construction .construction-empty {
-  margin: 0 0 14px;
+#construction .construction-empty td {
   padding: 16px;
-  border: 1px solid var(--surface-line);
-  border-radius: 6px;
   background: var(--surface-muted);
   color: #506674;
-  font-weight: 700;
   text-align: center;
+}
+#construction .construction-empty .mobilelabel { display: none; }
+#cityResearchCard .research-wrap:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+#researchTree path { stroke: #9fb0ba; fill: none; }
+#researchTree .research-path-needed { stroke: var(--blue); stroke-width: 2.5; }
+#cityResearchCard .research-legend .current::before {
+  background: transparent;
+  border: 2px solid #418366;
+}
+@media (min-width:481px) and (max-width:720px) {
+  #cityResearchCard .research-stage-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 #cityResearchCard .research-selection { padding-top: 4px; }
 #cityResearchCard .research-selection p { margin-top: 0; color: #506674; font-size: 14px; }
