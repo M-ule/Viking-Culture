@@ -35,8 +35,7 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 @media (min-width: 721px) and (max-width: 1100px) {
   main { padding: 18px 14px; }
 }
-#wonderSettings .settings,
-#sleepCard > .bar { margin-bottom: 16px; }
+#wonderSettings .settings { margin-bottom: 16px; }
 
 #bonusSummary, #goalSummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #bonusSummary .metric, #goalSummary .metric {
@@ -141,8 +140,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 .detail-footer button { min-height: 44px; }
 .detail-footer .primary-action { background: var(--blue); border-color: var(--blue); color: #fff; }
 
-.currency-settings label { align-items: flex-start; }
-.currency-settings input, .currency-settings .number-step { width: 132px; }
 .currency-time-context { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
 .currency-time-context .note { margin: 0; }
 .currency-time-context button { min-height: 40px; }
@@ -155,18 +152,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 
 @media (max-width: 720px) {
   .sectionbar h2 .term-wrap { flex-wrap: nowrap; }
-  #wonderSettings .settings, #sleepCard > .bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-  }
-  #wonderSettings .settings label,
-  #sleepCard .bar label,
-  .currency-settings label,
-  .research-search label { width: 100%; }
-  .currency-settings, .research-search { display: grid; grid-template-columns: minmax(0, 1fr); }
-  #researchSearch { width: min(55%, 220px); }
-  #sleepCard .bar select { width: 120px; }
   #bonusSummary, #goalSummary { grid-template-columns: minmax(0, 1fr); }
   .production-section-title { align-items: flex-start; }
   .production-title-meta { flex-basis: 100%; font-size: 13px; }
@@ -240,7 +225,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   font-weight: 400;
 }
 #cityBuildings:not(.building-details-open) tr > :nth-child(3) { display: none; }
-#cityBudgetSummary { margin: 10px 0; padding: 0; border: 0; }
 .penny-breakdown {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -274,30 +258,10 @@ h1 { color: var(--blue); margin-bottom: 12px; }
     min-width: 0;
     font-size: 14px;
   }
-  #cityOverviewCard .territory-controls .number-step,
-  #dirhamCard .currency-settings :is(.number-step,.amount-input) {
-    width: min(146px, 48%);
-    flex: 0 0 min(146px, 48%);
-    height: 48px;
-    min-height: 48px;
-  }
-  #cityOverviewCard .territory-controls .number-step input,
-  #dirhamCard .currency-settings .number-step input { min-height: 46px; }
   #wonderSettings .sectionbar { flex-wrap: nowrap; }
   #wonderSettings .sectionbar #wonderView {
     width: auto;
     min-width: max-content;
-    flex: 0 0 auto;
-  }
-  #wonderSettings .settings {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-  #wonderSettings .settings label { gap: 4px; white-space: nowrap; }
-  #wonderSettings .settings .number-step {
-    width: clamp(60px, 24vw, 90px);
-    height: 44px;
     flex: 0 0 auto;
   }
   #wonderContext { grid-column: 1 / -1; }
@@ -352,7 +316,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 #cityResearchCard .research-selection { padding-top: 4px; }
 #cityResearchCard .research-selection p { margin-top: 0; color: #506674; font-size: 14px; }
 #cityResearchCard .research-budget { display: block; margin-bottom: 12px; }
-#cityResearchCard .research-search label { gap: 10px; white-space: nowrap; }
 #cityResearchCard .research-search :is(input, select) { margin: 0; }
 #detailDialog .modalhead { display: grid; grid-template-columns: minmax(0,1fr) 44px; gap: 10px; }
 #detailDialog .modalhead h2 { color: var(--blue); }
@@ -379,16 +342,6 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   }
   #detailDialog .modalhead button { width: 44px; }
   #detailDialog .modal-tabs button, #detailDialog .detail-footer button { min-height: 48px; }
-  #sleepCard .bar .number-step,
-  #cityResearchCard .research-search :is(input, select) {
-    width: min(146px, 48%);
-    min-width: 0;
-    height: 48px;
-    min-height: 48px;
-    flex: 0 0 min(146px, 48%);
-  }
-  #sleepCard .bar .sleep-cycle-field { flex-wrap: wrap; }
-  #sleepCard .bar .sleep-cycle-field select { width: 100%; max-width: none; flex: 0 0 100%; min-height: 48px; }
   #panel-wonder:not(.expanded) :is(#sleepTable,#powerTable) tbody tr {
     grid-template-columns: minmax(84px, 35%) minmax(0, 1fr);
     margin-bottom: 8px;
@@ -461,12 +414,10 @@ h1 { color: var(--blue); margin-bottom: 12px; }
   }
   #panel-prod #t2 .pair-line > span { flex: none; width: 100%; text-align: center; font-size: 13px; }
   #panel-prod #t2 .pair-line input { flex: none; width: 100% !important; height: 38px; min-height: 38px; }
-  #cityBuildings th:first-child { width: 22%; }
-  #cityBuildings th:nth-child(2) { width: 18%; }
-  #cityBuildings th:nth-child(3), #cityBuildings th:nth-child(4) { width: 16%; }
+
 }
 @media (max-width: 720px) {
-  #conversionCard #tc { width: 500px; min-width: 500px; }
+  #conversionCard #tc { width: 501px; min-width: 501px; }
   #conversionCard #tc th { height: 40px; white-space: nowrap; }
   #tc tr > :first-child { width: 108px; }
   #tc tr > :nth-child(2) { width: 80px; }
@@ -648,3 +599,184 @@ h1 { color: var(--blue); margin-bottom: 12px; }
 }
 /* Keep inline staffing at the same size as the production bonus values. */
 #bonusSummary .bonus-staff { display: inline; color: inherit; font: inherit; margin: 0; }
+
+/* Matching dimensions for shared controls and tables after the production settings. */
+#productionSections h2 .term-label, #panel-wonder h2 .term-label,
+.area-field .term-label { display: inline; }
+#productionSections h2 .info-tip, #panel-wonder h2 .info-tip,
+.area-field .info-tip { margin-left: 10px; }
+
+
+#wonderSettings .settings { gap: 16px 24px; }
+#wonderSettings .settings label { width: auto; font-weight: 600; white-space: nowrap; }
+#wonderSettings .settings .number-step { height: 40px; }
+#wonderSettings .number-step input, .area-field .number-step input { height: auto; min-height: 0; }
+#wonderContext { gap: 16px; padding: 10px 14px; }
+#wonderView { min-height: 40px; line-height: 1.35; }
+#goalSummary { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); margin-top: 14px; }
+#goalSummary .metric { display: block; min-height: 90px; }
+#goalSummary .metric > span { line-height: 1.5; }
+#goalSummary .term-wrap, #goalSummary .term-text { margin-bottom: 0; line-height: inherit; }
+#goalSummary .metric > strong {
+  display: inline;
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+  word-break: keep-all;
+}
+#goalSummary .metric > strong.bad { color: var(--red); }
+
+.area-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 0 0 16px;
+}
+.area-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+.area-field > label { line-height: 1.5; }
+.area-field > .number-step { width: 120px; }
+.area-field > select { width: 210px; }
+.area-field > input { width: 140px; }
+.area-field > :is(input, select, .number-step) { height: 40px; min-height: 40px; }
+.area-field .number-arrows { width: 28px; flex-basis: 28px; }
+#dirhamCard .area-field:has(.amount-error) { flex-wrap: wrap; }
+#dirhamCard .currency-time-context { margin: 8px 0 32px; }
+#dirhamCard .currency-time-context .note { margin: 0; line-height: 1.65; }
+#cityBudgetSummary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 18px 0 12px;
+  border-top: 2px solid var(--surface-line);
+  padding-top: 18px;
+}
+#cityBudgetSummary .metric:last-child { grid-column: 1 / -1; }
+#cityBudgetSummary .metric { min-height: 94px; padding: 12px 16px; }
+#cityBudgetSummary .metric > strong { line-height: 1.4 !important; }
+#cityCompositionCard .sectionbar button, #constructionCard .sectionbar button,
+#cityResearchCard .sectionbar button { min-height: 40px; line-height: 1.35; }
+#cityCompositionCard .city-composition-note, #constructionCard .construction-guide {
+  margin: 8px 0 9px;
+  line-height: 1.7;
+}
+#construction table { min-width: 0; }
+#construction th:first-child { width: 190px; }
+#construction th:last-child { width: 80px; }
+#cityResearchCard .sectionbar h2 { flex: 1; }
+#cityResearchCard .sectionbar .research-budget {
+  flex: none;
+  margin: 0;
+  min-width: 145px;
+}
+#cityResearchCard .research-search { gap: 12px 20px; margin: 12px 0; }
+#researchStage { width: 210px; }
+#researchSearch { width: 140px; min-height: 40px; }
+#cityResearchCard .research-search .area-field { min-width: min(100%, 250px); }
+#conversionCard .sectionbar { gap: 6px 12px; }
+#conversionCard .sectionbar .conversion-mode-note {
+  display: block;
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+@media (min-width: 721px) {
+  #panel-wonder.expanded :is(#tw,#ts,#ta) { min-width: 0; }
+  #cityOverviewCard .territory-controls { gap: 16px 24px; }
+  #cityBuildings th:first-child { width: 22%; }
+  #cityBuildings th:nth-child(2) { width: 18%; }
+  #cityBuildings th:nth-child(3), #cityBuildings th:nth-child(4) { width: 16%; }
+}
+@media (min-width: 721px) and (max-width: 1000px) {
+  #stage2 .quest-reward-note, #stage2 #questRewards { flex-basis: 100%; }
+}
+@media (min-width: 721px) and (max-width: 850px) {
+  #sleepCard .area-field:last-child, #dirhamCard .area-field:last-child { flex-basis: 100%; }
+}
+@media (max-width: 720px) {
+  #productionSections h2 .info-tip, #panel-wonder h2 .info-tip, .area-field .info-tip {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    margin-left: 8px;
+  }
+  #productionSections .detail-open { min-width: 84px; padding-inline: 10px; }
+  #productionSections .production-section-title { gap: 4px; }
+  #productionSections .production-title-meta { margin-left: 12px; }
+  #questRewards { flex-basis: 100%; }
+  #stage2 .quest-reward-note { flex-basis: 100%; }
+  #productionSections .sectionbar, #panel-wonder .sectionbar,
+  #panel-city .sectionbar { margin-bottom: 12px; }
+  #wonderView { min-height: 44px; padding-inline: 11px; }
+  #wonderSettings .settings {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+    gap: 10px 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  #wonderSettings .settings .number-step { width: min(100%, 81px); height: 46px; }
+  #wonderSettings .number-arrows { width: 28px; flex-basis: 28px; }
+  #wonderSettings .number-arrows button { min-height: 0; }
+  #wonderContext { padding: 10px 12px; gap: 12px; }
+  #goalSummary { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  #goalSummary .metric { min-height: 0; }
+  #goalSummary .metric > span { margin-bottom: 5px; }
+  #goalSummary .metric > strong { font-size: 16px !important; }
+  .area-settings { display: grid; gap: 10px; margin-bottom: 12px; }
+  .area-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 42%);
+    font-size: 14px;
+  }
+  .area-field.sleep-cycle-field { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .area-field > :is(input, select, .number-step) {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  .area-field .number-arrows { width: 38px; flex-basis: 38px; }
+  .area-field .number-arrows button { min-height: 0; }
+  #cityBudgetSummary { gap: 8px; }
+  #cityBudgetSummary .metric { min-height: 0; padding: 10px; }
+  #cityBudgetSummary .metric > strong { font-size: 19px !important; }
+  #cityCompositionCard .sectionbar button, #constructionCard .sectionbar button,
+  #cityResearchCard .sectionbar button { min-height: 44px; }
+  #cityView { min-width: min(145px, 44%); }
+  #addConstruction { min-width: 90px; }
+  #construction tbody tr { grid-template-columns: repeat(6,minmax(0,1fr)); margin-bottom: 8px; }
+  #construction tbody td { min-height: 0; padding: 6px 8px; gap: 4px; }
+  #constructionCard .construction-guide { margin-bottom: 14px; }
+  #construction tbody td:first-child { padding: 5px 8px 6px; background: var(--input); color: inherit; }
+  #construction tbody td:last-child button { height: 44px; padding: 6px; }
+  #construction tbody td:where(:nth-child(2), :nth-child(3), :nth-child(4), :last-child) { grid-column: span 2; }
+  #construction tbody td:nth-child(5) { grid-column: span 4; }
+  #construction tbody td:is(:first-child, :last-child) > .mobilelabel { display: none; }
+  #construction tbody td:not(:first-child) > .mobilelabel { padding: 0; border: 0; background: transparent; }
+  #construction .construction-empty td { grid-column: 1 / -1; }
+  #cityResearchCard .research-search { margin-top: 16px; }
+  #cityResearchCard .research-search .area-field { min-width: 0; }
+  #cityResearchCard .sectionbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  #cityResearchCard .sectionbar .research-budget { grid-column: 1 / -1; }
+  #cityResearchCard .research-filter button { min-height: 44px; }
+  #cityResearchCard .research-mobile-node { min-height: 68px; font-size: 15px; line-height: 1.5; }
+}
+@media (min-width: 360px) and (max-width: 720px) {
+  #wonderSettings .settings {
+    grid-template-columns: 67.5px minmax(0, 1fr) 67.5px minmax(0, 1fr);
+  }
+}
+@media (max-width: 359px) {
+  .area-field { grid-template-columns: minmax(0, 1fr) minmax(92px, 40%); font-size: 13px; }
+  .area-field.sleep-cycle-field { grid-template-columns: minmax(0, 1fr); }
+  #wonderSettings .settings { gap: 8px 4px; }
+  #wonderSettings .settings label { font-size: 13px; }
+}
