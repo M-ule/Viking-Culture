@@ -508,7 +508,7 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 }
 .home-mix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.home-mix label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.home-mix-total{white-space:nowrap;color:var(--blue);font-size:.95em}.home-mix input{width:66px;min-width:55px;height:35px}
 </style>
-<link rel="stylesheet" href="simulator-layout.css?v=20261127e">
+<link rel="stylesheet" href="simulator-layout.css?v=20261127f">
 </head><body><main><h1>바이킹 문명 시뮬레이터</h1><div class="legend"><span class="chip"></span>노란 칸에 입력</div><nav class="tabs" aria-label="계산기 탭"><button class="tab active" data-tab="prod">생산 계산기</button><button class="tab" data-tab="wonder">불가사의 목표</button><button class="tab" data-tab="city">도시 관리</button></nav><section id="panel-prod" class="panel active"><nav class="mobile-section-nav" aria-label="생산 계산기 섹션 바로가기"><a href="#stage0">기초 자원</a><a href="#stage1">중간 자원</a><a href="#stage2">상품</a></nav><section class="card" id="productionSettings">
 <div class="sectionbar"><h2 data-tip-key="생산 설정">생산 설정</h2><div class="title-actions">
 <button id="photoImportBtn" type="button">사진으로 입력</button>
@@ -538,7 +538,10 @@ main{padding:14px 8px;max-width:100%;overflow-x:clip}h1{font-size:21px}.card{pad
 <label for="tgtLv">목표 레벨</label><input id="tgtLv" type="number" min="0" max="50" step="1"><span class="wonder-context" id="wonderContext"><span>불가사의</span><strong id="wonderContextName"></strong><span>보너스</span><strong id="wonderContextLevel"></strong></span></div><div id="goalSummary" class="summary" role="status"></div></section><div class="card" id="goalCard"><div class="sectionbar"><h2 data-tip-key="목표 달성 현황">목표 달성 현황</h2></div><div class="goal-quest-settings">
 <div class="quest-reward-note" id="goalQuestLabel">퀘스트 보상 · 미수령 보상만 선택</div>
 <div class="quest-rewards" data-quest-group="all" role="group" aria-labelledby="goalQuestLabel"></div>
-<p class="note" id="goalMeadNeed" role="status"></p>
+<div class="goal-resource-needs" role="status">
+<p class="note" id="goalMeadNeed"></p>
+<p class="note" id="goalHoneyNeed"></p>
+</div>
 </div><div id="goalTable" class="wrap"><table class="result-table" id="tw"><thead></thead><tbody></tbody></table></div></div><div class="card" id="sleepCard"><div class="sectionbar"><h2 data-tip-key="수면 대비 자원 확보">수면 대비 자원 확보</h2></div><div class="area-settings">
 <div class="area-field"><label for="sleepPrepH" data-tip-key="수면까지 남은 시간(h)">수면까지 남은 시간(h)</label><input id="sleepPrepH" type="number" min="0" step="any" placeholder="기본"></div>
 <div class="area-field sleep-cycle-field"><label for="sleepCycle" data-tip-key="예약 생산 주기">예약 생산 주기</label><select id="sleepCycle"><option value="long">레벨별 최장</option><option value="30분">30분</option><option value="1시간">1시간</option><option value="2시간">2시간</option></select></div>
@@ -1296,18 +1299,22 @@ targetRequirements=function(){
  const sail=pairedTargetInputs('선원 항구',short['향신료 보물'],short['보석 보물']);
  const meadDemand=num(exp['벌꿀 술'])+num(sail['벌꿀 술']),driedDemand=num(sail['건어물']);
  const netNeed=(gross,stock)=>gross>0?Math.max(0,gross-stock):0;
- const meadToProduce=netNeed(meadDemand,plannedStock('벌꿀 술'));
- const mead=singleTargetInputs(goalReferenceRates('벌꿀 술')[0],meadToProduce);
- const dried=singleTargetInputs(goalReferenceRates('건어물')[0],netNeed(driedDemand,plannedStock('건어물')));
- const needAmount={'벌집':num(mead['꿀'])+num(dried['꿀']),'부두':num(exp['생선'])+num(dried['생선']),
-  '벌꿀 술':meadDemand,'건어물':driedDemand,...short},needEq={};
+ const productionNeed={...short,
+  '벌꿀 술':netNeed(meadDemand,plannedStock('벌꿀 술')),
+  '건어물':netNeed(driedDemand,plannedStock('건어물'))};
+ const mead=singleTargetInputs(goalReferenceRates('벌꿀 술')[0],productionNeed['벌꿀 술']);
+ const dried=singleTargetInputs(goalReferenceRates('건어물')[0],productionNeed['건어물']);
+ const honeyForDried=num(dried['꿀']);
+ const needAmount={'벌집':num(mead['꿀'])+honeyForDried,'부두':num(exp['생선'])+num(dried['생선']),
+  '벌꿀 술':meadDemand,'건어물':driedDemand,...short};
+ for(const item of BASE)productionNeed[item]=netNeed(needAmount[item],plannedStock(STOCK_KEY[item]));
+ const needEq={};
  for(const item of BASE.concat(MID,TREASURE_NAMES)){
   const treasure=TREASURE_NAMES.includes(item),b=treasure?treasurePair(item):item,key=treasure?treasureOutputKey(item):'out1';
-  const amount=treasure?short[item]:item==='벌꿀 술'?meadToProduce:netNeed(needAmount[item],plannedStock(STOCK_KEY[item]));
-  const ref=benchmarkRate(b,key)*productionWindow(b);
+  const amount=productionNeed[item],ref=benchmarkRate(b,key)*productionWindow(b);
   needEq[item]=amount<=1e-10?0:ref>0?amount/ref:null;
  }
- return {needAmount,needEq,meadToProduce};
+ return {needAmount,needEq,productionNeed,honeyForDried};
 };
 sleepCurrentEq=function(building,h){const ref=benchmarkRate(building)*Math.max(0,h);return ref>0?metrics(building,h).out1/ref:0;};
 function maxProductLevel(){for(let lv=50;lv>=app.wonder.cur;lv--)if(TREASURE_NAMES.every(t=>wonderNeedTo(lv,t)<=plannedStock(t)+producedOf(t)+1e-8))return lv;return app.wonder.cur;}
@@ -1540,7 +1547,9 @@ function powerShortfalls(required){
  return {short,unknown};
 }
 renderGoal=function(required=targetRequirements()){
- $('goalMeadNeed').innerHTML='목표까지 추가 생산할 벌꿀 술 <strong>'+amountHtml(required.meadToProduce)+'</strong>';
+ $('goalMeadNeed').innerHTML='목표까지 추가 생산할 벌꿀 술 <strong>'+amountHtml(required.productionNeed['벌꿀 술'])+'</strong>';
+ const driedTip=required.honeyForDried>0?infoIcon('꿀 필요량','건어물 추가 생산에도 꿀 '+fmtQty(required.honeyForDried)+'이 필요합니다. 전체 필요량에서 현재 꿀 보유량을 차감해 표시합니다.'):'';
+ $('goalHoneyNeed').innerHTML='목표까지 추가 생산할 꿀 <strong>'+amountHtml(required.productionNeed['벌집'])+'</strong>'+driedTip;
  const labels=['상품',{label:'잔여/부족',tip:'예상 보유량에서 목표까지의 구간 필요량을 뺀 값입니다.'},'구간 필요량',
   {label:'현재 보유량',tip:'입력한 보물 보유량에 선택한 퀘스트 보상을 더한 값입니다.'},'예상 생산량',
   {label:'예상 보유량',tip:'입력한 보물 보유량에 퀘스트 보상과 예상 생산량을 더한 값입니다.'},'소요 시간'];
