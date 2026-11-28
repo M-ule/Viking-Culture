@@ -182,6 +182,14 @@
         !agreed?'교차 검증 부족 · 직접 확인':''};
   }
 
+  function stockNumber(text,header){
+    const cleaned=String(text||"").toUpperCase().replace(/\s/g,"").replace(/O/g,"0");
+    if(header&&/^\d+(?:[.,]\d+)?[KM]$/.test(cleaned))return numeric(cleaned.replace(",","."));
+    // Exact balances are integers. OCR can mistake their thousands comma for a dot.
+    if(!/^(?:\d+|\d{1,3}(?:[.,]\d{3})+)$/.test(cleaned))return null;
+    return numeric(cleaned.replace(/[.,]/g,""));
+  }
+
   // Independently count full-height glyphs in the stock panel. OCR agreement
   // alone is insufficient: several variants can all drop the same digits.
   function panelNumberImage(img,box,threshold=135,direct=false){
@@ -244,18 +252,18 @@
 
   async function readStock(worker,img,box){
     // Modest padding retains the first digit while keeping nearby icons out.
-    const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[];
+    const area=[box[0]-1,box[1]-1,box[2]+1,box[3]+1],readings=[],header=box[1]<60;
     for(const [mode,psm] of [['original','7'],['contrast','7'],['binary','7']]){
       await worker.setParameters({tessedit_char_whitelist:'0123456789.,KkMm',tessedit_pageseg_mode:psm});
       const text=(await worker.recognize(stockVariant(img,area,mode))).data.text;
-      readings.push({text,value:numeric(text),mode});
+      readings.push({text,value:stockNumber(text,header),mode});
     }
     let rejected=false,unverifiedDigits=false,glyphs=null;
     // K/M describes the mantissa, so its visible glyph count must never be
     // compared with the expanded integer (446.0K -> 446000).
-    const compactHeader=box[1]<60&&readings.some(r=>r.value!==null&&/[KM]/i.test(r.text));
-    if(box[1]>=60||(box[0]<520&&!compactHeader)){
-      const header=box[1]<60, source=header?stockVariant(img,area,'binary'):img;
+    const compactHeader=header&&readings.some(r=>r.value!==null&&/[KM]/i.test(r.text));
+    if(!compactHeader){
+      const source=header?stockVariant(img,area,'binary'):img;
       glyphs=panelNumberImage(source,area,135,header);
       const alternate=panelNumberImage(source,area,110,header);
       if(!alternate||alternate.count!==glyphs?.count)glyphs=null;
@@ -273,7 +281,7 @@
     let result=stockConsensus(readings);
     const visualReading=readings.find(r=>r.mode==='게임 글꼴 비교');
     if(visualReading&&readings.some(r=>r!==visualReading&&r.value===visualReading.value)){
-      result={...result,value:visualReading.value,needsReview:false,extra:''};
+      result={...result,value:visualReading.value,candidates:[visualReading.value],needsReview:false,extra:''};
     }
     if(result.needsReview&&glyphs){
       // Retry each glyph independently when whole-line OCR disagrees or drops
@@ -292,7 +300,10 @@
     }
     if(unverifiedDigits){result.needsReview=true;result.extra=[result.extra,'숫자 자릿수 확인 실패 · 직접 확인'].filter(Boolean).join(' · ');}
     if(rejected&&result.needsReview)result.extra=[result.extra,'숫자 자릿수 불일치 감지 · 직접 확인'].filter(Boolean).join(' · ');
-    return {...result,candidates:[...new Set([...(result.candidates||[]),...readings.map(r=>r.value??r.rejectedValue).filter(v=>v!==undefined&&v!==null)])],rejectedCandidates:[...new Set(readings.filter(r=>r.rejectedValue!==undefined).map(r=>r.rejectedValue))],diagnostics:readings.map(r=>({mode:r.mode,text:r.text.trim(),accepted:r.value!==null})),preview:crop(img,area,3).toDataURL('image/png')};
+    const rejectedCandidates=result.needsReview?[...new Set(readings.filter(r=>r.rejectedValue!==undefined).map(r=>r.rejectedValue))]:[];
+    return {...result,candidates:[...new Set([...result.candidates,...rejectedCandidates])],
+      rejectedCandidates,diagnostics:readings.map(r=>({mode:r.mode,text:r.text.trim(),accepted:r.value!==null})),
+      preview:crop(img,area,3).toDataURL('image/png')};
   }
 
   // Locate building cards by text, not their fixed row or column.
@@ -519,7 +530,7 @@
       }
       const ww=right-left+1,hh=bottom-top+1;
       if(area>=450&&area<=1000&&ww>=27&&ww<=39&&hh>=27&&hh<=39){
-        result.push({cx:Math.round(sumx/area),cy:Math.round(sumy/area)});
+        result.push({cx:Math.round(sumx/area),cy:Math.round(sumy/area),isolated:true});
       }
     }
     // A count badge can touch an orange roof. In that case connected-
@@ -545,7 +556,15 @@
       if(result.every(b=>(b.cx-point.cx)**2+(b.cy-point.cy)**2>20**2))
         result.push({cx:point.cx,cy:point.cy});
     }
-    return result;
+    const anchors=result.filter(badge=>badge.isolated);
+    return result.map(badge=>{
+      if(badge.isolated)return badge;
+      // A merged roof can pull the detected center away from the column.
+      // Nearby intact badges provide an independent alignment reference.
+      const column=anchors.filter(anchor=>Math.abs(anchor.cx-badge.cx)<=7);
+      if(column.length<2)return badge;
+      return {...badge,cx:Math.round(column.reduce((sum,anchor)=>sum+anchor.cx,0)/column.length)};
+    });
   }
   // Roofs can merge into the orange badge ring and shift the detected center.
   // Refine it with the actual digit ink before looking up the building name
@@ -569,18 +588,15 @@
     return {badge:{...badge,cx:badge.cx+best.dx,cy:badge.cy+best.dy},
       count:best.count};
   }
-  function badgeLocatedCards(img){
-    const canvas=document.createElement("canvas");canvas.width=BASE_W;canvas.height=BASE_H;
-    const ctx=canvas.getContext("2d",{willReadFrequently:true});
-    ctx.drawImage(img,0,0,BASE_W,BASE_H);
-    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H),cards=new Map();
-    for(const detected of findOrangeBadges(pixels)){
+  function badgeLocatedCards(pixels,badges){
+    const cards=new Map();
+    for(const detected of badges){
       const refined=refineBadgeCenter(pixels,detected),badge=refined.badge;
       const m=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,labelBits,108,32,-113,18,"label");
       if(m.score<.70||m.margin<.12)continue;
       const lv=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,levelBits,12,24,-77,49,"level");
       const card={x:badge.cx-113,y:badge.cy+50,lv:lv.score>=.79&&lv.margin>=.16?Number(lv.value):null,
-        count:null,badge,fromBadge:true};
+        levelHint:lv.score>=.71&&lv.margin>=.20?Number(lv.value):null,count:null,badge};
       if(!cards.has(m.value))cards.set(m.value,[]);
       // Avoid duplicate ring candidates that belong to one physical badge.
       if(!cards.get(m.value).some(c=>Math.hypot(c.badge.cx-badge.cx,c.badge.cy-badge.cy)<18)){
@@ -633,7 +649,10 @@
     if(!card.badge&&!card.levelAnchor)return null;
     await worker.setParameters({tessedit_char_whitelist:"123456",tessedit_pageseg_mode:"10"});
     const b=card.badge||card.levelAnchor;
-    return readValue(worker,img,[b.cx-79,b.cy+47,b.cx-63,b.cy+74],true);
+    const value=await readValue(worker,img,[b.cx-79,b.cy+47,b.cx-63,b.cy+74],true);
+    // An isolated numeral can confuse 2 and 3 after JPEG compression.
+    // Use the aligned template when both readings are covered by its glyphs.
+    return card.levelHint&&levelBits[value]?card.levelHint:value;
   }
   async function locateCards(img){
     const ocr=await koreanOCR();
@@ -656,7 +675,9 @@
     return recognized;
   }
   function isOrange(r,g,b){return r>175&&g>98&&g<227&&b<140&&r>g+30&&g>b+20;}
-  function badgeAt(pixels,x,y){
+  function badgeAt(pixels,badges,x,y){
+    const nearby=badges.filter(badge=>Math.abs(badge.cx-x-113)<=9&&Math.abs(badge.cy-y+50)<=10);
+    if(nearby.length===1)return refineBadgeCenter(pixels,nearby[0]).badge;
     const {data,width,height}=pixels;let best=null;
     for(let cx=Math.round(x+98);cx<=Math.round(x+120);cx+=2){
       for(let cy=Math.round(y-63);cy<=Math.round(y-34);cy+=2){
@@ -669,7 +690,7 @@
           if(isOrange(data[n],data[n+1],data[n+2]))ok++;
           all++;
         }
-        const rate=all?ok/all:0,score=rate-.008*(Math.abs(cx-x-108)+Math.abs(cy-y+49));
+        const rate=all?ok/all:0,score=rate-.008*(Math.abs(cx-x-113)+Math.abs(cy-y+50));
         if(rate>=.47&&(!best||score>best.score))best={cx,cy,score};
       }
     }
@@ -682,7 +703,7 @@
     const ctx=cv.getContext("2d",{willReadFrequently:true}),d=ctx.getImageData(0,0,cv.width,cv.height);
     for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){
       const p=(y*cv.width+x)*4,r=d.data[p],g=d.data[p+1],b=d.data[p+2];
-      const inside=(x-cv.width/2)**2+(y-cv.height/2)**2<(cv.width*.44)**2;
+      const inside=(x-cv.width/2)**2+(y-cv.height/2)**2<(cv.width*.47)**2;
       const ink=inside&&r<threshold&&g<threshold&&b<110;
       d.data[p]=d.data[p+1]=d.data[p+2]=ink?0:255;
     }
@@ -710,7 +731,7 @@
     return out;
   }
   const BADGE_DIGIT_PATTERNS={"1":["AAAAAcAAfAAH4AH+AD/gA/4Ae+ACPgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgABwAAAA=","AAAAAcAAfAAPwAH8AD/AB/wAc8AAPAADwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAABwAAcAAHAAB4AAeAAHAABwAAcAAHAABwAAAA=","AAAAB8AAfgAf4AH+AD/gB/4AeeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAeAAHgAB4AAcAAHAABwAAcAAHAAAwAAMAADAAAwAAAA="],"2":["AAAAH4AH/gD/8A4fAED4AA+AAHgAB4AAeAAHgAD4AA8AAPAAHgAB4AAeAAPAAHgABwAA4AAeAAHAADwAB4AAeAAPgAH/4B//Af/4D/AAAAA=","AAAAHwAH/AD/4A8/AADwAA+AAHgAB4AAeAAHgAB4AA8AAPAADgAA4AAcAAOAAHgAB4AA8AAeAAPAADwAB4AAeAAPgAH/wB//gf/4D/8AAAA="],"3":["AAAAf4AP/AH/4AA/AADwAA+AAHgAB4AAcAAHAADgAB4AA8AB+AAfgAH4AAPAAB4AAPAAB4AAeAAHgAB4AAeAAHgADwAD8A/+Af/AD/AAAAA=","AAAAf8AH/gD/8AR/AAD4AAeAAHgAB4AAeAAHAABwAB4AAcAB+AAfgAD8AAPgAA8AAHgAB4AAOAADgAB4AAeAAHgAD4AH+B//Af/AB/gAAAA="],"4":["AAAAAEAADAABwAA+AAPwAD8AB/AAfwAP+AD/gAz4AYeAOHgDh4AweAYHgGB4DgeA4HgeB4Hg+B8fgf/wD/8AB/AADwAAYAAGAABAAAQAAAA="],"6":["AAAAA+AA/gAf4APgAHgABwAAcAAOAADgAA4AAOAAHgAB48Af/wH5+B8PgfB4HgeB4HgeB4HgeB4HgeB4DgeA4HgPB4B58Af+AD/AAPAAAAA="],"7":["AAAAAPAP/4H/+AB/gAH4AA8AAPAADwAA8AAOAADgABwAAcAAHAADwAA8AAeAAHgADwAA8AAPAADwAA4AAeAAHAADwAA4AAOAADgAA4AAAAA="]};
-  async function badgeQuantity(worker,img,badge,report=false){
+  async function badgeQuantity(worker,img,pixels,badge){
     const votes=new Map(), separatedVotes=new Map(), glyphVotes=new Map(),digitCounts=new Map();
     for(const [threshold,mode] of [[140,"7"],[165,"13"],[155,"8"]]){
       await worker.setParameters({tessedit_char_whitelist:"0123456789xX×",tessedit_pageseg_mode:mode});
@@ -731,9 +752,6 @@
       votes.set(value,(votes.get(value)||0)+1);
 
     }
-    const cv=document.createElement("canvas");cv.width=BASE_W;cv.height=BASE_H;
-    const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,BASE_W,BASE_H);
-    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H);
     const shape=matchPattern(pixels.data,BASE_W,badge.cx,badge.cy,badgeBits,29,29,-14,-14,"ink");
     const visual=shape.score>=.82&&shape.margin>=.12?Number(shape.value):null;
     // Count visible digit components before comparing numeric OCR results.
@@ -752,9 +770,9 @@
       ...[...separatedVotes].map(([v,n])=>({mode:'숫자 분리 OCR ('+n+'회)',text:String(v),accepted:validLength(v)})),
       ...glyphs.map(([v,n])=>({mode:'숫자 모양 대조 ('+n+'회)',text:String(v),accepted:true}))
     ];
-    const finish=value=>report?{value,candidates:[...new Set([
+    const finish=(value,needsReview=value===null)=>({value,candidates:[...new Set([
       ...ranked.map(([v])=>v),...separated.map(([v])=>v),...glyphs.map(([v])=>v)
-    ])],diagnostics,needsReview:value===null}:value;
+    ])],diagnostics,needsReview});
     if(glyphs.length===1&&glyphs[0][1]>=2&&
       (visual===null||!validLength(visual)||visual===glyphs[0][0])&&
       ranked.every(([v])=>v===glyphs[0][0])&&
@@ -764,14 +782,28 @@
     if(separated.length===1&&separated[0][1]>=2&&ranked.some(([v])=>v===separated[0][0])&&
       (visual===null||!validLength(visual)||visual===separated[0][0]))return finish(separated[0][0]);
     if(visual!==null&&validLength(visual)){
-      if(ranked.length&&ranked[0][0]!==visual)return finish(null);
-      if(ranked.some(([v])=>v===visual))return finish(visual);
+      if(ranked[0]?.[0]===visual)return finish(visual);
     }
-    return finish(ranked.length===1&&ranked[0][1]>=2?ranked[0][0]:null);
+    if(ranked.length===1&&ranked[0][1]>=2&&(visual===null||!validLength(visual)))return finish(ranked[0][0]);
+
+    // When the whole badge is hard to read, look for a repeatable value
+    // after removing the multiplication sign. Keep it flagged for review.
+    const plausibleLength=value=>!ranked.some(([other])=>
+      String(other).length>String(value).length&&String(other).includes(String(value)));
+    const corroborated=separated.filter(([value])=>plausibleLength(value)&&ranked.some(([v])=>v===value));
+    if(corroborated.length===1)return finish(corroborated[0][0],true);
+    const repeated=separated.filter(([,count])=>count>=2);
+    if(repeated.length===1){
+      const [value]=repeated[0];
+      if(plausibleLength(value)&&(ranked.some(([v])=>v===value)||!ranked.length))return finish(value,true);
+    }
+    return finish(null);
   }
 
   async function recognizeBuildings(img,worker,progress){
-    const cards=badgeLocatedCards(img);
+    const cv=crop(img,[0,0,BASE_W,BASE_H],1);
+    const pixels=cv.getContext("2d",{willReadFrequently:true}).getImageData(0,0,BASE_W,BASE_H);
+    const badges=findOrangeBadges(pixels),cards=badgeLocatedCards(pixels,badges);
     if(!cards.has("harbor")){const harbor=unbadgedHarborCards(img);if(harbor.length)cards.set("harbor",harbor);}
     // OCR remains a secondary route for single buildings without count badges.
     if(TYPES.buildings.some(item=>!cards.has(item.id))){
@@ -786,10 +818,6 @@
         }
       }catch(e){console.warn("보조 건물 OCR 실패",e);}
     }
-    const cv=document.createElement("canvas");cv.width=BASE_W;cv.height=BASE_H;
-    const ctx=cv.getContext("2d",{willReadFrequently:true});
-    ctx.drawImage(img,0,0,BASE_W,BASE_H);
-    const pixels=ctx.getImageData(0,0,BASE_W,BASE_H);
     const rows=[];
     if(!cards.size)return rows;
     for(const item of TYPES.buildings){
@@ -802,11 +830,11 @@
       const cardsWithCounts=[];
       for(const card of found){
         setStatus(progress+" · "+item.name+" 수량 인식 중…");
-        const badge=card.badge||badgeAt(pixels,card.x,card.y);
-        const reading=badge?await badgeQuantity(worker,img,badge,true):null;
+        const badge=card.badge||badgeAt(pixels,badges,card.x,card.y);
+        const reading=badge?await badgeQuantity(worker,img,pixels,badge):null;
         const count=card.count!==undefined&&card.count!==null?card.count:(reading?reading.value:1);
         const lv=card.lv!==null&&card.lv!==undefined?card.lv:await detectedCardLevel(worker,img,card);
-        cardsWithCounts.push({...card,lv,count,candidates:reading?.candidates,diagnostics:reading?.diagnostics,needsReview:reading?.needsReview,
+        cardsWithCounts.push({...card,badge,lv,count,candidates:reading?.candidates,diagnostics:reading?.diagnostics,needsReview:reading?.needsReview,
           extra:lv===null?"레벨 인식 실패 · 직접 확인":
             !badge?"배지 없음 · 1개":
             count===null?"배지 숫자 인식 실패 · 직접 확인":
@@ -822,8 +850,8 @@
           const count=group.some(c=>c.count===null)?null:group.reduce((sum,c)=>sum+c.count,0);
           const card=group.length===1?group[0]:null,badge=card?.badge;
           rows.push({...makeEntry(item.id+"_mix_"+lv,item.name+" Lv."+lv+" 수량",count,"buildings","count",
-            count===null?"배지 숫자 인식 실패 · 직접 확인":""),
-            candidates:card?.candidates,diagnostics:card?.diagnostics,
+            count===null?"배지 숫자 인식 실패 · 직접 확인":group.some(c=>c.needsReview)?"배지 숫자 직접 확인":""),
+            candidates:card?.candidates,diagnostics:card?.diagnostics,needsReview:group.some(c=>c.needsReview),
             preview:badge?crop(img,[badge.cx-19,badge.cy-19,badge.cx+19,badge.cy+19],3).toDataURL("image/png"):card?.preview});
         }
       }else if(cardsWithCounts.length>1){
@@ -861,7 +889,7 @@
       const inputs=[...root.querySelectorAll(".photo-amount")];
       const eligible=new Set(findings.filter((entry,index)=>
         reviewableValue(entry,inputs[index].value)!==null&&
-        (entry.confirmed||!entry.hasConflict&&!(entry.candidates?.length>1))
+        (entry.confirmed||!entry.needsReview&&!entry.hasConflict&&!(entry.candidates?.length>1))
       ).map(entry=>entry.id));
       const checks=[...root.querySelectorAll(".photo-select")];
       for(const [index,check] of checks.entries()){
@@ -889,7 +917,7 @@
       check.dataset.id=entry.id;
       a.append(check);
       b.textContent=entry.label;
-      const caution=entry.extra||(entry.candidates?.length>1?"추가 확인 필요":"");
+      const caution=entry.extra||(entry.needsReview||entry.candidates?.length>1?"추가 확인 필요":"");
       if(caution){const small=document.createElement("small");small.className="photo-caution";small.textContent=caution;b.append(small);}
       const number=document.createElement("input");
       number.type="text";number.inputMode="decimal";number.className="photo-amount";
